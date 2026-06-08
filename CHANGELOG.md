@@ -37,9 +37,22 @@ VBA interdit le stockage d'un `Type` (UDT) défini dans un module standard dans 
 - Nouveau fichier `SIRUS_Champ_Config.cls`.
 - `G_SIRUS_Config.bas` : suppression du `Type Champ_Config`, `SIRUS_LireConfig` instancie `New SIRUS_Champ_Config` à chaque ligne (sinon toutes les entrées de la `Collection` pointent vers le même objet), `Test_LireConfig` retrouve un `For Each def In col` natif.
 
+### Phase 0 bis — peuplement des 5 autres tables
+Extension de `G_SIRUS_Config.bas` au reste du brief v0.2 sections 6.2 → 6.5 (les modules restent inchangés, seules les procs internes s'ajoutent).
+- `PeuplerInfoATM` (section 6.2) — 8 champs : DTR + HARD/SOFT obligatoires ; Descriptif FR/EN, Plan (hérité `Produit.NumeroPlan`), Réparabilité, Poids (hérité `EMMST.Poids` + alerte si absent), Temps générique en lecture seule.
+- `PeuplerTachesATM` (section 6.2) — 7 champs : DTR, Rang, Langue, HARD/SOFT, Description (conditionnel rang 3.*/4.*), Critère Nm (conditionnel `Description CONTAINS 'Torque Tighten'`), Banc test (conditionnel `Rang IN (2.1,5.1) AND NodeType>=SRU`).
+- `PeuplerEMMST` (section 6.3) — 24 champs principaux : identification, dimensions bare/packaged, conditionnement (Péremption + date conditionnelle), stockage (intérieur/extérieur/hors poussière + commentaire), transport, marquage/manutention, commentaire EN. **À compléter Phase 1+** avec la grille EMMST complète (le brief dit « tous champs attendus » sans lister exhaustivement).
+- `PeuplerProjetSLI` (section 6.4) — 15 champs : Nom projet, Type de train, Durée de circulation, Nombre de trains, Profil de mission (Servicing/day, PH/year, RH/year, Km/year), Durée garantie, Devise, Man hour cost, Niveau de maintenance, Réf PBS/EAP, Réf RAM report, LCC scope total. Formation/BTE/MCO/OBSO exclues (PATH).
+- `PeuplerProjetASL` (section 6.5) — 11 champs : Nom projet (avec règle de cohérence `NomProjet IN ProjetSLI.NomProjet`), DTR, Désignation PBS, Qté, hérités Produit grisés (Node Type, MTBF intrinsèque, DVL générique), saisies projet (MTBF fonctionnel, Lead time Spare/Repair, Testabilité).
+- `SIRUS_InitConfigSheet` enchaîne les 6 `Peupler*`.
+- Nouveau `Test_LireConfig_Toutes` : itère sur les 6 tables et trace, par table, le compte total + répartition (Obligatoire Oui/Conditionnel/Non, Source Saisie/Auto/Hérite).
+- ~79 champs au total dans le config après init.
+
 ### Reste à faire
-- Importer `G_SIRUS_Config.bas` **et** `SIRUS_Champ_Config.cls` dans le `.xlam` via VBE, exécuter `Test_InitConfigSheet` puis `Test_LireConfig` pour valider le pilote Produit.
-- Peupler le config pour `InfoATM` et `TachesATM` (suite Phase 0, brief sections 6.2).
+- Réimporter `G_SIRUS_Config.bas` dans le `.xlam`, exécuter `Test_InitConfigSheet` (qui forcera la recréation) puis `Test_LireConfig_Toutes` pour valider les 6 tables.
+- Validation par Thomas des libellés, `ColonneBdD`, listes (`HardSoft`, `Langue`, `TypeTrain`, `Devise`, `NiveauMaintenance`, `Testabilite`, `Booleen`) et expressions `ConditionObligatoire` / `RegleAlerte` (syntaxe à figer avant le moteur d'analyse Phase 2).
+- Compléter EMMST avec la grille complète (sections, libellés EN, booléens fins) si la couverture Phase 0 est jugée insuffisante.
+- Créer la feuille `Listes` (sources des listes déroulantes) — Phase 0 ter.
 - **Phase 1** : `SIRUS_GenererFeuilleAnalyse(table, operation, dtrs)` — générateur de feuille (création vierge ou pré-remplie via ADODB pour Modifier).
 - **Phase 2** : généraliser `SIRUS_AnalyserProduit` en `SIRUS_AnalyserFeuille(table)` piloté par config.
 

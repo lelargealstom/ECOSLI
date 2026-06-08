@@ -97,8 +97,13 @@ Public Sub SIRUS_InitConfigSheet(Optional ByVal bForcer As Boolean = False)
     ' Vider la ligne creee automatiquement par xlYes
     If Not lo.DataBodyRange Is Nothing Then lo.DataBodyRange.ClearContents
 
-    ' -- 5. Peupler pour Produit (pilote Phase 0) ------------
+    ' -- 5. Peupler pour les 6 tables (brief v0.2 sections 6.1 a 6.5) --
     Call PeuplerProduit(lo)
+    Call PeuplerInfoATM(lo)
+    Call PeuplerTachesATM(lo)
+    Call PeuplerEMMST(lo)
+    Call PeuplerProjetSLI(lo)
+    Call PeuplerProjetASL(lo)
 
     ' Si une ligne vide a survecu en debut, on la supprime
     If lo.ListRows.Count > 0 Then
@@ -111,7 +116,7 @@ Public Sub SIRUS_InitConfigSheet(Optional ByVal bForcer As Boolean = False)
     ws.Visible = xlSheetVeryHidden
 
     Debug.Print "SIRUS_InitConfigSheet : feuille " & SIRUS_CONFIG_SHEET & _
-                " creee et peuplee Produit (" & lo.ListRows.Count & " champs)."
+                " creee et peuplee pour 6 tables (" & lo.ListRows.Count & " champs au total)."
     Exit Sub
 
 Sortie:
@@ -178,6 +183,291 @@ Private Sub PeuplerProduit(lo As ListObject)
     Call AjouterChamp(lo, "Produit", "Designation BdD", "DesignationBdD", 200, _
                       "Texte", "", "Non", "", "Auto", "", 0, "", _
                       "Lecture seule, recuperee de la BdD (affichage gris).")
+End Sub
+
+' =========================================================================
+' PEUPLEMENT DU CONFIG POUR LA TABLE INFO ATM
+' =========================================================================
+' Brief v0.2 section 6.2.
+' Obligatoires : DTR, HARD/SOFT.
+' Auto / Herites (grises) : Descriptif FR/EN, Plan (hérité Produit.NumeroPlan),
+' Reparabilite, Poids (herite EMMST.Poids), Temps generique.
+' Alerte : Poids absent ==> EMMST inconnu en base.
+Private Sub PeuplerInfoATM(lo As ListObject)
+
+    Call AjouterChamp(lo, "InfoATM", "DTR", "DTR", 10, _
+                      "Texte", "", "Oui", "", "Saisie", "", 3, "", _
+                      "Identifiant unique ATM (cle).")
+
+    Call AjouterChamp(lo, "InfoATM", "HARD/SOFT", "HardSoft", 20, _
+                      "Liste", "HardSoft", "Oui", "", "Saisie", "", 2, _
+                      "HS_Info=HS_Tache", _
+                      "Doit correspondre au HARD/SOFT des Taches associees.")
+
+    Call AjouterChamp(lo, "InfoATM", "Descriptif FR", "DescriptifFR", 30, _
+                      "Texte", "", "Non", "", "Auto", "", 0, "", _
+                      "Lecture seule, recupere de la BdD (affichage gris).")
+
+    Call AjouterChamp(lo, "InfoATM", "Descriptif EN", "DescriptifEN", 40, _
+                      "Texte", "", "Non", "", "Auto", "", 0, "", _
+                      "Lecture seule, recupere de la BdD (affichage gris).")
+
+    Call AjouterChamp(lo, "InfoATM", "Plan", "Plan", 50, _
+                      "Texte", "", "Non", "", "Herite", "Produit.NumeroPlan", 0, "", _
+                      "Herite de Produit.NumeroPlan (affichage gris).")
+
+    Call AjouterChamp(lo, "InfoATM", "Reparabilite", "Reparabilite", 60, _
+                      "Texte", "", "Non", "", "Auto", "", 0, "", _
+                      "Lecture seule (affichage gris).")
+
+    Call AjouterChamp(lo, "InfoATM", "Poids", "Poids", 70, _
+                      "Nombre", "", "Non", "", "Herite", "EMMST.Poids", 0, _
+                      "PoidsAbsent==>EMMSTInconnu", _
+                      "Herite de EMMST.Poids. Si absent en base ==> alerte EMMST inconnu.")
+
+    Call AjouterChamp(lo, "InfoATM", "Temps generique", "TempsGenerique", 80, _
+                      "Nombre", "", "Non", "", "Auto", "", 0, "", _
+                      "Lecture seule, calcule (affichage gris).")
+End Sub
+
+' =========================================================================
+' PEUPLEMENT DU CONFIG POUR LA TABLE TACHES ATM
+' =========================================================================
+' Brief v0.2 section 6.2.
+' Obligatoires : DTR, Rang, Langue, HARD/SOFT, Description (rang 3 & 4).
+' Regles metier :
+'   * "Torque Tighten" dans Description ==> critere "N.m" attendu
+'   * Rang 2.1 / 5.1 ET NodeType >= SRU ==> Banc test attendu
+'   * Coherence HARD/SOFT InfoATM <==> TachesATM
+Private Sub PeuplerTachesATM(lo As ListObject)
+
+    Call AjouterChamp(lo, "TachesATM", "DTR", "DTR", 10, _
+                      "Texte", "", "Oui", "", "Saisie", "", 3, "", _
+                      "Cle parent (ATM de rattachement).")
+
+    Call AjouterChamp(lo, "TachesATM", "Rang", "Rang", 20, _
+                      "Texte", "", "Oui", "", "Saisie", "", 2, "", _
+                      "Numerotation hierarchique (ex. 2.1, 5.1, 3.2.4).")
+
+    Call AjouterChamp(lo, "TachesATM", "Langue", "Langue", 30, _
+                      "Liste", "Langue", "Oui", "", "Saisie", "", 1, "", _
+                      "FR ou EN.")
+
+    Call AjouterChamp(lo, "TachesATM", "HARD/SOFT", "HardSoft", 40, _
+                      "Liste", "HardSoft", "Oui", "", "Saisie", "", 1, _
+                      "HS_Info=HS_Tache", _
+                      "Doit etre coherent avec InfoATM.HardSoft du meme DTR.")
+
+    Call AjouterChamp(lo, "TachesATM", "Description", "Description", 50, _
+                      "Texte", "", "Conditionnel", "Rang LIKE (3.*,4.*)", "Saisie", "", 2, _
+                      "TorqueTighten==>NmAttendu", _
+                      "Obligatoire pour rang 3.* et 4.*. Si contient 'Torque Tighten' ==> critere N.m attendu.")
+
+    Call AjouterChamp(lo, "TachesATM", "Critere Nm", "CritereNm", 60, _
+                      "Nombre", "", "Conditionnel", "Description CONTAINS 'Torque Tighten'", "Saisie", "", 1, "", _
+                      "Couple de serrage en N.m, attendu si Description contient 'Torque Tighten'.")
+
+    Call AjouterChamp(lo, "TachesATM", "Banc test", "BancTest", 70, _
+                      "Texte", "", "Conditionnel", "Rang IN (2.1,5.1) AND NodeType>=SRU", "Saisie", "", 1, "", _
+                      "Reference banc test, attendue pour Rang 2.1/5.1 et NodeType >= SRU.")
+End Sub
+
+' =========================================================================
+' PEUPLEMENT DU CONFIG POUR LA TABLE EMMST
+' =========================================================================
+' Brief v0.2 section 6.3 : "Tous champs attendus" (dimensions nu &
+' conditionne, conditionnement, stockage, transport, marquage, EN).
+' Feuille longue sectionnee, nombreux booleens.
+' Peuplement Phase 0 : champs principaux derives du Type EMMST_Col existant
+' (Z_Variables.bas). A completer Phase 1+ avec la grille complete EMMST.
+Private Sub PeuplerEMMST(lo As ListObject)
+
+    Call AjouterChamp(lo, "EMMST", "DTR", "DTR", 10, _
+                      "Texte", "", "Oui", "", "Saisie", "", 3, "", _
+                      "Identifiant unique EMMST (cle).")
+
+    Call AjouterChamp(lo, "EMMST", "Designation", "Designation", 20, _
+                      "Texte", "", "Oui", "", "Saisie", "", 2, "", "")
+
+    Call AjouterChamp(lo, "EMMST", "Fournisseur", "Fournisseur", 30, _
+                      "Texte", "", "Non", "", "Herite", "Produit.Fournisseur", 0, "", _
+                      "Herite de Produit (affichage gris).")
+
+    ' --- Dimensions nu (Bare) ---
+    Call AjouterChamp(lo, "EMMST", "Longueur nu", "BareLength", 100, _
+                      "Nombre", "", "Oui", "", "Saisie", "", 1, "", "mm")
+    Call AjouterChamp(lo, "EMMST", "Largeur nu", "BareWidth", 110, _
+                      "Nombre", "", "Oui", "", "Saisie", "", 1, "", "mm")
+    Call AjouterChamp(lo, "EMMST", "Hauteur nu", "BareHeight", 120, _
+                      "Nombre", "", "Oui", "", "Saisie", "", 1, "", "mm")
+    Call AjouterChamp(lo, "EMMST", "Poids nu", "BareMass", 130, _
+                      "Nombre", "", "Oui", "", "Saisie", "", 2, "", _
+                      "kg. Reutilise par InfoATM.Poids (heritage).")
+
+    ' --- Dimensions conditionne (Packaged) ---
+    Call AjouterChamp(lo, "EMMST", "Longueur conditionne", "PackagedLength", 200, _
+                      "Nombre", "", "Oui", "", "Saisie", "", 1, "", "mm")
+    Call AjouterChamp(lo, "EMMST", "Largeur conditionne", "PackagedWidth", 210, _
+                      "Nombre", "", "Oui", "", "Saisie", "", 1, "", "mm")
+    Call AjouterChamp(lo, "EMMST", "Hauteur conditionne", "PackagedHeight", 220, _
+                      "Nombre", "", "Oui", "", "Saisie", "", 1, "", "mm")
+    Call AjouterChamp(lo, "EMMST", "Poids conditionne", "PackagedMass", 230, _
+                      "Nombre", "", "Oui", "", "Saisie", "", 1, "", "kg")
+
+    ' --- Conditionnement ---
+    Call AjouterChamp(lo, "EMMST", "Peremption", "Lapsing", 300, _
+                      "Booleen", "Booleen", "Oui", "", "Saisie", "", 1, "", _
+                      "Produit perissable (Oui/Non).")
+    Call AjouterChamp(lo, "EMMST", "Date peremption", "ExpiryDate", 310, _
+                      "Date", "", "Conditionnel", "Lapsing=Oui", "Saisie", "", 1, "", _
+                      "Attendue si Peremption = Oui.")
+    Call AjouterChamp(lo, "EMMST", "Conditionnement multiple", "MultiplePackaging", 320, _
+                      "Booleen", "Booleen", "Oui", "", "Saisie", "", 1, "", "")
+
+    ' --- Stockage ---
+    Call AjouterChamp(lo, "EMMST", "Stockage interieur", "StorageIndoor", 400, _
+                      "Booleen", "Booleen", "Oui", "", "Saisie", "", 1, "", "")
+    Call AjouterChamp(lo, "EMMST", "Stockage exterieur", "StorageOutdoor", 410, _
+                      "Booleen", "Booleen", "Oui", "", "Saisie", "", 1, "", "")
+    Call AjouterChamp(lo, "EMMST", "Stockage hors poussiere", "StorageNoDust", 420, _
+                      "Booleen", "Booleen", "Oui", "", "Saisie", "", 1, "", "")
+    Call AjouterChamp(lo, "EMMST", "Commentaire stockage", "StorageComment", 490, _
+                      "Texte", "", "Non", "", "Saisie", "", 0, "", "")
+
+    ' --- Transport ---
+    Call AjouterChamp(lo, "EMMST", "Moyen transport", "TransportMean", 500, _
+                      "Texte", "", "Oui", "", "Saisie", "", 1, "", "")
+    Call AjouterChamp(lo, "EMMST", "Outillage transport", "TransportTool", 510, _
+                      "Texte", "", "Non", "", "Saisie", "", 0, "", "")
+    Call AjouterChamp(lo, "EMMST", "Commentaire transport", "TransportComment", 590, _
+                      "Texte", "", "Non", "", "Saisie", "", 0, "", "")
+
+    ' --- Marquage / Manutention / EN ---
+    Call AjouterChamp(lo, "EMMST", "Marquage equipement", "EquipmentMarking", 600, _
+                      "Texte", "", "Non", "", "Saisie", "", 0, "", "")
+    Call AjouterChamp(lo, "EMMST", "Manutention equipement", "EquipmentHandling", 610, _
+                      "Texte", "", "Non", "", "Saisie", "", 0, "", "")
+    Call AjouterChamp(lo, "EMMST", "Commentaire EN", "CommentEN", 700, _
+                      "Texte", "", "Non", "", "Saisie", "", 0, "", _
+                      "Traduction EN des commentaires (export client international).")
+End Sub
+
+' =========================================================================
+' PEUPLEMENT DU CONFIG POUR LA TABLE PROJET SLI
+' =========================================================================
+' Brief v0.2 section 6.4. Champs utiles au PROVIDOR.
+' Briques Formation / BTE / MCO / OBSO exclues (perimetre PATH).
+Private Sub PeuplerProjetSLI(lo As ListObject)
+
+    Call AjouterChamp(lo, "ProjetSLI", "Nom projet", "NomProjet", 10, _
+                      "Texte", "", "Oui", "", "Saisie", "", 3, "", _
+                      "Identifiant unique projet SLI.")
+
+    Call AjouterChamp(lo, "ProjetSLI", "Type de train", "TypeTrain", 20, _
+                      "Liste", "TypeTrain", "Oui", "", "Saisie", "", 2, "", "")
+
+    Call AjouterChamp(lo, "ProjetSLI", "Duree de circulation", "DureeCirculation", 30, _
+                      "Nombre", "", "Oui", "", "Saisie", "", 2, "", _
+                      "En annees.")
+
+    Call AjouterChamp(lo, "ProjetSLI", "Nombre de trains", "NombreTrains", 40, _
+                      "Nombre", "", "Oui", "", "Saisie", "", 2, "", "")
+
+    ' --- Profil de mission ---
+    Call AjouterChamp(lo, "ProjetSLI", "Servicing/day", "ServicingPerDay", 50, _
+                      "Nombre", "", "Oui", "", "Saisie", "", 1, "", _
+                      "Profil de mission.")
+    Call AjouterChamp(lo, "ProjetSLI", "PH/year", "PHPerYear", 60, _
+                      "Nombre", "", "Oui", "", "Saisie", "", 1, "", _
+                      "Power Hours par an.")
+    Call AjouterChamp(lo, "ProjetSLI", "RH/year", "RHPerYear", 70, _
+                      "Nombre", "", "Oui", "", "Saisie", "", 1, "", _
+                      "Running Hours par an.")
+    Call AjouterChamp(lo, "ProjetSLI", "Km/year", "KmPerYear", 80, _
+                      "Nombre", "", "Oui", "", "Saisie", "", 1, "", _
+                      "Kilometres par an.")
+
+    Call AjouterChamp(lo, "ProjetSLI", "Duree garantie", "DureeGarantie", 90, _
+                      "Nombre", "", "Oui", "", "Saisie", "", 1, "", _
+                      "En annees.")
+
+    Call AjouterChamp(lo, "ProjetSLI", "Devise", "Devise", 100, _
+                      "Liste", "Devise", "Oui", "", "Saisie", "", 1, "", "")
+
+    Call AjouterChamp(lo, "ProjetSLI", "Man hour cost", "ManHourCost", 110, _
+                      "Nombre", "", "Oui", "", "Saisie", "", 1, "", _
+                      "Cout horaire main d'oeuvre dans la devise du projet.")
+
+    Call AjouterChamp(lo, "ProjetSLI", "Niveau de maintenance", "NiveauMaintenance", 120, _
+                      "Liste", "NiveauMaintenance", "Oui", "", "Saisie", "", 1, "", "")
+
+    Call AjouterChamp(lo, "ProjetSLI", "Reference PBS/EAP", "RefPBS_EAP", 130, _
+                      "Texte", "", "Oui", "", "Saisie", "", 1, "", "")
+
+    Call AjouterChamp(lo, "ProjetSLI", "Reference RAM report", "RefRAMReport", 140, _
+                      "Texte", "", "Oui", "", "Saisie", "", 1, "", "")
+
+    Call AjouterChamp(lo, "ProjetSLI", "LCC scope total", "LCCScopeTotal", 150, _
+                      "Nombre", "", "Oui", "", "Saisie", "", 1, "", _
+                      "Perimetre LCC en cout total.")
+End Sub
+
+' =========================================================================
+' PEUPLEMENT DU CONFIG POUR LA TABLE PROJET ASL (mise a jour PBS)
+' =========================================================================
+' Brief v0.2 section 6.5.
+' Obligatoires : DTR, Designation PBS, Qte, Node Type, MTBF fonctionnel,
+' Lead time Spare / Repair, Testabilite.
+' Herites Produit (grises, lecture seule) : Node Type, MTBF intrinseque,
+' DVL generique.
+' Coherence forte : Nom projet ==> doit correspondre a un Projet SLI existant.
+Private Sub PeuplerProjetASL(lo As ListObject)
+
+    Call AjouterChamp(lo, "ProjetASL", "Nom projet", "NomProjet", 10, _
+                      "Texte", "", "Oui", "", "Saisie", "", 3, _
+                      "NomProjet IN ProjetSLI.NomProjet", _
+                      "Doit correspondre a un Projet SLI existant.")
+
+    Call AjouterChamp(lo, "ProjetASL", "DTR", "DTR", 20, _
+                      "Texte", "", "Oui", "", "Saisie", "", 3, "", _
+                      "Identifiant unique du DTR de la PBS.")
+
+    Call AjouterChamp(lo, "ProjetASL", "Designation PBS", "DesignationPBS", 30, _
+                      "Texte", "", "Oui", "", "Saisie", "", 2, "", _
+                      "Designation issue de la PBS du projet.")
+
+    Call AjouterChamp(lo, "ProjetASL", "Qte", "Qte", 40, _
+                      "Nombre", "", "Oui", "", "Saisie", "", 1, "", _
+                      "Quantite par train.")
+
+    ' --- Herites Produit (lecture seule) ---
+    Call AjouterChamp(lo, "ProjetASL", "Node Type", "NodeType", 50, _
+                      "Liste", "NodeType", "Non", "", "Herite", "Produit.NodeType", 0, "", _
+                      "Herite de Produit (affichage gris). Valeur Produit pour ce DTR.")
+
+    Call AjouterChamp(lo, "ProjetASL", "MTBF intrinseque", "MTBFIntrinseque", 60, _
+                      "Nombre", "", "Non", "", "Herite", "Produit.MTBFIntrinseque", 0, "", _
+                      "Herite de Produit (affichage gris).")
+
+    Call AjouterChamp(lo, "ProjetASL", "DVL generique", "DVLGenerique", 70, _
+                      "Nombre", "", "Non", "", "Herite", "Produit.DVLGenerique", 0, "", _
+                      "Herite de Produit (affichage gris).")
+
+    ' --- Saisies projet ---
+    Call AjouterChamp(lo, "ProjetASL", "MTBF fonctionnel", "MTBFFonctionnel", 80, _
+                      "Nombre", "", "Oui", "", "Saisie", "", 2, "", _
+                      "MTBF fonctionnel projet (peut differer du MTBF intrinseque Produit).")
+
+    Call AjouterChamp(lo, "ProjetASL", "Lead time Spare", "LeadTimeSpare", 90, _
+                      "Nombre", "", "Oui", "", "Saisie", "", 1, "", _
+                      "En semaines (a confirmer).")
+
+    Call AjouterChamp(lo, "ProjetASL", "Lead time Repair", "LeadTimeRepair", 100, _
+                      "Nombre", "", "Oui", "", "Saisie", "", 1, "", _
+                      "En semaines (a confirmer).")
+
+    Call AjouterChamp(lo, "ProjetASL", "Testabilite", "Testabilite", 110, _
+                      "Liste", "Testabilite", "Oui", "", "Saisie", "", 1, "", "")
 End Sub
 
 ' =========================================================================
@@ -360,4 +650,47 @@ Public Sub Test_LireConfig()
         End If
         Debug.Print s
     Next def
+End Sub
+
+' Test_LireConfig_Toutes : parcourt les 6 tables connues et trace pour
+' chacune le nombre de champs lus + la repartition par categorie
+' (Obligatoires Oui / Conditionnels / Non) et par source (Saisie / Auto / Herite).
+Public Sub Test_LireConfig_Toutes()
+
+    Dim tables As Variant
+    Dim t As Variant
+    Dim col As Collection
+    Dim def As SIRUS_Champ_Config
+    Dim nbOui As Long, nbCond As Long, nbNon As Long
+    Dim nbSaisie As Long, nbAuto As Long, nbHerite As Long
+    Dim total As Long
+
+    tables = Array(SIRUS_TBL_PRODUIT, SIRUS_TBL_INFOATM, SIRUS_TBL_TACHESATM, _
+                   SIRUS_TBL_EMMST, SIRUS_TBL_PROJETSLI, SIRUS_TBL_PROJETASL)
+
+    Debug.Print "=== Test_LireConfig_Toutes ==="
+
+    For Each t In tables
+        Set col = SIRUS_LireConfig(CStr(t))
+        nbOui = 0: nbCond = 0: nbNon = 0
+        nbSaisie = 0: nbAuto = 0: nbHerite = 0
+        For Each def In col
+            Select Case def.Obligatoire
+                Case "Oui":          nbOui = nbOui + 1
+                Case "Conditionnel": nbCond = nbCond + 1
+                Case Else:           nbNon = nbNon + 1
+            End Select
+            Select Case def.Source
+                Case "Saisie": nbSaisie = nbSaisie + 1
+                Case "Auto":   nbAuto = nbAuto + 1
+                Case "Herite": nbHerite = nbHerite + 1
+            End Select
+        Next def
+        total = total + col.Count
+        Debug.Print "  " & t & " : " & col.Count & " champs " & _
+                    "[Oblig: Oui=" & nbOui & " Cond=" & nbCond & " Non=" & nbNon & "] " & _
+                    "[Source: Saisie=" & nbSaisie & " Auto=" & nbAuto & " Herite=" & nbHerite & "]"
+    Next t
+
+    Debug.Print "TOTAL : " & total & " champs sur " & (UBound(tables) - LBound(tables) + 1) & " tables."
 End Sub
