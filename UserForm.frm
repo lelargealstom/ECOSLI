@@ -641,6 +641,7 @@ Call G_SIRIUS_UserForm.SIRIUS_ConfigListViewATM
 Call G_SIRIUS_UserForm.SIRIUS_ConfigListViewGeneration
 
 ' SIRIUS - Alimentation PBS dans ListView_Generation a partir de DATA_ASL du classeur actif
+G_SIRIUS_PBS.SIRIUS_LookupDTR_Active = True
 Call G_SIRIUS_PBS.SIRIUS_RemplirListViewGeneration
 
 ' SIRIUS � �tat initial NavTab type de demande

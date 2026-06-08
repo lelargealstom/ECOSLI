@@ -66,9 +66,15 @@ Public Type DATA_ASL_Col
 End Type
 
 Public DATA_ASL_type As DATA_ASL_Col
-Public DATA_ASL_HeaderRow As Long          ' Ligne d'entete de DATA_ASL (defaut 1)
+Public DATA_ASL_HeaderRow As Long          ' Ligne d'entete de DATA_ASL (auto-detectee si 0)
 
-' Caches DTR par table BdD - charges une fois par session puis reutilises.
+' Flag de configuration : True pour activer le lookup BdD des 4 colonnes
+' ATM-Info / ATM-Taches / EMMST / Produit. False = colonnes laissees vides.
+' Permet de couper le lookup BdD sans toucher au code de remplissage.
+Public SIRIUS_LookupDTR_Active As Boolean
+
+' Caches DTR par table BdD - charges une fois par appel.
+Private dictProjetASL As Object
 Private dictInfoATM   As Object
 Private dictTachesATM As Object
 Private dictEMMST     As Object
@@ -134,8 +140,18 @@ Public Function MapColonnesDATA_ASL(ByVal ws As Worksheet) As Boolean
 
     Dim manqueCritique As String
     Dim manqueOptionnel As String
+    Dim ligneAuto As Long
 
-    If DATA_ASL_HeaderRow = 0 Then DATA_ASL_HeaderRow = 1
+    ' Auto-detection de la ligne d'entete via le libelle ancre DTR.
+    ' On cherche sur toute la feuille car DATA_ASL peut avoir un en-tete
+    ' qui n'est pas en ligne 1 (titres, fusionnees, lignes de filtres...).
+    ligneAuto = DetecterLigneEntete(ws, "DTR Reference (issue de PBS)")
+    If ligneAuto > 0 Then
+        DATA_ASL_HeaderRow = ligneAuto
+    ElseIf DATA_ASL_HeaderRow = 0 Then
+        DATA_ASL_HeaderRow = 1
+    End If
+    Debug.Print "[DATA_ASL] Ligne d'entete utilisee : " & DATA_ASL_HeaderRow
 
     With DATA_ASL_type
         ' --- Identification --------------------------------------------------
@@ -237,7 +253,12 @@ Private Function TrouverColonne(ByVal ws As Worksheet, ByVal libelle As String, 
     Dim cel As Range
 
     On Error Resume Next
+    ' Tentative match exact (xlWhole)
     Set cel = ws.rows(DATA_ASL_HeaderRow).Find(What:=libelle, LookIn:=xlValues, lookat:=xlWhole, MatchCase:=False)
+    ' Fallback match partiel (xlPart) - tolere espaces / sauts de ligne / suffixes
+    If cel Is Nothing Then
+        Set cel = ws.rows(DATA_ASL_HeaderRow).Find(What:=libelle, LookIn:=xlValues, lookat:=xlPart, MatchCase:=False)
+    End If
     On Error GoTo 0
 
     If cel Is Nothing Then
@@ -255,27 +276,63 @@ End Function
 
 
 ' =========================================================================
+' FONCTION: DetecterLigneEntete
+' Cherche un libelle ancre dans toute la feuille et retourne la ligne ou
+' il est trouve (xlWhole d'abord, xlPart en fallback). 0 si introuvable.
+' =========================================================================
+Private Function DetecterLigneEntete(ByVal ws As Worksheet, ByVal libelleAncre As String) As Long
+
+    Dim cel As Range
+
+    On Error Resume Next
+    Set cel = ws.Cells.Find(What:=libelleAncre, LookIn:=xlValues, lookat:=xlWhole, MatchCase:=False, _
+                            SearchOrder:=xlByRows, SearchDirection:=xlNext)
+    If cel Is Nothing Then
+        Set cel = ws.Cells.Find(What:=libelleAncre, LookIn:=xlValues, lookat:=xlPart, MatchCase:=False, _
+                                SearchOrder:=xlByRows, SearchDirection:=xlNext)
+    End If
+    On Error GoTo 0
+
+    If cel Is Nothing Then
+        DetecterLigneEntete = 0
+    Else
+        DetecterLigneEntete = cel.Row
+    End If
+
+End Function
+
+
+' =========================================================================
 ' SUB: SIRIUS_RemplirListViewGeneration
 ' Alimente la ListView_Generation du UserForm avec, pour chaque DTR de
 ' la PBS du classeur actif :
 '   Col 1  : DTR
-'   Col 2  : ATM-Info  - "OK" si DTR present dans Info_ATM$
-'   Col 3  : ATM-Tache - "OK" si DTR present dans Taches_ATM$
-'   Col 4  : EMMST     - "OK" si DTR present dans EMMST$
-'   Col 5  : Produit   - "OK" si DTR present dans Produit$
-'   Col 6  : Qualite Prix Spare
-'   Col 7  : Source Ecart Spare
-'   Col 8  : Source Manque Spare
-'   Col 9  : Qualite Prix Repair
-'   Col 10 : Source Ecart Repair
-'   Col 11 : Source Manque Repair
+'   Col 2  : Projet_ASL - "OUI" si DTR present dans Projet_ASL$, "NON" sinon
+'   Col 3  : ATM-Info   - "OK"  si DTR present dans Info_ATM$
+'   Col 4  : ATM-Tache  - "OK"  si DTR present dans Taches_ATM$
+'   Col 5  : EMMST      - "OK"  si DTR present dans EMMST$
+'   Col 6  : Produit    - "OK"  si DTR present dans Produit$
+'   Col 7  : Qualite Prix Spare
+'   Col 8  : Source Ecart Spare
+'   Col 9  : Source Manque Spare
+'   Col 10 : Qualite Prix Repair
+'   Col 11 : Source Ecart Repair
+'   Col 12 : Source Manque Repair
 '
 ' Source : feuille DATA_ASL du ActiveWorkbook au moment de l'appel.
 ' Suppose la connexion BdD ouverte (cf. UserForm_Initialize).
+'
+' Requetes SQL emises (une par lookup, executees une seule fois par appel
+' puis cachees en Dictionary pour test d'appartenance en O(1)) :
+'   1. SELECT [DTR]            FROM [Projet_ASL$]
+'   2. SELECT [DTR_INFOATM]    FROM [Info_ATM$]
+'   3. SELECT [DTR_TACHEATM]   FROM [Taches_ATM$]
+'   4. SELECT [DTR_EMMST]      FROM [EMMST$]
+'   5. SELECT [DTR]            FROM [Produit$]
 ' =========================================================================
 Public Sub SIRIUS_RemplirListViewGeneration()
 
-    Dim ws As Worksheet
+    Dim wsPBS As Worksheet
     Dim wb As Workbook
     Dim lv As MSComctlLib.ListView
     Dim ligne As Long
@@ -291,52 +348,69 @@ Public Sub SIRIUS_RemplirListViewGeneration()
     Set lv = UserForm.ListView_Generation
     If lv Is Nothing Then GoTo Sortie
 
-    ' Reset systematique pour tolerer DATA_ASL absent / vide sans ListView resduelle
+    ' Reset systematique pour tolerer DATA_ASL absent / vide sans ListView residuelle
     lv.ListItems.Clear
 
-    If Not VerifierFeuilleDATA_ASL(wb, ws) Then GoTo Sortie
-    If Not MapColonnesDATA_ASL(ws) Then GoTo Sortie
+    If Not VerifierFeuilleDATA_ASL(wb, wsPBS) Then GoTo Sortie
+    If Not MapColonnesDATA_ASL(wsPBS) Then GoTo Sortie
 
-    ' Caches DTR BdD - charges une fois par appel
-    Set dictInfoATM = ChargerSetDTR_BdD("Info_ATM$", "DTR_INFOATM")
-    Set dictTachesATM = ChargerSetDTR_BdD("Taches_ATM$", "DTR_TACHEATM")
-    Set dictEMMST = ChargerSetDTR_BdD("EMMST$", "DTR_EMMST")
-    Set dictProduit = ChargerSetDTR_BdD("Produit$", "DTR")
+    ' Caches DTR BdD - charges seulement si le lookup est active.
+    ' Si False, les 5 colonnes Projet_ASL/ATM/EMMST/Produit restent vides.
+    If SIRIUS_LookupDTR_Active Then
+        Set dictProjetASL = ChargerSetDTR_BdD("Projet_ASL$", "DTR")
+        Set dictInfoATM = ChargerSetDTR_BdD("Info_ATM$", "DTR_INFOATM")
+        Set dictTachesATM = ChargerSetDTR_BdD("Taches_ATM$", "DTR_TACHEATM")
+        Set dictEMMST = ChargerSetDTR_BdD("EMMST$", "DTR_EMMST")
+        Set dictProduit = ChargerSetDTR_BdD("Produit$", "DTR")
+    Else
+        Set dictProjetASL = Nothing
+        Set dictInfoATM = Nothing
+        Set dictTachesATM = Nothing
+        Set dictEMMST = Nothing
+        Set dictProduit = Nothing
+    End If
 
     ' Derniere ligne sur la colonne DTR
-    derniereLigne = ws.Cells(ws.rows.count, DATA_ASL_type.DTR_PBS).End(xlUp).Row
+    derniereLigne = wsPBS.Cells(wsPBS.rows.count, DATA_ASL_type.DTR_PBS).End(xlUp).Row
     If derniereLigne <= DATA_ASL_HeaderRow Then GoTo Sortie
 
     Application.ScreenUpdating = False
 
     For ligne = DATA_ASL_HeaderRow + 1 To derniereLigne
 
-        dtr = Trim$(CStr(ws.Cells(ligne, DATA_ASL_type.DTR_PBS).Value))
+        dtr = Trim$(CStr(wsPBS.Cells(ligne, DATA_ASL_type.DTR_PBS).Value))
         If Len(dtr) = 0 Then GoTo SuivanteLigne
 
         Set li = lv.ListItems.Add(, , dtr)
-        li.SubItems(1) = IIf(SetContient(dictInfoATM, dtr), "OK", "")
-        li.SubItems(2) = IIf(SetContient(dictTachesATM, dtr), "OK", "")
-        li.SubItems(3) = IIf(SetContient(dictEMMST, dtr), "OK", "")
-        li.SubItems(4) = IIf(SetContient(dictProduit, dtr), "OK", "")
+        ' Col 2 : Projet_ASL utilise OUI/NON (presence binaire critique avant generation).
+        ' Cols 3-6 : presence informative en OK / vide.
+        If SIRIUS_LookupDTR_Active Then
+            li.SubItems(1) = IIf(SetContient(dictProjetASL, dtr), "OUI", "NON")
+        Else
+            li.SubItems(1) = ""
+        End If
+        li.SubItems(2) = IIf(SetContient(dictInfoATM, dtr), "OK", "")
+        li.SubItems(3) = IIf(SetContient(dictTachesATM, dtr), "OK", "")
+        li.SubItems(4) = IIf(SetContient(dictEMMST, dtr), "OK", "")
+        li.SubItems(5) = IIf(SetContient(dictProduit, dtr), "OK", "")
 
         ' Qualite SPARE : Prix Manuel Spare / Cout spare ALSTOM FRANCE FOURNISSEUR / ISP TIS FRANCE (FCS)
-        vMan = LireCellule(ws, ligne, DATA_ASL_type.PrixManuelSpare)
-        vFrs = LireCellule(ws, ligne, DATA_ASL_type.CoutSpare_AlstomFR_FRS)
-        vCat = LireCellule(ws, ligne, DATA_ASL_type.ISP_TIS_FCS)
+        vMan = LireCellule(wsPBS, ligne, DATA_ASL_type.PrixManuelSpare)
+        vFrs = LireCellule(wsPBS, ligne, DATA_ASL_type.CoutSpare_AlstomFR_FRS)
+        vCat = LireCellule(wsPBS, ligne, DATA_ASL_type.ISP_TIS_FCS)
         resSpare = EvaluerQualitePrix(vMan, vFrs, vCat)
-        li.SubItems(5) = resSpare(0)
-        li.SubItems(6) = resSpare(1)
-        li.SubItems(7) = resSpare(2)
+        li.SubItems(6) = resSpare(0)
+        li.SubItems(7) = resSpare(1)
+        li.SubItems(8) = resSpare(2)
 
         ' Qualite REPAIR : Prix Manuel Repair / Prix repair ALSTOM FOURNISSEUR / Prix repa (ISP Catalogue Repa)
-        vMan = LireCellule(ws, ligne, DATA_ASL_type.PrixManuelRepair)
-        vFrs = LireCellule(ws, ligne, DATA_ASL_type.PrixRepair_Alstom_FRS)
-        vCat = LireCellule(ws, ligne, DATA_ASL_type.PrixRepa_ISP)
+        vMan = LireCellule(wsPBS, ligne, DATA_ASL_type.PrixManuelRepair)
+        vFrs = LireCellule(wsPBS, ligne, DATA_ASL_type.PrixRepair_Alstom_FRS)
+        vCat = LireCellule(wsPBS, ligne, DATA_ASL_type.PrixRepa_ISP)
         resRepair = EvaluerQualitePrix(vMan, vFrs, vCat)
-        li.SubItems(8) = resRepair(0)
-        li.SubItems(9) = resRepair(1)
-        li.SubItems(10) = resRepair(2)
+        li.SubItems(9) = resRepair(0)
+        li.SubItems(10) = resRepair(1)
+        li.SubItems(11) = resRepair(2)
 
 SuivanteLigne:
     Next ligne
@@ -363,11 +437,18 @@ End Sub
 ' Charge la liste des DTR d'une table BdD dans un Dictionary
 ' { DTR -> True } pour permettre un test d'appartenance en O(1).
 ' Suppose Open_CONN deja appelee (UserForm_Initialize).
+'
+' Implementation : GetRows materialise tout le RecordSet en tableau 2D
+' en une seule operation. Plus robuste qu'une boucle MoveNext / EOF qui
+' peut s'interrompre prematurement sur les sources Excel ODBC (curseur
+' forward-only fragile).
 ' =========================================================================
 Private Function ChargerSetDTR_BdD(ByVal nomTable As String, ByVal colonneDTR As String) As Object
 
     Dim dict As Object
     Dim STRSEL As String
+    Dim arr As Variant
+    Dim i As Long
     Dim valeur As String
 
     Set dict = CreateObject("Scripting.Dictionary")
@@ -380,14 +461,19 @@ Private Function ChargerSetDTR_BdD(ByVal nomTable As String, ByVal colonneDTR As
 
     If REQSEL Is Nothing Then GoTo Sortie
     If REQSEL.State <> 1 Then GoTo Sortie
+    If REQSEL.EOF And REQSEL.BOF Then GoTo Sortie
 
-    Do While Not REQSEL.EOF
-        valeur = NzStr(REQSEL.Fields(0).Value)
+    ' Extraction complete en une passe. arr est dimensionne (champs x lignes).
+    arr = REQSEL.GetRows()
+
+    For i = LBound(arr, 2) To UBound(arr, 2)
+        valeur = NzStr(arr(0, i))
         If Len(valeur) > 0 Then
             If Not dict.Exists(valeur) Then dict.Add valeur, True
         End If
-        REQSEL.MoveNext
-    Loop
+    Next i
+
+    Debug.Print "[" & nomTable & "] DTR charges : " & dict.count
 
 Sortie:
     On Error Resume Next

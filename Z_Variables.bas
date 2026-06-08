@@ -4,7 +4,7 @@ Attribute VB_Name = "Z_Variables"
 '                                       Generateur Livrables SLI
 '                                       Module Z_Variables
 '                                       Developpement : LE LARGE Thomas (LGM/Alstom)
-'                                       Module regroupant les déclarations de variables publiques
+'                                       Module regroupant les dï¿½clarations de variables publiques
 '
 '
 '-----------------------------------------------------------------------------------------------------------
@@ -14,13 +14,13 @@ Option Compare Text
 
 Public Espacetravail As DAO.Workspace
 
-'Déclarations des classeurs utilisés
+'Dï¿½clarations des classeurs utilisï¿½s
 Public Generateur As Workbook
 Public Template As Workbook
 Public wb As Workbook
 Public wb1 As Workbook
 
-'Déclarations des feuilles utilisées
+'Dï¿½clarations des feuilles utilisï¿½es
 Public DS1 As Worksheet
 Public ws As Worksheet
 Public index As Worksheet
@@ -29,7 +29,7 @@ Public dest As Worksheet
 Public Template_EMMST As Worksheet
 Public Template_HARD As Worksheet
 Public Template_SOFT As Worksheet
-'Déclarations des feuilles Providor
+'Dï¿½clarations des feuilles Providor
 Public GP As Worksheet
 Public BS As Worksheet
 Public ML As Worksheet
@@ -39,7 +39,7 @@ Public TL As Worksheet
 Public SL As Worksheet
 Public LCC As Worksheet
 
-'Déclarations des bibliothèques de mapping BDD
+'Dï¿½clarations des bibliothï¿½ques de mapping BDD
 Public MapProjetsSLI As Variant
 Public Champs_ProjetsSLI As Object
 Public Champs_Dates As Object
@@ -63,7 +63,7 @@ Public bar_tot As Long
 Public bar_cpt As Long
 Public bar_prg As Variant
 Public bar_temp As Long
-'Variables de tableaux des données PBS
+'Variables de tableaux des donnï¿½es PBS
 Public tDTR As Variant
 Public tDES_PBS As Variant
 Public tDES_BDD As Variant
@@ -108,19 +108,19 @@ Public Version_ATM As Integer
 Public Auteur As String
 Public Nv_Maint_Projet As String
 
-'Variables spécifiques ATM / EMMST
+'Variables spï¿½cifiques ATM / EMMST
 ' =========================================================================
 ' CONSTANTES DE CONFIGURATION
 ' =========================================================================
-Public Const BIBLIO_PATH As String = "\Alstom\Svcs_DIS_Fr_VBN - Documents\01_Metiers\01_ISR\003 - Opérations\003-03 Produits\Bibliothèques ATM2.0 illustrées"
-Public Const TEMPLATE_V2_FR_PATH As String = "\Alstom\Svcs_DIS_Fr_VBN - Documents\01_Metiers\01_ISR\005 - Qualité\005-03 Templates\02_Phase Projet\02. ASL\ATM\ATM 2.0 VPF (exemple Baden)\ATMC2.0_FR-Template.xlsx"
-Public Const TEMPLATE_V2_EN_PATH As String = "\Alstom\Svcs_DIS_Fr_VBN - Documents\01_Metiers\01_ISR\005 - Qualité\005-03 Templates\02_Phase Projet\02. ASL\ATM\ATM 2.0 VPF (exemple Baden)\ATMC2.0_EN-Template.xlsx"
-Public Const TEMPLATE_V1_FR_PATH As String = "\Alstom\Svcs_DIS_Fr_VBN - Documents\01_Metiers\01_ISR\005 - Qualité\005-03 Templates\02_Phase Projet\02. ASL\ATM\ATM v1 VBN (MEQ)\ATM_FR-Template VBN v2.xlsx"
-Public Const TEMPLATE_V1_EN_PATH As String = "\Alstom\Svcs_DIS_Fr_VBN - Documents\01_Metiers\01_ISR\005 - Qualité\005-03 Templates\02_Phase Projet\02. ASL\ATM\ATM v1 VBN (MEQ)\MTA_EN-Template VBN v2.xlsx"
-Public Const PROVIDOR_TEMPLATE_PATH As String = "\Alstom\Svcs_DIS_Fr_VBN - Documents\01_Metiers\01_ISR\005 - Qualité\005-03 Templates\02_Phase Projet\02. ASL\Providor - LCC\Providor v5.021.xlsb"
+Public Const BIBLIO_PATH As String = "\Alstom\Svcs_DIS_Fr_VBN - Documents\01_Metiers\01_ISR\003 - Opï¿½rations\003-03 Produits\Bibliothï¿½ques ATM2.0 illustrï¿½es"
+Public Const TEMPLATE_V2_FR_PATH As String = "\Alstom\Svcs_DIS_Fr_VBN - Documents\01_Metiers\01_ISR\005 - Qualitï¿½\005-03 Templates\02_Phase Projet\02. ASL\ATM\ATM 2.0 VPF (exemple Baden)\ATMC2.0_FR-Template.xlsx"
+Public Const TEMPLATE_V2_EN_PATH As String = "\Alstom\Svcs_DIS_Fr_VBN - Documents\01_Metiers\01_ISR\005 - Qualitï¿½\005-03 Templates\02_Phase Projet\02. ASL\ATM\ATM 2.0 VPF (exemple Baden)\ATMC2.0_EN-Template.xlsx"
+Public Const TEMPLATE_V1_FR_PATH As String = "\Alstom\Svcs_DIS_Fr_VBN - Documents\01_Metiers\01_ISR\005 - Qualitï¿½\005-03 Templates\02_Phase Projet\02. ASL\ATM\ATM v1 VBN (MEQ)\ATM_FR-Template VBN v2.xlsx"
+Public Const TEMPLATE_V1_EN_PATH As String = "\Alstom\Svcs_DIS_Fr_VBN - Documents\01_Metiers\01_ISR\005 - Qualitï¿½\005-03 Templates\02_Phase Projet\02. ASL\ATM\ATM v1 VBN (MEQ)\MTA_EN-Template VBN v2.xlsx"
+Public Const PROVIDOR_TEMPLATE_PATH As String = "\Alstom\Svcs_DIS_Fr_VBN - Documents\01_Metiers\01_ISR\005 - Qualitï¿½\005-03 Templates\02_Phase Projet\02. ASL\Providor - LCC\Providor v5.021.xlsb"
 'chaine de connexion BDD Excel
-Global Const CONNEXION_EXCEL_BDD_PROD = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=UserProfile\Alstom\Svcs_DIS_Fr_VBN - Documents\01_Metiers\01_ISR\007 - Outils métier ISR\01. BDD SLI\11_Livraison de l'OUTIL excel BDD\BDD excel original V4.1.xlsb;Extended Properties='Excel 12.0 Macro;HDR=Yes';"
-Global Const CONNEXION_EXCEL_BDD_TRAVAIL = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=UserProfile\Alstom\Svcs_DIS_Fr_VBN - Documents\01_Metiers\01_ISR\007 - Outils métier ISR\01. BDD SLI\11_BdD de travail LGM\BDD excel original V4.1.xlsb;Extended Properties='Excel 12.0 Macro;HDR=Yes';"
+Global Const CONNEXION_EXCEL_BDD_PROD = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=UserProfile\Alstom\Svcs_DIS_Fr_VBN - Documents\01_Metiers\01_ISR\007 - Outils mï¿½tier ISR\01. BDD SLI\11_Livraison de l'OUTIL excel BDD\BDD excel original V4.1.xlsb;Extended Properties='Excel 12.0 Macro;HDR=Yes;IMEX=1';"
+Global Const CONNEXION_EXCEL_BDD_TRAVAIL = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=UserProfile\Alstom\Svcs_DIS_Fr_VBN - Documents\01_Metiers\01_ISR\007 - Outils mï¿½tier ISR\01. BDD SLI\11_BdD de travail LGM\BDD excel original V4.1.xlsb;Extended Properties='Excel 12.0 Macro;HDR=Yes;IMEX=1';"
 Global Const CONNEXION_SHAREPOINT_LIST = "Provider=Microsoft.ACE.OLEDB.12.0;WSS;IMEX=0;RetrieveIds=Yes;DATABASE=https://alstomgroup.sharepoint.com/sites/FR_VBN_obso_services;LIST={ListeSharePoint};"
 Global Const vbOffline As Long = &H1000
 
@@ -137,15 +137,15 @@ Public Const RANG_3_4_CHAPITRE As String = "C"
 Public Const RANG_5_CHAPITRE As String = "D"
 
 ' =========================================================================
-' VARIABLES SPÉCIFIQUES ATM
+' VARIABLES SPï¿½CIFIQUES ATM
 ' =========================================================================
-' STRUCTURE POUR GÉRER UN CHAPITRE
+' STRUCTURE POUR Gï¿½RER UN CHAPITRE
 Public Type ChapitreInfo
     Marqueur As String          ' "A", "B", "C", "D"
     ligneDebut As Integer       ' Ligne du marqueur dans la feuille
     LigneProchainChap As Integer ' Ligne du chapitre suivant
     TotalTemps As Double        ' Somme des temps du chapitre
-    NombreInsertions As Integer ' Compteur de lignes insérées
+    NombreInsertions As Integer ' Compteur de lignes insï¿½rï¿½es
 End Type
 Public test_taches, test_infos, MTBF_pres, Duree_vie_HARD_pres, Duree_vie_SOFT_pres, RAMReportDATA, Trouve, Presence_BDD, test, AvantCGR As Boolean
 Public system, system_temp, designationfinal As String
@@ -153,7 +153,7 @@ Public estnum, TabIndex As Variant
 Public cpt, PMH, PMB, PMJ, nvx, ligvide, ligcat, ligcatsup, DL1, DL2 As Integer
 Public ligne, incr, compteur As Integer
 ' =========================================================================
-' VARIABLES SPÉCIFIQUES EMMST
+' VARIABLES SPï¿½CIFIQUES EMMST
 ' =========================================================================
 Public spare, Tool, Designation, dtr, supplier_id, supplier_name, blength, bwidth, bheight, bmass As Range
 Public plength, pwidth, pheight, pmass, lapsing_no, lapsing_yes, expiry_date, multiple_packaging As Range
@@ -165,13 +165,13 @@ Public transp_mean_no, transp_mean_yes, transp_tool_no, transp_tool_yes, transp_
 Public pack_com, lab_com, man_com, stor_com, transp_com As Range
 
 ' =========================================================================
-' VARIABLES SPÉCIFIQUES PROVIDOR
+' VARIABLES SPï¿½CIFIQUES PROVIDOR
 ' =========================================================================
 Public nextIdx As Long
 Public NodeLevel As Long
 Public BoolMaintPrev As Boolean
 Public addFamily As Boolean
-' Dernières lignes feuilles Providor
+' Derniï¿½res lignes feuilles Providor
 Public dlBS As Integer
 Public dlML As Integer
 Public dlCM As Integer
@@ -187,7 +187,7 @@ Public CheminComplet As String
 Public CheminTemplate As String
 Public fichierComplet As String
 Public nomFichier As String
-' Sous-systèmes
+' Sous-systï¿½mes
 Public curSS As String
 Public lastSS As String
 ' Tableaux Material List
@@ -208,23 +208,23 @@ Public respSave As VbMsgBoxResult
 
 'Public Base As ADODB.Connection
 Public Base As Object
-' Timeout des requêtes ODBC
+' Timeout des requï¿½tes ODBC
 Global Const STANDARD_TIMEOUT = 120 ' en standard 2 minutes
 ' lors de fonctions longues commela maj des articles 1 heure
 Global Const LONG_TIMEOUT = 3600 ' lors de fonctions longues comme parts synchro
 
-'AR202402: introduction des variables 'color' identique à Tomsys
+'AR202402: introduction des variables 'color' identique ï¿½ Tomsys
 Global Const COULEUR_NOIR = 0
 Global Const COULEUR_BLANC = 16777215
-Global Const COULEUR_VERT = 65280 'vert fluo '311586 'vert foncé
-Global Const COULEUR_VERT_F = 311586 'vert foncé
+Global Const COULEUR_VERT = 65280 'vert fluo '311586 'vert foncï¿½
+Global Const COULEUR_VERT_F = 311586 'vert foncï¿½
 Global Const COULEUR_VERT_C = 10092441 'vert clair
 Global Const COULEUR_JAUNE = 65535
-Global Const COULEUR_JAUNE_C = 6750207 'jaune pâle
+Global Const COULEUR_JAUNE_C = 6750207 'jaune pï¿½le
 Global Const COULEUR_ORANGE = 32255
 Global Const COULEUR_ROUGE = 2366701
 Global Const COULEUR_BLEU = 15773696 ' bleu ciel '16776960 'bleu clair
-Global Const COULEUR_BLEU_F = 10485792 ' utilisé dans les textes
+Global Const COULEUR_BLEU_F = 10485792 ' utilisï¿½ dans les textes
 Global Const COULEUR_VIOLET = 10498160
 Global Const COULEUR_VIOLET_C = 16751103
 Global Const COULEUR_GRIS = 9474192
@@ -247,10 +247,10 @@ Public STRUPD As String
 Public STRDEL As String 'pour les requetes delete
 
 
-'ID des différentes Listes SharePoint
+'ID des diffï¿½rentes Listes SharePoint
 Global Const INFO_ATM_List = "997ff1da-1ab7-4135-b257-2b6ebdad2549"
 
-'accès aux fichiers
+'accï¿½s aux fichiers
 Public cheminbase           As String
 Global xlApp                As Excel.Application
 
@@ -266,25 +266,25 @@ Public h, i, j, k, l As Integer
 
 'variables extract :
 Public recherchecasempl
-Public typedonnée As Variant
+Public typedonnï¿½e As Variant
 Public ligdeb, ligfin, ligref, ligfinonglet, ligresult
-Public nblevel As Variant 'peut être "ALL" ou un nombre
+Public nblevel As Variant 'peut ï¿½tre "ALL" ou un nombre
 Public colrefinit, colfinPREPA, coldebART, colfinART, coldebSOU, colfinSOU, coldebPDN, colfinPDN, coldebSTK, colfinSTK, coldebCAS, coldebQTY, colfinQTY, colfinCAS, colPRP, coldebPRD, colinterPRD, colfinPRD As Variant
 'option REQSELs sur onglet actif
 Public resultsuronglet As Boolean
 Public coldebonglet, colfinonglet As Variant
 'gestion onglets et selection
-Public fichier, fichierinit, newfichier, onglet, ongletinit, newonglet, refcherchée As String
-Public annulé, couleur, projetactif, projetinactif, présenceartart As Boolean
+Public fichier, fichierinit, newfichier, onglet, ongletinit, newonglet, refcherchï¿½e As String
+Public annulï¿½, couleur, projetactif, projetinactif, prï¿½senceartart As Boolean
 Public problem As Boolean
-'variables colonnes utilisé partout
+'variables colonnes utilisï¿½ partout
 Public vbsPath As String
-Public nbligtot As Long '  nbligtot = Columns(1).Rows.Count 'initialisé dans START
-Public nbcoltot As Long '  nbcoltot = Rows(1).Columns.Count 'initialisé dans START
+Public nbligtot As Long '  nbligtot = Columns(1).Rows.Count 'initialisï¿½ dans START
+Public nbcoltot As Long '  nbcoltot = Rows(1).Columns.Count 'initialisï¿½ dans START
 ' ------------------------------------------------------------------
-' Colonnes des différents Onglets BDD
+' Colonnes des diffï¿½rents Onglets BDD
 ' Infos ATM
-'Constuction d'un type personnalisé pour le stockage des numéros de lignes et de colonnes pour l'onglet Infos_ATM
+'Constuction d'un type personnalisï¿½ pour le stockage des numï¿½ros de lignes et de colonnes pour l'onglet Infos_ATM
 Public Type Info_Col
 
     dtr As Integer
@@ -307,7 +307,7 @@ End Type
 Public Info_type As Info_Col
 
 ' Taches ATM
-'Constuction d'un type personnalisé pour le stockage des numéros de lignes et de colonnes pour l'onglet Taches_ATM
+'Constuction d'un type personnalisï¿½ pour le stockage des numï¿½ros de lignes et de colonnes pour l'onglet Taches_ATM
 Public Type Taches_Col
 
     dtr As Integer
@@ -330,7 +330,7 @@ End Type
 Public Taches_type As Taches_Col
 
 'EMMST
-'Construction d'un type personnalisé pour le stockage des numéros de lignes et de colonne pour l'onglet EMMST
+'Construction d'un type personnalisï¿½ pour le stockage des numï¿½ros de lignes et de colonne pour l'onglet EMMST
 Public Type EMMST_Col
 
     dtr As Integer
@@ -389,7 +389,7 @@ End Type
 Public EMMST_type As EMMST_Col
 
 'Generateur Livrables
-'Construction d'un type personnalisé pour le stockage des numéro de lignes et colonne pour le tableau du générateur
+'Construction d'un type personnalisï¿½ pour le stockage des numï¿½ro de lignes et colonne pour le tableau du gï¿½nï¿½rateur
 Public Type ECOSLI_Col
 
     dtr As Integer
@@ -435,7 +435,7 @@ End Type
 Public ECOSLI_Type As ECOSLI_Col
 
 ' Taches ATM
-'Constuction d'un type personnalisé pour le stockage des numéros de lignes et de colonnes pour l'onglet Taches_ATM
+'Constuction d'un type personnalisï¿½ pour le stockage des numï¿½ros de lignes et de colonnes pour l'onglet Taches_ATM
 Public Type Projets_SLI_Col
 
     Nom_Projet As Integer
@@ -574,7 +574,7 @@ End Type
 Public Projets_SLI_type As Projets_SLI_Col
 
 ' =========================================================================
-' TYPE STRUCTURÉ - BREAKDOWN STRUCTURE
+' TYPE STRUCTURï¿½ - BREAKDOWN STRUCTURE
 ' =========================================================================
 Public Type bs_col
     NodeLevel As Integer
@@ -589,7 +589,7 @@ Public Type bs_col
 End Type
 
 ' =========================================================================
-' TYPE STRUCTURÉ - MATERIAL LIST
+' TYPE STRUCTURï¿½ - MATERIAL LIST
 ' =========================================================================
 Public Type ml_col
     Update As Integer
@@ -602,7 +602,7 @@ Public Type ml_col
 End Type
 
 ' =========================================================================
-' TYPE STRUCTURÉ - CORRECTIVE MAINTENANCE
+' TYPE STRUCTURï¿½ - CORRECTIVE MAINTENANCE
 ' =========================================================================
 Public Type cm_col
     NodeName As Integer
@@ -631,11 +631,11 @@ Public Type cm_col
     JustificationTaskEN As Integer
     MTBF As Integer
     MTBFUnit As Integer
-    MTBFSource As Integer              ' Commentaires Alstom Taux Défaillance DL
+    MTBFSource As Integer              ' Commentaires Alstom Taux Dï¿½faillance DL
 End Type
 
 ' =========================================================================
-' TYPE STRUCTURÉ - PREVENTIVE MAINTENANCE
+' TYPE STRUCTURï¿½ - PREVENTIVE MAINTENANCE
 ' =========================================================================
 Public Type pm_col
     NodeIndex As Integer
@@ -656,7 +656,7 @@ Public Type pm_col
 End Type
 
 ' =========================================================================
-' TYPE STRUCTURÉ - SKILL LIST
+' TYPE STRUCTURï¿½ - SKILL LIST
 ' =========================================================================
 Public Type sl_col
     Update As Integer
@@ -667,7 +667,7 @@ Public Type sl_col
 End Type
 
 ' =========================================================================
-' TYPE STRUCTURÉ - TOOL LIST
+' TYPE STRUCTURï¿½ - TOOL LIST
 ' =========================================================================
 Public Type tl_col
     Update As Integer
@@ -679,7 +679,7 @@ Public Type tl_col
 End Type
 
 ' =========================================================================
-' TYPE STRUCTURÉ - GENERAL PARAMETERS
+' TYPE STRUCTURï¿½ - GENERAL PARAMETERS
 ' =========================================================================
 Public Type gp_col
     OpUnits_Description As Integer
