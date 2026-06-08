@@ -28,25 +28,12 @@ Public Const SIRUS_TBL_PROJETSLI   As String = "ProjetSLI"
 Public Const SIRUS_TBL_PROJETASL   As String = "ProjetASL"
 
 ' =========================================================================
-' TYPE : DEFINITION D'UN CHAMP DU CONFIG
+' DEFINITION D'UN CHAMP DU CONFIG
 ' =========================================================================
-' Correspond aux 13 colonnes de la feuille SIRUS_Config (brief v0.2 section 8).
-' Une instance = une ligne du ListObject = la definition d'un champ d'une table.
-Public Type Champ_Config
-    Table                As String  ' Produit / InfoATM / TachesATM / EMMST / ProjetSLI / ProjetASL
-    Champ                As String  ' libelle logique affiche
-    ColonneBdD           As String  ' nom interne / colonne dans la table BdD (pour SELECT et PJ ATMAP)
-    Ordre                As Long    ' ordre d'affichage dans la feuille generee
-    TypeChamp            As String  ' Texte / Nombre / Date / Liste / Booleen
-    ListeSource          As String  ' cle vers Listes si Liste/Booleen (ex. NodeType)
-    Obligatoire          As String  ' Non / Oui / Conditionnel
-    ConditionObligatoire As String  ' expression evaluable (ex. NodeType IN (LRU,SRU))
-    Source               As String  ' Saisie / Auto / Herite (Auto/Herite ==> champ grise)
-    SourceHeritage       As String  ' origine si Herite (ex. Produit.NodeType)
-    PoidsMeQ             As Double  ' poids du champ dans le taux de completude
-    RegleAlerte          As String  ' expression de coherence (ex. HS_Info=HS_Tache)
-    Commentaire          As String  ' aide a la saisie
-End Type
+' Cf. classe SIRUS_Champ_Config.cls (13 proprietes alignees sur le brief
+' v0.2 section 8). On a choisi une classe plutot qu'un Type UDT car VBA
+' interdit le stockage d'un UDT dans une Collection (impossible a passer
+' en Variant), donc le For Each plante.
 
 ' =========================================================================
 ' INITIALISATION DE LA FEUILLE SIRUS_Config
@@ -243,7 +230,7 @@ Public Function SIRUS_LireConfig(ByVal sTable As String) As Collection
     Dim lo As ListObject
     Dim r As ListRow
     Dim col As Collection
-    Dim def As Champ_Config
+    Dim def As SIRUS_Champ_Config
     Dim deja As Boolean
     Dim i As Long
     Dim inserted As Boolean
@@ -280,8 +267,11 @@ Public Function SIRUS_LireConfig(ByVal sTable As String) As Collection
 
     ' -- Parcours des lignes et filtrage par table ----------
     ' Insertion triee par Ordre via Collection.Add ... Before
+    ' Important : une NOUVELLE instance par ligne (sinon toutes les
+    ' entrees de la Collection pointent vers le meme objet).
     For Each r In lo.ListRows
         If CStr(r.Range(1, 1).Value) = sTable Then
+            Set def = New SIRUS_Champ_Config
             def.Table = CStr(r.Range(1, 1).Value)
             def.Champ = CStr(r.Range(1, 2).Value)
             def.ColonneBdD = CStr(r.Range(1, 3).Value)
@@ -347,12 +337,9 @@ End Sub
 
 ' Test_LireConfig : lit le config pour la table Produit et trace les
 ' definitions dans la fenetre Immediate.
-' Remarque : VBA refuse "For Each" sur Collection avec une variable UDT.
-' On itere par index et on assigne dans une variable Champ_Config temp.
 Public Sub Test_LireConfig()
     Dim col As Collection
-    Dim def As Champ_Config
-    Dim i As Long
+    Dim def As SIRUS_Champ_Config
     Dim s As String
 
     Set col = SIRUS_LireConfig(SIRUS_TBL_PRODUIT)
@@ -363,8 +350,7 @@ Public Sub Test_LireConfig()
     End If
 
     Debug.Print "Test_LireConfig : " & col.Count & " champs lus pour Produit."
-    For i = 1 To col.Count
-        def = col(i)
+    For Each def In col
         s = "  Ordre=" & def.Ordre & " | " & def.Champ & _
             " (BdD=" & def.ColonneBdD & ", Type=" & def.TypeChamp & _
             ", Oblig=" & def.Obligatoire & ", Source=" & def.Source & _
@@ -373,5 +359,5 @@ Public Sub Test_LireConfig()
             s = s & " [cond: " & def.ConditionObligatoire & "]"
         End If
         Debug.Print s
-    Next i
+    Next def
 End Sub

@@ -32,8 +32,13 @@ Socle de configuration piloté par une feuille `SIRUS_Config` (veryHidden, ListO
 - Helpers privés : `AjouterChamp`, `NzLng`, `NzDbl`.
 - Procédures de test exécutables : `Test_InitConfigSheet`, `Test_LireConfig`.
 
+### Correction Phase 0 — passage du `Type` en classe
+VBA interdit le stockage d'un `Type` (UDT) défini dans un module standard dans une `Collection` (erreur *« Seuls les types définis par l'utilisateur et qui sont définis dans les modules d'objets publics peuvent être passés à des fonctions à liaison tardive »*). Le `Type Champ_Config` est donc remplacé par une **classe** `SIRUS_Champ_Config.cls` (13 champs `Public`, pattern minimal aligné sur `EMMST_Ranges.cls`).
+- Nouveau fichier `SIRUS_Champ_Config.cls`.
+- `G_SIRUS_Config.bas` : suppression du `Type Champ_Config`, `SIRUS_LireConfig` instancie `New SIRUS_Champ_Config` à chaque ligne (sinon toutes les entrées de la `Collection` pointent vers le même objet), `Test_LireConfig` retrouve un `For Each def In col` natif.
+
 ### Reste à faire
-- Importer `G_SIRUS_Config.bas` dans le `.xlam` via VBE, exécuter `Test_InitConfigSheet` puis `Test_LireConfig` pour valider le pilote Produit.
+- Importer `G_SIRUS_Config.bas` **et** `SIRUS_Champ_Config.cls` dans le `.xlam` via VBE, exécuter `Test_InitConfigSheet` puis `Test_LireConfig` pour valider le pilote Produit.
 - Peupler le config pour `InfoATM` et `TachesATM` (suite Phase 0, brief sections 6.2).
 - **Phase 1** : `SIRUS_GenererFeuilleAnalyse(table, operation, dtrs)` — générateur de feuille (création vierge ou pré-remplie via ADODB pour Modifier).
 - **Phase 2** : généraliser `SIRUS_AnalyserProduit` en `SIRUS_AnalyserFeuille(table)` piloté par config.
