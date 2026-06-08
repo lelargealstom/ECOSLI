@@ -1,0 +1,9 @@
+# Template projet (lourd, binaire, mal géré par git)
+ECOSLI.xlsm
+
+# Fichiers temporaires Office
+~$*
+*.tmp
+
+# Settings et mémoire locale Claude Code
+.claude/

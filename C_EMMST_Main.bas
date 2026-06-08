@@ -4,7 +4,7 @@ Attribute VB_Name = "C_EMMST_Main"
 '                                       Generateur Livrables SLI
 '                                       Module B_EMMST
 '                                       Developpement : LE LARGE Thomas (LGM/Alstom)
-'                                       Module permettant de générer des fiches EMMST
+'                                       Module permettant de gï¿½nï¿½rer des fiches EMMST
 '
 '
 '-----------------------------------------------------------------------------------------------------------
@@ -12,36 +12,36 @@ Option Compare Text
 Option Explicit
 
 ' =========================================================================
-' PROCÉDURE PRINCIPALE : MAIN_EMMST
+' PROCï¿½DURE PRINCIPALE : MAIN_EMMST
 ' =========================================================================
 Public Sub Main_EMMST()
-' Point d'entrée principal pour la génération des EMMST
+' Point d'entrï¿½e principal pour la gï¿½nï¿½ration des EMMST
 ' Orchestre le workflow complet :
-'   1. Validation des prérequis
-'   2. Récupération des données utilisateur
-'   3. Récupération des données PBS
-'   4. Sélection répertoire destination
+'   1. Validation des prï¿½requis
+'   2. Rï¿½cupï¿½ration des donnï¿½es utilisateur
+'   3. Rï¿½cupï¿½ration des donnï¿½es PBS
+'   4. Sï¿½lection rï¿½pertoire destination
 '   5. Copie et ouverture template
-'   6. Récupération données BDD
-'   7. Génération des fiches EMMST
+'   6. Rï¿½cupï¿½ration donnï¿½es BDD
+'   7. Gï¿½nï¿½ration des fiches EMMST
 '   8. Finalisation
 
     Dim chemin As String
     Dim Template As Workbook
     
-    ' Désactiver fonctionnalités Excel pour performance
+    ' Dï¿½sactiver fonctionnalitï¿½s Excel pour performance
     TurnOffFunctionality
     
-    ' Validation et récupération données UserForm
+    ' Validation et rï¿½cupï¿½ration donnï¿½es UserForm
     If Not InitialiserContexteEMMST Then
         TurnOnFunctionality
         Exit Sub
     End If
     
-    ' Récupération données PBS depuis DATA_ASL
+    ' Rï¿½cupï¿½ration donnï¿½es PBS depuis DATA_ASL
     Call RecupererDonneesPBS_EMMST
     
-    ' Sélection répertoire destination
+    ' Sï¿½lection rï¿½pertoire destination
     If Not SelectRepertoire(chemin) Then
         TurnOnFunctionality
         Exit Sub
@@ -54,13 +54,13 @@ Public Sub Main_EMMST()
         Exit Sub
     End If
     
-    ' Récupération données BDD EMMST
+    ' Rï¿½cupï¿½ration donnï¿½es BDD EMMST
     Call RecupererDonneesBDD_EMMST
     
     ' Cadrage tableau EMMST
     Call Cadrage_EMMST(EMMST_tab)
     
-    ' Générer toutes les fiches EMMST
+    ' Gï¿½nï¿½rer toutes les fiches EMMST
     Call GenererFichesEMMST(Template, chemin)
     
     ' Finalisation
@@ -68,12 +68,12 @@ Public Sub Main_EMMST()
     
     ' Message final
     If langue = "FR" Then
-        MsgBox "EMMST créées", vbInformation
+        MsgBox "EMMST crï¿½ï¿½es", vbInformation
     Else
         MsgBox "PHLST created", vbInformation
     End If
     
-    ' Réactiver fonctionnalités Excel
+    ' Rï¿½activer fonctionnalitï¿½s Excel
     TurnOnFunctionality
 
 End Sub
@@ -82,21 +82,21 @@ End Sub
 ' FONCTION: INITIALISER CONTEXTE EMMST
 ' =========================================================================
 Private Function InitialiserContexteEMMST() As Boolean
-' Récupère et valide les paramètres du UserForm
+' Rï¿½cupï¿½re et valide les paramï¿½tres du UserForm
 ' Retourne True si tout est OK, False sinon
 
     On Error GoTo ErrHandler
     
-    ' Définir classeur générateur
+    ' Dï¿½finir classeur gï¿½nï¿½rateur
     Set Generateur = ActiveWorkbook
     Set DS1 = Generateur.Worksheets("DATA_ASL")
     Set REQSEL = CreateObject("ADODB.Recordset")
     
-    ' Récupérer paramètres système
+    ' Rï¿½cupï¿½rer paramï¿½tres systï¿½me
     userpath = Environ$("UserProfile")
     Set fso = CreateObject("Scripting.FileSystemObject")
     
-    ' Récupérer paramètres projet
+    ' Rï¿½cupï¿½rer paramï¿½tres projet
     Code_Projet = UserForm.Project_List.Value
     Projet_Abrev = Abrev_Projet(Code_Projet)
     Revision = UserForm.Revision_List.Value
@@ -104,32 +104,32 @@ Private Function InitialiserContexteEMMST() As Boolean
     
     ' Validation gate
     If gate = "" Then
-        MsgBox "Aucune gate n'est sélectionnée. Merci de sélectionner la gate avant de générer les fiches EMMST", _
+        MsgBox "Aucune gate n'est sï¿½lectionnï¿½e. Merci de sï¿½lectionner la gate avant de gï¿½nï¿½rer les fiches EMMST", _
                vbInformation, "Gate"
         InitialiserContexteEMMST = False
         Exit Function
     End If
     
-    ' Déterminer langue
+    ' Dï¿½terminer langue
     If UserForm.Langue_FR.Value = True Then
         langue = "FR"
     ElseIf UserForm.Langue_EN.Value = True Then
         langue = "EN"
     Else
-        MsgBox "Veuillez sélectionner une langue (FR ou EN)", vbExclamation
+        MsgBox "Veuillez sï¿½lectionner une langue (FR ou EN)", vbExclamation
         InitialiserContexteEMMST = False
         Exit Function
     End If
     
     ' Validation basique
     If Code_Projet = "" Then
-        MsgBox "Veuillez sélectionner un projet", vbExclamation
+        MsgBox "Veuillez sï¿½lectionner un projet", vbExclamation
         InitialiserContexteEMMST = False
         Exit Function
     End If
     
     If Revision = "" Then
-        MsgBox "Veuillez saisir une révision", vbExclamation
+        MsgBox "Veuillez saisir une rï¿½vision", vbExclamation
         InitialiserContexteEMMST = False
         Exit Function
     End If
@@ -143,27 +143,27 @@ ErrHandler:
 End Function
 
 ' =========================================================================
-' PROCÉDURE: RÉCUPÉRER DONNÉES PBS EMMST
+' PROCï¿½DURE: Rï¿½CUPï¿½RER DONNï¿½ES PBS EMMST
 ' =========================================================================
 Private Sub RecupererDonneesPBS_EMMST()
-' Récupère les colonnes nécessaires du tableau Providor pour EMMST
+' Rï¿½cupï¿½re les colonnes nï¿½cessaires du tableau Providor pour EMMST
     
     tDTR = DS1.Range("Providor[DTR Reference (issue de PBS)]")
     tDES_PBS = DS1.Range("Providor[DESIGNATION (issue de PBS)]")
-    tDES_MEF = DS1.Range("Providor[DESIGNATION (mise en forme pour copier dans Providor : construite à partir de celle de la PBS et de la désignation issue de BdD (ORCHESTRA)))]")
-    tSS = DS1.Range("Providor[SOUS SYSTÈME (copiés de la PBS et classifiés selon génériques)]")
+    tDES_MEF = DS1.Range("Providor[DESIGNATION (mise en forme pour copier dans Providor : construite ï¿½ partir de celle de la PBS et de la dï¿½signation issue de BdD (ORCHESTRA)))]")
+    tSS = DS1.Range("Providor[SOUS SYSTï¿½ME (copiï¿½s de la PBS et classifiï¿½s selon gï¿½nï¿½riques)]")
     
 End Sub
 
 ' =========================================================================
-' FONCTION: SÉLECTION RÉPERTOIRE (Réutilise fonction commune)
+' FONCTION: Sï¿½LECTION Rï¿½PERTOIRE (Rï¿½utilise fonction commune)
 ' =========================================================================
 Private Function SelectRepertoire(ByRef chemin As String) As Boolean
-' Dialogue sélection répertoire destination
+' Dialogue sï¿½lection rï¿½pertoire destination
     
     Dim Repertoire As FileDialog
     
-    MsgBox "Veuillez sélectionner le répertoire où vous souhaitez déposer les fiches EMMST pour le projet : " & Projet_Abrev, vbOKOnly
+    MsgBox "Veuillez sï¿½lectionner le rï¿½pertoire oï¿½ vous souhaitez dï¿½poser les fiches EMMST pour le projet : " & Projet_Abrev, vbOKOnly
     
     Set Repertoire = Application.FileDialog(msoFileDialogFolderPicker)
     Repertoire.Show
@@ -192,10 +192,10 @@ Private Function CopierTemplateEMMST(ByVal chemin As String) As Workbook
     ' Construire nom fichier et chemin template selon langue
     If langue = "FR" Then
         nomFichier = Projet_Abrev & "_EMMST_" & Revision & ".xlsx"
-        templatePath = userpath & "\Alstom\Svcs_DIS_Fr_VBN - Documents\01_Metiers\01_ISR\005 - Qualité\005-03 Templates\02_Phase Projet\02. ASL\Fiches EMMST\Template EMMST-FR_V02.xlsx"
+        templatePath = userpath & "\Alstom\DIS Service VBN Pole ISR - QualitÃ©\005-03 Templates\02_Phase Projet\02. ASL\Fiches EMMST\Template EMMST-FR_V02.xlsx"
     Else
         nomFichier = Projet_Abrev & "_PHLST_" & Revision & ".xlsx"
-        templatePath = userpath & "\Alstom\Svcs_DIS_Fr_VBN - Documents\01_Metiers\01_ISR\005 - Qualité\005-03 Templates\02_Phase Projet\02. ASL\Fiches EMMST\Template PHLST-ENG_V02.xlsx"
+        templatePath = userpath & "\Alstom\DIS Service VBN Pole ISR - QualitÃ©\005-03 Templates\02_Phase Projet\02. ASL\Fiches EMMST\Template PHLST-ENG_V02.xlsx"
     End If
     
     ' Copier template
@@ -214,32 +214,32 @@ ErrHandler:
 End Function
 
 ' =========================================================================
-' PROCÉDURE: RÉCUPÉRER DONNÉES BDD EMMST
+' PROCï¿½DURE: Rï¿½CUPï¿½RER DONNï¿½ES BDD EMMST
 ' =========================================================================
 Private Sub RecupererDonneesBDD_EMMST()
-' Récupère les données EMMST et projet depuis la BDD
+' Rï¿½cupï¿½re les donnï¿½es EMMST et projet depuis la BDD
     
     Dim STRSEL As String
     
     ' =====================================================================
-    ' REQUÊTE 1: Table EMMST (48 champs)
+    ' REQUï¿½TE 1: Table EMMST (48 champs)
     ' =====================================================================
     STRSEL = "SELECT [DTR_EMMST], [DimensionNuLongueur_EMMST], [DimensionNuLargeur_EMMST], [DimensionNuHauteur_EMMST], [DimensionNuPoids], " & _
-             "[DimensionConditionnéLongueur_EMMST], [DimensionConditionnéLargeur_EMMST], [DimensionConditionnéHauteur_EMMST], [DimensionConditionnéPoids_EMMST], " & _
-             "[DatePeremption_EMMST], [UnitéConditionnement_EMMST], [CommentaireEmballage_EMMST], [CommentaireMarquage_EMMST], [CommentaireManutention_EMMST], " & _
-             "[CommentaireStockage_EMMST], [CommentaireTransport_EMMST], [TypeOutil_EMMST], [DuréePéremption_EMMST], [Réutilisable_EMMST], [EtiquetteEmballage_EMMST], " & _
-             "[MarquageEquipement_EMMST], [ManutentionEquipement_EMMST], [OutillageSpécifiqueManutention_EMMST], [PrécautionManutention_EMMST], [PositionStockage_EMMST], " & _
-             "[StockageExtérieur_EMMST], [StockageSousAbri_EMMST], [StockageAirLibre_EMMST], [StockageHorsPoussière_EMMST], [StockageHorsEau_EMMST], [StockageIntérieur_EMMST], " & _
-             "[StockageChaud_EMMST], [StockageFroid_EMMST], [StockageHorsLumière_EMMST], [Gerbable_EMMST], [MoyenStockage_EMMST], [PrécautionStockage_EMMST], [MaintenanceStockage_EMMST], " & _
-             "[MoyenTransport_EMMST], [OutillageSpecifiqueTransport_EMMST], [PrescriptionTransport_EMMST], [PrécautionTransport_EMMST], [Version_EMMST], [DatePeremptionEN_EMMST], " & _
-             "[UnitéConditionnéEN_EMMST], [CommentaireEmballageEN_EMMST], [CommentaireMarquageEN_EMMST], [CommentaireManutentionEN_EMMST], [CommentaireStockageEN_EMMST], [CommentaireTransportEN_EMMST] " & _
+             "[DimensionConditionnï¿½Longueur_EMMST], [DimensionConditionnï¿½Largeur_EMMST], [DimensionConditionnï¿½Hauteur_EMMST], [DimensionConditionnï¿½Poids_EMMST], " & _
+             "[DatePeremption_EMMST], [Unitï¿½Conditionnement_EMMST], [CommentaireEmballage_EMMST], [CommentaireMarquage_EMMST], [CommentaireManutention_EMMST], " & _
+             "[CommentaireStockage_EMMST], [CommentaireTransport_EMMST], [TypeOutil_EMMST], [Durï¿½ePï¿½remption_EMMST], [Rï¿½utilisable_EMMST], [EtiquetteEmballage_EMMST], " & _
+             "[MarquageEquipement_EMMST], [ManutentionEquipement_EMMST], [OutillageSpï¿½cifiqueManutention_EMMST], [Prï¿½cautionManutention_EMMST], [PositionStockage_EMMST], " & _
+             "[StockageExtï¿½rieur_EMMST], [StockageSousAbri_EMMST], [StockageAirLibre_EMMST], [StockageHorsPoussiï¿½re_EMMST], [StockageHorsEau_EMMST], [StockageIntï¿½rieur_EMMST], " & _
+             "[StockageChaud_EMMST], [StockageFroid_EMMST], [StockageHorsLumiï¿½re_EMMST], [Gerbable_EMMST], [MoyenStockage_EMMST], [Prï¿½cautionStockage_EMMST], [MaintenanceStockage_EMMST], " & _
+             "[MoyenTransport_EMMST], [OutillageSpecifiqueTransport_EMMST], [PrescriptionTransport_EMMST], [Prï¿½cautionTransport_EMMST], [Version_EMMST], [DatePeremptionEN_EMMST], " & _
+             "[Unitï¿½Conditionnï¿½EN_EMMST], [CommentaireEmballageEN_EMMST], [CommentaireMarquageEN_EMMST], [CommentaireManutentionEN_EMMST], [CommentaireStockageEN_EMMST], [CommentaireTransportEN_EMMST] " & _
              "FROM [EMMST$]"
     
     Call open_REQSEL(STRSEL)
     EMMST_tab = RecordsetToArray(REQSEL)
     
     ' =====================================================================
-    ' REQUÊTE 2: RASL Projet
+    ' REQUï¿½TE 2: RASL Projet
     ' =====================================================================
     STRSEL = "SELECT [RASL_PROJET SLI] FROM [Projet_SLI$] WHERE [Nom projet_PROJET SLI] = '" & Code_Projet & "'"
     Call open_REQSEL(STRSEL)
@@ -251,7 +251,7 @@ Private Sub RecupererDonneesBDD_EMMST()
     End If
     
     ' =====================================================================
-    ' REQUÊTE 3: Niveau Maintenance
+    ' REQUï¿½TE 3: Niveau Maintenance
     ' =====================================================================
     STRSEL = "SELECT [Niv de maintenance_PROJET SLI] FROM [Projet_SLI$] WHERE [Nom projet_PROJET SLI] = '" & Code_Projet & "'"
     Call open_REQSEL(STRSEL)
@@ -265,10 +265,10 @@ Private Sub RecupererDonneesBDD_EMMST()
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: GÉNÉRER FICHES EMMST
+' PROCï¿½DURE: Gï¿½Nï¿½RER FICHES EMMST
 ' =========================================================================
 Private Sub GenererFichesEMMST(ByRef Template As Workbook, ByVal chemin As String)
-' Génère toutes les fiches EMMST pour chaque DTR
+' Gï¿½nï¿½re toutes les fiches EMMST pour chaque DTR
     
     Dim index As Worksheet
     Dim CoverPage As Worksheet
@@ -302,7 +302,7 @@ Private Sub GenererFichesEMMST(ByRef Template As Workbook, ByVal chemin As Strin
             GoTo NextDTR
         End If
         
-        ' Générer fiche EMMST pour ce DTR
+        ' Gï¿½nï¿½rer fiche EMMST pour ce DTR
         Call GenererFicheEMMST(Template, index, Template_EMMST, i)
         
 NextDTR:
@@ -316,10 +316,10 @@ NextDTR:
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR INDEX EMMST
+' PROCï¿½DURE: REMPLIR INDEX EMMST
 ' =========================================================================
 Private Sub RemplirIndexEMMST(ByRef index As Worksheet, ByRef Template As Workbook)
-' Remplit le tableau Index avec les données PBS
+' Remplit le tableau Index avec les donnï¿½es PBS
     
     Dim TabIndex As ListObject
     Dim i As Integer
@@ -332,14 +332,14 @@ Private Sub RemplirIndexEMMST(ByRef index As Worksheet, ByRef Template As Workbo
         For i = 1 To UBound(tDTR)
             TabIndex.ListColumns("DTR").DataBodyRange(i).Value = tDTR(i, 1)
             
-            ' Désignation (MEF prioritaire)
+            ' Dï¿½signation (MEF prioritaire)
             If tDES_MEF(i, 1) = "NA" Then
                 TabIndex.ListColumns("Designation").DataBodyRange(i).Value = tDES_PBS(i, 1)
             Else
                 TabIndex.ListColumns("Designation").DataBodyRange(i).Value = tDES_MEF(i, 1)
             End If
             
-            TabIndex.ListColumns("Sous système").DataBodyRange(i).Value = tSS(i, 1)
+            TabIndex.ListColumns("Sous systï¿½me").DataBodyRange(i).Value = tSS(i, 1)
         Next i
     Else
         For i = 1 To UBound(tDTR)
@@ -358,11 +358,11 @@ Private Sub RemplirIndexEMMST(ByRef index As Worksheet, ByRef Template As Workbo
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: GÉNÉRER FICHE EMMST (pour un DTR)
+' PROCï¿½DURE: Gï¿½Nï¿½RER FICHE EMMST (pour un DTR)
 ' =========================================================================
 Private Sub GenererFicheEMMST(ByRef Template As Workbook, ByRef index As Worksheet, _
                               ByRef Template_EMMST As Worksheet, ByVal indexDTR As Integer)
-' Génère une fiche EMMST pour un DTR spécifique
+' Gï¿½nï¿½re une fiche EMMST pour un DTR spï¿½cifique
     
     Dim dest As Worksheet
     Dim system As String
@@ -373,7 +373,7 @@ Private Sub GenererFicheEMMST(ByRef Template As Workbook, ByRef index As Workshe
     system = tSS(indexDTR, 1)
     cpt = 0
     
-    ' Vérifier doublons noms feuilles
+    ' Vï¿½rifier doublons noms feuilles
     cpt = CompterDoublonsFeuillesEMMST(Template, index, indexDTR, system)
     
     ' Copier template
@@ -385,20 +385,20 @@ Private Sub GenererFicheEMMST(ByRef Template As Workbook, ByRef index As Workshe
     
     ' Rechercher DTR dans BDD
     If Not RechercherDTR_EMMST(tDTR(indexDTR, 1), ligne, test) Then
-        ' DTR non trouvé
-        Call MarquerStatutIndexEMMST(index, indexDTR, "A créer")
+        ' DTR non trouvï¿½
+        Call MarquerStatutIndexEMMST(index, indexDTR, "A crï¿½er")
         Call RemplirInfosMinimalesEMMST(dest, index, indexDTR)
         GoTo AjouterLien
     End If
     
-    ' Vérifier complétude données
+    ' Vï¿½rifier complï¿½tude donnï¿½es
     Call VerifierCompletudeEMMST(ligne, index, indexDTR)
     
-    ' Remplir fiche EMMST complète
+    ' Remplir fiche EMMST complï¿½te
     Call RemplirFicheEMMST(dest, index, indexDTR, ligne)
     
 AjouterLien:
-    ' Créer lien hypertexte
+    ' Crï¿½er lien hypertexte
     Call CreerLienHypertexteEMMST(index, indexDTR, dest)
     
 End Sub
@@ -428,11 +428,11 @@ Private Function CompterDoublonsFeuillesEMMST(ByRef Template As Workbook, ByRef 
 End Function
 
 ' =========================================================================
-' PROCÉDURE: NOMMER FEUILLE EMMST
+' PROCï¿½DURE: NOMMER FEUILLE EMMST
 ' =========================================================================
 Private Sub NommerFeuilleEMMST(ByRef dest As Worksheet, ByRef index As Worksheet, _
                                ByVal indexDTR As Integer, ByVal system As String, ByVal cpt As Integer)
-' Nomme la feuille EMMST en gérant les doublons
+' Nomme la feuille EMMST en gï¿½rant les doublons
     
     Dim baseName As String
     Dim k As Integer
@@ -467,7 +467,7 @@ End Sub
 Private Function RechercherDTR_EMMST(ByVal dtr As String, ByRef ligne As Integer, _
                                      ByRef test As Boolean) As Boolean
 ' Recherche un DTR dans le tableau EMMST_tab
-' Retourne True si trouvé, False sinon
+' Retourne True si trouvï¿½, False sinon
     
     Dim j As Integer
     
@@ -486,11 +486,11 @@ Private Function RechercherDTR_EMMST(ByVal dtr As String, ByRef ligne As Integer
 End Function
 
 ' =========================================================================
-' PROCÉDURE: VÉRIFIER COMPLÉTUDE EMMST
+' PROCï¿½DURE: Vï¿½RIFIER COMPLï¿½TUDE EMMST
 ' =========================================================================
 Private Sub VerifierCompletudeEMMST(ByVal ligne As Integer, ByRef index As Worksheet, _
                                     ByVal indexDTR As Integer)
-' Vérifie si la fiche EMMST a beaucoup de données manquantes
+' Vï¿½rifie si la fiche EMMST a beaucoup de donnï¿½es manquantes
 ' Si plus de 20 champs NULL ? marquer "A remplir"
     
     Dim h As Integer
@@ -511,12 +511,12 @@ Private Sub VerifierCompletudeEMMST(ByVal ligne As Integer, ByRef index As Works
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR FICHE EMMST COMPLÈTE
+' PROCï¿½DURE: REMPLIR FICHE EMMST COMPLï¿½TE
 ' =========================================================================
 Private Sub RemplirFicheEMMST(ByRef dest As Worksheet, ByRef index As Worksheet, _
                               ByVal indexDTR As Integer, ByVal ligne As Integer)
-' Remplit une fiche EMMST complète avec toutes les données
-' Utilise la classe EMMST_Ranges pour accéder aux cellules
+' Remplit une fiche EMMST complï¿½te avec toutes les donnï¿½es
+' Utilise la classe EMMST_Ranges pour accï¿½der aux cellules
     
     Dim r As New EMMST_Ranges
     Dim STRSEL As String
@@ -524,8 +524,8 @@ Private Sub RemplirFicheEMMST(ByRef dest As Worksheet, ByRef index As Worksheet,
     ' Initialiser les ranges de destination
     Call r.Init(dest)
     
-    ' Récupérer fournisseur depuis table Produit
-    STRSEL = "SELECT [Fournisseur_PRODUIT], [Référence fournisseur_PRODUIT] FROM [Produit$] WHERE [DTR] = '" & tDTR(indexDTR, 1) & "'"
+    ' Rï¿½cupï¿½rer fournisseur depuis table Produit
+    STRSEL = "SELECT [Fournisseur_PRODUIT], [Rï¿½fï¿½rence fournisseur_PRODUIT] FROM [Produit$] WHERE [DTR] = '" & tDTR(indexDTR, 1) & "'"
     Call open_REQSEL(STRSEL)
     
     If IsNull(REQSEL.Fields(0).Value) Then
@@ -540,7 +540,7 @@ Private Sub RemplirFicheEMMST(ByRef dest As Worksheet, ByRef index As Worksheet,
         r.supplier_id.Value = REQSEL.Fields(1).Value
     End If
     
-    ' Remplir tous les champs (appel fonction dédiée)
+    ' Remplir tous les champs (appel fonction dï¿½diï¿½e)
     Call RemplirChampsGeneraux(r, index, indexDTR, ligne)
     Call RemplirChampsDimensions(r, ligne)
     Call RemplirChampsEmballage(r, ligne)
