@@ -347,9 +347,12 @@ End Sub
 
 ' Test_LireConfig : lit le config pour la table Produit et trace les
 ' definitions dans la fenetre Immediate.
+' Remarque : VBA refuse "For Each" sur Collection avec une variable UDT.
+' On itere par index et on assigne dans une variable Champ_Config temp.
 Public Sub Test_LireConfig()
     Dim col As Collection
     Dim def As Champ_Config
+    Dim i As Long
     Dim s As String
 
     Set col = SIRUS_LireConfig(SIRUS_TBL_PRODUIT)
@@ -360,7 +363,8 @@ Public Sub Test_LireConfig()
     End If
 
     Debug.Print "Test_LireConfig : " & col.Count & " champs lus pour Produit."
-    For Each def In col
+    For i = 1 To col.Count
+        def = col(i)
         s = "  Ordre=" & def.Ordre & " | " & def.Champ & _
             " (BdD=" & def.ColonneBdD & ", Type=" & def.TypeChamp & _
             ", Oblig=" & def.Obligatoire & ", Source=" & def.Source & _
@@ -369,5 +373,5 @@ Public Sub Test_LireConfig()
             s = s & " [cond: " & def.ConditionObligatoire & "]"
         End If
         Debug.Print s
-    Next def
+    Next i
 End Sub
