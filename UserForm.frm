@@ -77,12 +77,12 @@ End Select
 End Function
 
 Private Sub AddLigne_Produit_Click()
-Call G_SIRIUS_UserForm.SIRIUS_AjouterLigneProduit("Cr�ation")
+Call G_SIRUS_UserForm.SIRUS_AjouterLigneProduit("Cr�ation")
 End Sub
 
 Private Sub AddTache_ATM_Click()
 
-Call SIRIUS_AjouterTacheATM
+Call SIRUS_AjouterTacheATM
 
 End Sub
 
@@ -249,7 +249,7 @@ Private Sub Btn_SearchDTR_ATM_Click()
 
     If dtr = "" Then
         MsgBox "Veuillez renseigner un DTR avant de lancer la recherche.", _
-               vbExclamation, "SIRIUS � Recherche DTR"
+               vbExclamation, "SIRUS � Recherche DTR"
         Exit Sub
     End If
 
@@ -263,7 +263,7 @@ Private Sub Btn_SearchDTR_ATM_Click()
 
     If REQSEL.EOF Then
         MsgBox "DTR '" & dtr & "' introuvable dans la table Produit. Veuillez cr�er le DTR avant de cr�er les informations relatives aux fiches ATM", _
-               vbExclamation, "SIRIUS � Recherche DTR"
+               vbExclamation, "SIRUS � Recherche DTR"
         Exit Sub
     End If
 
@@ -361,7 +361,7 @@ Private Sub actualiser(taux As Integer)
 End Sub
 Private Sub DelLigne_Tache_Click()
 
-Call SIRIUS_SupprimerTacheATM
+Call SIRUS_SupprimerTacheATM
 
 End Sub
 Private Sub Extr_Livrables_List_Change()
@@ -635,17 +635,17 @@ For i = LBound(family) To UBound(family)
 Next i
 
 'SIRUS
-Call G_SIRIUS_UserForm.SIRIUS_ConfigListViewProduit
-Call G_SIRIUS_UserForm.SIRIUS_ConfigListViewTaches
-Call G_SIRIUS_UserForm.SIRIUS_ConfigListViewATM
-Call G_SIRIUS_UserForm.SIRIUS_ConfigListViewGeneration
+Call G_SIRUS_UserForm.SIRUS_ConfigListViewProduit
+Call G_SIRUS_UserForm.SIRUS_ConfigListViewTaches
+Call G_SIRUS_UserForm.SIRUS_ConfigListViewATM
+Call G_SIRUS_UserForm.SIRUS_ConfigListViewGeneration
 
-' SIRIUS - Alimentation PBS dans ListView_Generation a partir de DATA_ASL du classeur actif
-G_SIRIUS_PBS.SIRIUS_LookupDTR_Active = True
-Call G_SIRIUS_PBS.SIRIUS_RemplirListViewGeneration
+' SIRUS - Alimentation PBS dans ListView_Generation a partir de DATA_ASL du classeur actif
+G_SIRUS_PBS.SIRUS_LookupDTR_Active = True
+Call G_SIRUS_PBS.SIRUS_RemplirListViewGeneration
 
-' SIRIUS � �tat initial NavTab type de demande
-Call SIRIUS_SetType("Cr�ation")
+' SIRUS � �tat initial NavTab type de demande
+Call SIRUS_SetType("Cr�ation")
 
 ' Ajout des listes de valeurs
 For i = 2 To dlignefrs

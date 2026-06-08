@@ -1,4 +1,4 @@
-Attribute VB_Name = "G_SIRIUS_UserForm"
+Attribute VB_Name = "G_SIRUS_UserForm"
 
 ' -- Constante : colonnes de la ListBox Produit -------------
 ' Col 0 = DTR | Col 1 = D�signation | Col 2 = Node Type
@@ -6,14 +6,14 @@ Attribute VB_Name = "G_SIRIUS_UserForm"
 
 ' -- Collection de stockage ---------------------------------
 Private lignesProduit As Collection
-Public Sub SIRIUS_Init()
+Public Sub SIRUS_Init()
     Set lignesProduit = New Collection
     UserForm.ListBox_Produit.Clear
 End Sub
 ' ============================================================
 ' CONFIGURATION LISTVIEW_PRODUIT � dans UserForm_Initialize
 ' ============================================================
-Public Sub SIRIUS_ConfigListViewProduit()
+Public Sub SIRUS_ConfigListViewProduit()
 
     Dim lv As MSComctlLib.ListView
     Set lv = UserForm.ListView_Produit
@@ -44,7 +44,7 @@ End Sub
 ' ============================================================
 ' CONFIGURATION LISTVIEW_PRODUIT � dans UserForm_Initialize
 ' ============================================================
-Public Sub SIRIUS_ConfigListViewGeneration()
+Public Sub SIRUS_ConfigListViewGeneration()
 
     Dim lv As MSComctlLib.ListView
     Set lv = UserForm.ListView_Generation
@@ -77,7 +77,7 @@ End Sub
 ' ============================================================
 ' CONFIGURATION LISTVIEW_TACHESATM � dans UserForm_Initialize
 ' ============================================================
-Public Sub SIRIUS_ConfigListViewTaches()
+Public Sub SIRUS_ConfigListViewTaches()
 
     Dim lv As MSComctlLib.ListView
     Set lv = UserForm.ListView_Taches
@@ -115,7 +115,7 @@ End Sub
 ' CONFIGURER LA LISTVIEW D'ERREURS
 ' ============================================================
 
-Public Sub SIRIUS_ConfigListViewErreurs()
+Public Sub SIRUS_ConfigListViewErreurs()
 
     Dim lv As MSComctlLib.ListView
     Set lv = UserForm.ListView_Erreurs
@@ -137,7 +137,7 @@ End Sub
 ' ============================================================
 ' CONFIGURATION LISTVIEW_ATM � dans UserForm_Initialize
 ' ============================================================
-Public Sub SIRIUS_ConfigListViewATM()
+Public Sub SIRUS_ConfigListViewATM()
 
     Dim lv As MSComctlLib.ListView
     Set lv = UserForm.ListView_ATM
@@ -174,7 +174,7 @@ End Sub
 ' ============================================================
 ' AJOUTER UNE LIGNE DANS LISTVIEW_PRODUIT
 ' ============================================================
-Public Sub SIRIUS_AddToListViewProduit(vals() As String, TypeMod As String)
+Public Sub SIRUS_AddToListViewProduit(vals() As String, TypeMod As String)
 
     Dim lv   As MSComctlLib.ListView
     Dim item As MSComctlLib.ListItem
@@ -200,7 +200,7 @@ End Sub
 ' ============================================================
 ' CHANGEMENT TYPE DEMANDE (NavTab Cr�ation/Modif/Suppression)
 ' ============================================================
-Public Sub SIRIUS_SetType(typeVal As String)
+Public Sub SIRUS_SetType(typeVal As String)
 
     With UserForm
         Select Case typeVal
@@ -253,7 +253,7 @@ End Sub
 ' ============================================================
 ' BOUTON "+ Ajouter la ligne"
 ' ============================================================
-Public Sub SIRIUS_AjouterLigneProduit(TypeMod As String)
+Public Sub SIRUS_AjouterLigneProduit(TypeMod As String)
 
     If lignesProduit Is Nothing Then Set lignesProduit = New Collection
 
@@ -269,7 +269,7 @@ Public Sub SIRIUS_AjouterLigneProduit(TypeMod As String)
 
     ' -- Validation selon type de demande -------------------
     Dim typeActif As String
-    typeActif = SIRIUS_GetTypeActif()
+    typeActif = SIRUS_GetTypeActif()
 
     Dim missing As String
     missing = ""
@@ -289,7 +289,7 @@ Public Sub SIRIUS_AjouterLigneProduit(TypeMod As String)
 
     If missing <> "" Then
         MsgBox "Champs obligatoires manquants : " & _
-               Left(missing, Len(missing) - 3), vbExclamation, "SIRIUS"
+               Left(missing, Len(missing) - 3), vbExclamation, "SIRUS"
         Exit Sub
     End If
 
@@ -299,7 +299,7 @@ Public Sub SIRIUS_AjouterLigneProduit(TypeMod As String)
         If IsArray(item) Then
             If UCase(Trim(item(0))) = UCase(dtr) Then
                 MsgBox "DTR '" & dtr & "' d�j� pr�sent dans la liste.", _
-                       vbExclamation, "SIRIUS"
+                       vbExclamation, "SIRUS"
                 Exit Sub
             End If
         End If
@@ -313,10 +313,10 @@ Public Sub SIRIUS_AjouterLigneProduit(TypeMod As String)
 
     lignesProduit.Add vals
 
-    Call SIRIUS_AddToListViewProduit(vals, TypeMod)
+    Call SIRUS_AddToListViewProduit(vals, TypeMod)
 
     ' -- Vider les champs apr�s ajout ----------------------
-    Call SIRIUS_EffacerChampsProduit
+    Call SIRUS_EffacerChampsProduit
 
     ' -- Mettre le focus sur DTR pour saisie suivante -------
     UserForm.DTRProduit_txt.SetFocus
@@ -325,7 +325,7 @@ End Sub
 ' ============================================================
 ' BOUTON "Effacer"
 ' ============================================================
-Public Sub SIRIUS_EffacerChampsProduit()
+Public Sub SIRUS_EffacerChampsProduit()
 
     With UserForm
         .DTRProduit_txt.Value = ""
@@ -343,7 +343,7 @@ End Sub
 ' ============================================================
 ' BOUTON "Effacer la s�lection"
 ' ============================================================
-Public Sub SIRIUS_EffacerSelectionProduitProduit()
+Public Sub SIRUS_EffacerSelectionProduitProduit()
 
     Dim lb  As MSForms.ListBox
     Dim idx As Long
@@ -352,7 +352,7 @@ Public Sub SIRIUS_EffacerSelectionProduitProduit()
     idx = lb.ListIndex
 
     If idx = -1 Then
-        MsgBox "S�lectionnez une ligne � supprimer.", vbExclamation, "SIRIUS"
+        MsgBox "S�lectionnez une ligne � supprimer.", vbExclamation, "SIRUS"
         Exit Sub
     End If
 
@@ -377,7 +377,7 @@ End Sub
 ' ============================================================
 ' AJOUTER UNE T�CHE DANS LISTVIEW_TACHES
 ' ============================================================
-Public Sub SIRIUS_AjouterTacheATM()
+Public Sub SIRUS_AjouterTacheATM()
 
     ' -- R�cup�ration des valeurs ---------------------------
     Dim dtr     As String: dtr = Trim(UserForm.DTRATM_txt.Value)
@@ -434,7 +434,7 @@ Public Sub SIRIUS_AjouterTacheATM()
 
     If missing <> "" Then
         MsgBox "Champs obligatoires manquants :" & vbCrLf & _
-               Left(missing, Len(missing) - 3), vbExclamation, "SIRIUS � ATM"
+               Left(missing, Len(missing) - 3), vbExclamation, "SIRUS � ATM"
         Exit Sub
     End If
 
@@ -450,7 +450,7 @@ Public Sub SIRIUS_AjouterTacheATM()
            UCase(li.SubItems(1)) = UCase(langue) Then
             MsgBox "La combinaison DTR '" & dtr & "' / Rang '" & rang & _
                    "' / Langue '" & langue & "' existe d�j�.", _
-                   vbExclamation, "SIRIUS � ATM"
+                   vbExclamation, "SIRUS � ATM"
             Exit Sub
         End If
     Next li
@@ -476,7 +476,7 @@ Public Sub SIRIUS_AjouterTacheATM()
     
 
     ' -- Vider les champs de saisie -------------------------
-    Call SIRIUS_EffacerChampsTaches
+    Call SIRUS_EffacerChampsTaches
 
 End Sub
 
@@ -484,7 +484,7 @@ End Sub
 ' EFFACER LES CHAMPS DE SAISIE TACHES
 ' ============================================================
 
-Public Sub SIRIUS_EffacerChampsTaches()
+Public Sub SIRUS_EffacerChampsTaches()
 
     With UserForm
         .RangATM_list.Value = ""
@@ -503,13 +503,13 @@ End Sub
 ' SUPPRIMER LA LIGNE S�LECTIONN�E DANS LISTVIEW_TACHES
 ' ============================================================
 
-Public Sub SIRIUS_SupprimerTacheATM()
+Public Sub SIRUS_SupprimerTacheATM()
 
     Dim lv As MSComctlLib.ListView
     Set lv = UserForm.ListView_Taches
 
     If lv.SelectedItem Is Nothing Then
-        MsgBox "S�lectionnez une t�che � supprimer.", vbExclamation, "SIRIUS"
+        MsgBox "S�lectionnez une t�che � supprimer.", vbExclamation, "SIRUS"
         Exit Sub
     End If
 
@@ -519,13 +519,13 @@ End Sub
 ' ============================================================
 ' R�CUP�RER LE TYPE DE DEMANDE ACTIF (NavTab)
 ' ============================================================
-Private Function SIRIUS_GetTypeActif() As String
+Private Function SIRUS_GetTypeActif() As String
 
     Select Case UserForm.Type_Import_Tab.SelectedItem.index
-        Case 0: SIRIUS_GetTypeActif = "Cr�ation"
-        Case 1: SIRIUS_GetTypeActif = "Modification"
-        Case 2: SIRIUS_GetTypeActif = "Suppression"
-        Case Else: SIRIUS_GetTypeActif = "Cr�ation"
+        Case 0: SIRUS_GetTypeActif = "Cr�ation"
+        Case 1: SIRUS_GetTypeActif = "Modification"
+        Case 2: SIRUS_GetTypeActif = "Suppression"
+        Case Else: SIRUS_GetTypeActif = "Cr�ation"
     End Select
 
 End Function

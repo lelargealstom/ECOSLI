@@ -1,4 +1,4 @@
-Attribute VB_Name = "G_SIRIUS_Analyse"
+Attribute VB_Name = "G_SIRUS_Analyse"
 ' ============================================================
 ' CONSTANTES ANALYSE
 ' ============================================================
@@ -6,36 +6,36 @@ Private Const SEUIL_DVL_MAX     As Double = 50
 Private Const SEUIL_KO_BLOQUANT As Double = 0.2  ' 20%
 
 ' ============================================================
-' STRUCTURE RÉSULTAT ANALYSE
+' STRUCTURE Rï¿½SULTAT ANALYSE
 ' ============================================================
-' Stocké dans une Collection globale pour accès depuis UI
+' Stockï¿½ dans une Collection globale pour accï¿½s depuis UI
 Public resultatsAnalyse As Collection
 
 ' ============================================================
-' POINT D'ENTRÉE — LANCER L'ANALYSE PRODUIT
+' POINT D'ENTRï¿½E ï¿½ LANCER L'ANALYSE PRODUIT
 ' ============================================================
 
-Public Sub SIRIUS_AnalyserProduit()
+Public Sub SIRUS_AnalyserProduit()
 
     Dim lv     As MSComctlLib.ListView
     Dim lvErr  As MSComctlLib.ListView
 
     Set lv = UserForm.ListView_Produit
 
-    ' -- Vérifier qu'il y a des données --------------------
+    ' -- Vï¿½rifier qu'il y a des donnï¿½es --------------------
     If lv.ListItems.count = 0 Then
-        MsgBox "Aucune ligne à analyser.", vbExclamation, "SIRIUS — Analyse"
+        MsgBox "Aucune ligne ï¿½ analyser.", vbExclamation, "SIRUS ï¿½ Analyse"
         Exit Sub
     End If
 
-    ' -- Initialiser la collection de résultats ------------
+    ' -- Initialiser la collection de rï¿½sultats ------------
     Set resultatsAnalyse = New Collection
 
     ' -- Masquer le frame de saisie ------------------------
     UserForm.Frame_Saisie.Visible = False
 
     ' -- Configurer la ListView d'erreurs ------------------
-    Call SIRIUS_ConfigListViewErreurs
+    Call SIRUS_ConfigListViewErreurs
 
     Set lvErr = UserForm.ListView_Erreurs
 
@@ -51,11 +51,11 @@ Public Sub SIRIUS_AnalyserProduit()
 
     nbTotal = lv.ListItems.count
 
-    ' -- Récupérer les DTR existants en BdD ----------------
+    ' -- Rï¿½cupï¿½rer les DTR existants en BdD ----------------
     Dim dtrBdD As Collection
-    Set dtrBdD = SIRIUS_GetDTRFromBdD()
+    Set dtrBdD = SIRUS_GetDTRFromBdD()
 
-    ' -- Récupérer les DTR déjà saisis pour doublon interne-
+    ' -- Rï¿½cupï¿½rer les DTR dï¿½jï¿½ saisis pour doublon interne-
     Dim dtrSaisis As New Collection
 
     ' -- Boucle sur chaque ligne ---------------------------
@@ -65,12 +65,12 @@ Public Sub SIRIUS_AnalyserProduit()
 
     For Each li In lv.ListItems
 
-        ' Colonnes selon SIRIUS_ConfigListViewProduit :
+        ' Colonnes selon SIRUS_ConfigListViewProduit :
         ' Text    = DTR
-        ' SI(1)   = Désignation
+        ' SI(1)   = Dï¿½signation
         ' SI(2)   = Node Type
         ' SI(3)   = Fournisseur
-        ' SI(4)   = Réf. Fournisseur
+        ' SI(4)   = Rï¿½f. Fournisseur
         ' SI(5)   = Drawing Number
         ' SI(6)   = MTBF Intr.
         ' SI(7)   = DVL HARD
@@ -88,22 +88,22 @@ Public Sub SIRIUS_AnalyserProduit()
 
         Dim ligneOK As Boolean: ligneOK = True
 
-        ' -- CONTRÔLE 1 — Champs obligatoires --------------
+        ' -- CONTRï¿½LE 1 ï¿½ Champs obligatoires --------------
         Dim champsMissing As String: champsMissing = ""
 
         If dtr = "" Then champsMissing = champsMissing & "DTR / "
-        If des = "" Then champsMissing = champsMissing & "Désignation / "
+        If des = "" Then champsMissing = champsMissing & "Dï¿½signation / "
         If node = "" Then champsMissing = champsMissing & "Node Type / "
         If fourn = "" Then champsMissing = champsMissing & "Fournisseur / "
-        If ref = "" Then champsMissing = champsMissing & "Réf. Fournisseur / "
+        If ref = "" Then champsMissing = champsMissing & "Rï¿½f. Fournisseur / "
         If drw = "" Then champsMissing = champsMissing & "Drawing Number / "
-        If MTBF = "" Then champsMissing = champsMissing & "MTBF Intrinsèque / "
+        If MTBF = "" Then champsMissing = champsMissing & "MTBF Intrinsï¿½que / "
         If dvlh = "" Then champsMissing = champsMissing & "DVL HARD / "
 
         If champsMissing <> "" Then
             nbObligatKO = nbObligatKO + 1
             ligneOK = False
-            Call SIRIUS_AddErreur(lvErr, ligneNum, dtr, _
+            Call SIRUS_AddErreur(lvErr, ligneNum, dtr, _
                 "Champ obligatoire", _
                 "Renseigner : " & Left(champsMissing, Len(champsMissing) - 3), _
                 "KO")
@@ -111,7 +111,7 @@ Public Sub SIRIUS_AnalyserProduit()
             nbObligatOK = nbObligatOK + 1
         End If
 
-        ' -- CONTRÔLE 2 — Doublon DTR interne --------------
+        ' -- CONTRï¿½LE 2 ï¿½ Doublon DTR interne --------------
         If dtr <> "" Then
             Dim isDupInternal As Boolean: isDupInternal = False
             Dim dtrCheck As Variant
@@ -125,16 +125,16 @@ Public Sub SIRIUS_AnalyserProduit()
             If isDupInternal Then
                 nbDoublons = nbDoublons + 1
                 ligneOK = False
-                Call SIRIUS_AddErreur(lvErr, ligneNum, dtr, _
+                Call SIRUS_AddErreur(lvErr, ligneNum, dtr, _
                     "Doublon DTR", _
-                    "DTR déjà présent dans la liste de saisie", _
+                    "DTR dï¿½jï¿½ prï¿½sent dans la liste de saisie", _
                     "KO")
             Else
                 dtrSaisis.Add dtr
             End If
         End If
 
-        ' -- CONTRÔLE 3 — DTR existant en BdD --------------
+        ' -- CONTRï¿½LE 3 ï¿½ DTR existant en BdD --------------
         If dtr <> "" Then
             Dim existBdD As Boolean: existBdD = False
             Dim dtrBdDItem As Variant
@@ -147,61 +147,61 @@ Public Sub SIRIUS_AnalyserProduit()
 
             If existBdD Then
                 nbExistBdD = nbExistBdD + 1
-                Call SIRIUS_AddErreur(lvErr, ligneNum, dtr, _
+                Call SIRUS_AddErreur(lvErr, ligneNum, dtr, _
                     "DTR existant BdD", _
-                    "DTR déjà présent en BdD — vérifier si Création ou Modification", _
+                    "DTR dï¿½jï¿½ prï¿½sent en BdD ï¿½ vï¿½rifier si Crï¿½ation ou Modification", _
                     "WARN")
             End If
         End If
 
-        ' -- CONTRÔLE 4 — Types de données -----------------
+        ' -- CONTRï¿½LE 4 ï¿½ Types de donnï¿½es -----------------
 
-        ' MTBF — décimal > 0
+        ' MTBF ï¿½ dï¿½cimal > 0
         If MTBF <> "" Then
-            If Not SIRIUS_IsDecimal(MTBF) Then
+            If Not SIRUS_IsDecimal(MTBF) Then
                 nbTypeKO = nbTypeKO + 1
                 ligneOK = False
-                Call SIRIUS_AddErreur(lvErr, ligneNum, dtr, _
+                Call SIRUS_AddErreur(lvErr, ligneNum, dtr, _
                     "Type MTBF", _
-                    "MTBF Intrinsèque doit être un nombre décimal > 0 (valeur : " & MTBF & ")", _
+                    "MTBF Intrinsï¿½que doit ï¿½tre un nombre dï¿½cimal > 0 (valeur : " & MTBF & ")", _
                     "KO")
             End If
         End If
 
-        ' DVL HARD — décimal > 0 et <= 50
+        ' DVL HARD ï¿½ dï¿½cimal > 0 et <= 50
         If dvlh <> "" Then
-            If Not SIRIUS_IsDecimal(dvlh) Then
+            If Not SIRUS_IsDecimal(dvlh) Then
                 nbTypeKO = nbTypeKO + 1
                 ligneOK = False
-                Call SIRIUS_AddErreur(lvErr, ligneNum, dtr, _
+                Call SIRUS_AddErreur(lvErr, ligneNum, dtr, _
                     "Type DVL HARD", _
-                    "DVL HARD doit être un nombre décimal (valeur : " & dvlh & ")", _
+                    "DVL HARD doit ï¿½tre un nombre dï¿½cimal (valeur : " & dvlh & ")", _
                     "KO")
             ElseIf CDbl(dvlh) > SEUIL_DVL_MAX Then
                 nbTypeKO = nbTypeKO + 1
                 ligneOK = False
-                Call SIRIUS_AddErreur(lvErr, ligneNum, dtr, _
+                Call SIRUS_AddErreur(lvErr, ligneNum, dtr, _
                     "DVL HARD > 50", _
-                    "DVL HARD = " & dvlh & " — durée de vie limitée ne peut pas dépasser 50 ans", _
+                    "DVL HARD = " & dvlh & " ï¿½ durï¿½e de vie limitï¿½e ne peut pas dï¿½passer 50 ans", _
                     "KO")
             End If
         End If
 
-        ' DVL SOFT — décimal > 0 et <= 50 (si renseigné)
+        ' DVL SOFT ï¿½ dï¿½cimal > 0 et <= 50 (si renseignï¿½)
         If dvls <> "" Then
-            If Not SIRIUS_IsDecimal(dvls) Then
+            If Not SIRUS_IsDecimal(dvls) Then
                 nbTypeKO = nbTypeKO + 1
                 ligneOK = False
-                Call SIRIUS_AddErreur(lvErr, ligneNum, dtr, _
+                Call SIRUS_AddErreur(lvErr, ligneNum, dtr, _
                     "Type DVL SOFT", _
-                    "DVL SOFT doit être un nombre décimal (valeur : " & dvls & ")", _
+                    "DVL SOFT doit ï¿½tre un nombre dï¿½cimal (valeur : " & dvls & ")", _
                     "KO")
             ElseIf CDbl(dvls) > SEUIL_DVL_MAX Then
                 nbTypeKO = nbTypeKO + 1
                 ligneOK = False
-                Call SIRIUS_AddErreur(lvErr, ligneNum, dtr, _
+                Call SIRUS_AddErreur(lvErr, ligneNum, dtr, _
                     "DVL SOFT > 50", _
-                    "DVL SOFT = " & dvls & " — durée de vie limitée ne peut pas dépasser 50 ans", _
+                    "DVL SOFT = " & dvls & " ï¿½ durï¿½e de vie limitï¿½e ne peut pas dï¿½passer 50 ans", _
                     "KO")
             End If
         End If
@@ -215,8 +215,8 @@ Public Sub SIRIUS_AnalyserProduit()
     nbKOTotal = nbObligatKO + nbDoublons + nbTypeKO
     If nbTotal > 0 Then tauxKO = nbKOTotal / nbTotal Else tauxKO = 0
 
-    ' -- Afficher les résultats ----------------------------
-    Call SIRIUS_AfficherResultatsAnalyse( _
+    ' -- Afficher les rï¿½sultats ----------------------------
+    Call SIRUS_AfficherResultatsAnalyse( _
         nbTotal, nbObligatOK, nbObligatKO, _
         nbDoublons, nbExistBdD, nbRefWarn, _
         nbTypeKO, tauxKO)
@@ -229,12 +229,12 @@ Public Sub SIRIUS_AnalyserProduit()
 
     If tauxKO > SEUIL_KO_BLOQUANT Then
         UserForm.lbl_StatutAnalyse.Caption = _
-            "BLOQUÉ — Taux d'erreurs " & Format(tauxKO * 100, "0.0") & _
-            "% > 20% — corrigez avant d'envoyer"
+            "BLOQUï¿½ ï¿½ Taux d'erreurs " & Format(tauxKO * 100, "0.0") & _
+            "% > 20% ï¿½ corrigez avant d'envoyer"
         UserForm.lbl_StatutAnalyse.ForeColor = RGB(163, 45, 45)
     Else
         UserForm.lbl_StatutAnalyse.Caption = _
-            "Analyse terminée — " & nbKOTotal & " erreur(s) · " & _
+            "Analyse terminï¿½e ï¿½ " & nbKOTotal & " erreur(s) ï¿½ " & _
             Format(tauxKO * 100, "0.0") & "% KO"
         UserForm.lbl_StatutAnalyse.ForeColor = IIf(nbKOTotal = 0, RGB(39, 80, 10), RGB(186, 117, 23))
     End If
@@ -245,21 +245,21 @@ End Sub
 ' RETOUR VERS LA SAISIE
 ' ============================================================
 
-Public Sub SIRIUS_RetourSaisie()
+Public Sub SIRUS_RetourSaisie()
 
-    ' Masquer l'analyse, réafficher la saisie
+    ' Masquer l'analyse, rï¿½afficher la saisie
     UserForm.Frame_Analyse.Visible = False
     UserForm.Frame_Saisie.Visible = True
 
-    ' ListView_Produit reste intacte — pas de clear
+    ' ListView_Produit reste intacte ï¿½ pas de clear
 
 End Sub
 
 ' ============================================================
-' RÉCUPÉRER LES DTR EXISTANTS EN BDD
+' Rï¿½CUPï¿½RER LES DTR EXISTANTS EN BDD
 ' ============================================================
 
-Private Function SIRIUS_GetDTRFromBdD() As Collection
+Private Function SIRUS_GetDTRFromBdD() As Collection
 
     Dim col As New Collection
 
@@ -284,12 +284,12 @@ Private Function SIRIUS_GetDTRFromBdD() As Collection
         REQSEL.MoveNext
     Loop
 
-    Set SIRIUS_GetDTRFromBdD = col
+    Set SIRUS_GetDTRFromBdD = col
     Exit Function
 
 ErrBdD:
-    ' En cas d'erreur BdD — on retourne une collection vide
-    Set SIRIUS_GetDTRFromBdD = New Collection
+    ' En cas d'erreur BdD ï¿½ on retourne une collection vide
+    Set SIRUS_GetDTRFromBdD = New Collection
 
 End Function
 
@@ -297,7 +297,7 @@ End Function
 ' AJOUTER UNE ERREUR DANS LA LISTVIEW
 ' ============================================================
 
-Private Sub SIRIUS_AddErreur(lvErr As MSComctlLib.ListView, _
+Private Sub SIRUS_AddErreur(lvErr As MSComctlLib.ListView, _
                               ligne As Long, _
                               dtr As String, _
                               controle As String, _
@@ -318,10 +318,10 @@ End Sub
 
 
 ' ============================================================
-' AFFICHER LES RÉSULTATS DANS LES LABELS DU FRAME_ANALYSE
+' AFFICHER LES Rï¿½SULTATS DANS LES LABELS DU FRAME_ANALYSE
 ' ============================================================
 
-Private Sub SIRIUS_AfficherResultatsAnalyse( _
+Private Sub SIRUS_AfficherResultatsAnalyse( _
     nbTotal As Long, _
     nbObligatOK As Long, nbObligatKO As Long, _
     nbDoublons As Long, _
@@ -336,17 +336,17 @@ Private Sub SIRIUS_AfficherResultatsAnalyse( _
         .lbl_ObligatStatut.Caption = IIf(nbObligatKO = 0, "OK", nbObligatKO & " KO")
         .lbl_ObligatStatut.ForeColor = IIf(nbObligatKO = 0, RGB(39, 80, 10), RGB(163, 45, 45))
 
-        ' Unicité DTR
+        ' Unicitï¿½ DTR
         .lbl_DoublonsVal.Caption = IIf(nbDoublons = 0, "OK", nbDoublons & " KO")
         .lbl_DoublonsStatut.Caption = IIf(nbDoublons = 0, "OK", "Bloquant")
         .lbl_DoublonsStatut.ForeColor = IIf(nbDoublons = 0, RGB(39, 80, 10), RGB(163, 45, 45))
 
-        ' Cohérence référentielle BdD
+        ' Cohï¿½rence rï¿½fï¿½rentielle BdD
         .lbl_RefVal.Caption = IIf(nbExistBdD = 0, "OK", nbExistBdD & " exist.")
         .lbl_RefStatut.Caption = IIf(nbExistBdD = 0, "OK", "Alerte")
         .lbl_RefStatut.ForeColor = IIf(nbExistBdD = 0, RGB(39, 80, 10), RGB(186, 117, 23))
 
-        ' Types de données
+        ' Types de donnï¿½es
         .lbl_TypesVal.Caption = IIf(nbTypeKO = 0, "OK", nbTypeKO & " KO")
         .lbl_TypesStatut.Caption = IIf(nbTypeKO = 0, "OK", "Bloquant")
         .lbl_TypesStatut.ForeColor = IIf(nbTypeKO = 0, RGB(39, 80, 10), RGB(163, 45, 45))
@@ -360,14 +360,14 @@ Private Sub SIRIUS_AfficherResultatsAnalyse( _
 End Sub
 
 ' ============================================================
-' UTILITAIRE — VÉRIFIER QU'UNE VALEUR EST UN DÉCIMAL VALIDE
+' UTILITAIRE ï¿½ Vï¿½RIFIER QU'UNE VALEUR EST UN Dï¿½CIMAL VALIDE
 ' ============================================================
 
-Private Function SIRIUS_IsDecimal(val As String) As Boolean
+Private Function SIRUS_IsDecimal(val As String) As Boolean
     On Error Resume Next
     Dim d As Double
     d = CDbl(val)
-    SIRIUS_IsDecimal = (Err.Number = 0 And d > 0)
+    SIRUS_IsDecimal = (Err.Number = 0 And d > 0)
     On Error GoTo 0
 End Function
 

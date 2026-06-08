@@ -1,4 +1,4 @@
-Attribute VB_Name = "G_SIRIUS_ATMAP"
+Attribute VB_Name = "G_SIRUS_ATMAP"
 Option Explicit
 
 ' ============================================================
@@ -9,7 +9,7 @@ Private Const LIST_NAME        As String = "ATMAP_TICKETS"
 Private Const LIST_ENTITY_TYPE As String = "SP.Data.ATMAP_x005f_TICKETSListItem"
 
 ' ============================================================
-' POINT D'ENTRÉE — TEST
+' POINT D'ENTRï¿½E ï¿½ TEST
 ' ============================================================
 
 Sub Test_Creer_Ticket_ATMAP()
@@ -20,21 +20,21 @@ Sub Test_Creer_Ticket_ATMAP()
     Dim result   As String
     Dim pjResult As String
 
-    ' -- Étape 1 — Digest CSRF ------------------------------
+    ' -- ï¿½tape 1 ï¿½ Digest CSRF ------------------------------
     digest = GetFormDigest()
     If digest = "" Then
-        MsgBox "Échec récupération digest.", vbCritical, "ATMAP Test"
+        MsgBox "ï¿½chec rï¿½cupï¿½ration digest.", vbCritical, "ATMAP Test"
         Exit Sub
     End If
 
-    ' -- Étape 2 — Utilisateur connecté ---------------------
+    ' -- ï¿½tape 2 ï¿½ Utilisateur connectï¿½ ---------------------
     userID = GetCurrentUserID(digest)
     If userID = -1 Then
-        MsgBox "Impossible de récupérer l'utilisateur connecté.", vbExclamation, "ATMAP Test"
+        MsgBox "Impossible de rï¿½cupï¿½rer l'utilisateur connectï¿½.", vbExclamation, "ATMAP Test"
         Exit Sub
     End If
 
-    ' -- Étape 3 — Données d'import -------------------------
+    ' -- ï¿½tape 3 ï¿½ Donnï¿½es d'import -------------------------
     Dim lignesImport As New Collection
     lignesImport.Add Array( _
         "DTR-001-A", "Calculateur traction", "LRU", "Bombardier", _
@@ -43,27 +43,27 @@ Sub Test_Creer_Ticket_ATMAP()
         "DTR-002-B", "Carte alimentation 24V", "SRU", "Alstom", _
         "ALT-PWR-024", "DRW-0981", "22000", "12", "", "EUR")
 
-    ' -- Étape 4 — Création ticket --------------------------
+    ' -- ï¿½tape 4 ï¿½ Crï¿½ation ticket --------------------------
     result = CreateTicketREST( _
         digest:=digest, _
         userID:=userID, _
         outilID:=43, _
         numeroTicket:="VBN_Test", _
-        sujet:="IMP_001 — Import Produit", _
+        sujet:="IMP_001 ï¿½ Import Produit", _
         statut:="Nouveau", _
         description:="Import de " & lignesImport.count & _
-                     " DTR en table Produit — DTR-001-A, DTR-002-B", _
-        attentes:="Intégration en BdD SLI — Table Produit", _
+                     " DTR en table Produit ï¿½ DTR-001-A, DTR-002-B", _
+        attentes:="Intï¿½gration en BdD SLI ï¿½ Table Produit", _
         typedemande:="Import", _
         priorite:="High", _
         ticketIDOut:=newID _
     )
 
-    MsgBox result, vbInformation, "ATMAP Test — Résultat"
+    MsgBox result, vbInformation, "ATMAP Test ï¿½ Rï¿½sultat"
 
     If newID = -1 Then Exit Sub
 
-    ' -- Étape 5 — Pièce jointe Excel -----------------------
+    ' -- ï¿½tape 5 ï¿½ Piï¿½ce jointe Excel -----------------------
     pjResult = AttachExcelToTicket( _
         ticketID:=newID, _
         digest:=digest, _
@@ -72,12 +72,12 @@ Sub Test_Creer_Ticket_ATMAP()
         dataRows:=lignesImport _
     )
 
-    MsgBox pjResult, vbInformation, "ATMAP Test — Pièce jointe"
+    MsgBox pjResult, vbInformation, "ATMAP Test ï¿½ Piï¿½ce jointe"
 
 End Sub
 
 ' ============================================================
-' CRÉATION TICKET COMPLET — UNE SEULE REQUÊTE REST POST
+' CRï¿½ATION TICKET COMPLET ï¿½ UNE SEULE REQUï¿½TE REST POST
 ' ============================================================
 
 Private Function CreateTicketREST(digest As String, _
@@ -100,13 +100,13 @@ Private Function CreateTicketREST(digest As String, _
 
     ticketIDOut = -1
 
-    ' MSXML2 validé — ne pas changer pour WinHttp ici
+    ' MSXML2 validï¿½ ï¿½ ne pas changer pour WinHttp ici
     Set xhr = CreateObject("MSXML2.XMLHTTP.6.0")
 
     url = SITE_URL & "/_api/web/lists/getbytitle('" & LIST_NAME & "')/items"
     today = Format(Now(), "yyyy-mm-dd") & "T00:00:00Z"
 
-    ' Pas de Title — champ non utilisé dans ATMAP
+    ' Pas de Title ï¿½ champ non utilisï¿½ dans ATMAP
     body = "{""__metadata"":{""type"":""" & LIST_ENTITY_TYPE & """}," & _
            """Numero_ticket"":""" & EscJson(numeroTicket) & """," & _
            """Sujet"":""" & EscJson(sujet) & """," & _
@@ -133,8 +133,8 @@ Private Function CreateTicketREST(digest As String, _
 
     If xhr.Status = 201 Then
         ticketIDOut = CLng(ParseJsonLong(resp, """Id"":"))
-        CreateTicketREST = "Ticket créé — ID : " & ticketIDOut & vbCrLf & _
-                           "Numéro      : " & numeroTicket & vbCrLf & _
+        CreateTicketREST = "Ticket crï¿½ï¿½ ï¿½ ID : " & ticketIDOut & vbCrLf & _
+                           "Numï¿½ro      : " & numeroTicket & vbCrLf & _
                            "DemandeurId : " & userID & vbCrLf & _
                            "NomoutilId  : " & outilID
     Else
@@ -143,13 +143,13 @@ Private Function CreateTicketREST(digest As String, _
     Exit Function
 
 ErrCreate:
-    CreateTicketREST = "Erreur : " & Err.Number & " — " & Err.description
-    MsgBox CreateTicketREST, vbCritical, "ATMAP — CreateTicketREST"
+    CreateTicketREST = "Erreur : " & Err.Number & " ï¿½ " & Err.description
+    MsgBox CreateTicketREST, vbCritical, "ATMAP ï¿½ CreateTicketREST"
 
 End Function
 
 ' ============================================================
-' CRÉER ET ATTACHER UN FICHIER EXCEL AU TICKET
+' CRï¿½ER ET ATTACHER UN FICHIER EXCEL AU TICKET
 ' ============================================================
 
 Private Function AttachExcelToTicket(ticketID As Long, _
@@ -176,12 +176,12 @@ Private Function AttachExcelToTicket(ticketID As Long, _
     AttachExcelToTicket = ""
 
     ' -- 1. Chemin temporaire --------------------------------
-    xlName = "SIRIUS_" & tableName & "_" & Format(Now(), "yyyymmdd_hhmmss") & ".xlsx"
+    xlName = "SIRUS_" & tableName & "_" & Format(Now(), "yyyymmdd_hhmmss") & ".xlsx"
     xlPath = Environ("TEMP") & "\" & xlName
 
     On Error GoTo ErrExcel
 
-    ' -- 2. Créer le classeur --------------------------------
+    ' -- 2. Crï¿½er le classeur --------------------------------
     Set xlApp = CreateObject("Excel.Application")
     xlApp.Visible = False
     xlApp.DisplayAlerts = False
@@ -192,11 +192,11 @@ Private Function AttachExcelToTicket(ticketID As Long, _
 
     headers = GetHeadersForTable(tableName)
 
-    ' -- 3. Ligne titre fusionnée ----------------------------
+    ' -- 3. Ligne titre fusionnï¿½e ----------------------------
     xlWs.rows(1).RowHeight = 28
     With xlWs.Range(xlWs.Cells(1, 1), xlWs.Cells(1, UBound(headers) + 1))
         .Merge
-        .Value = "SIRIUS — Import · " & tableName & _
+        .Value = "SIRUS ï¿½ Import ï¿½ " & tableName & _
                  "  |  " & numeroTicket & _
                  "  |  " & Format(Now(), "dd/mm/yyyy hh:mm")
         .Font.Bold = True
@@ -207,7 +207,7 @@ Private Function AttachExcelToTicket(ticketID As Long, _
         .VerticalAlignment = -4108
     End With
 
-    ' -- 4. En-têtes colonnes --------------------------------
+    ' -- 4. En-tï¿½tes colonnes --------------------------------
     xlWs.rows(2).RowHeight = 20
     For col = 1 To UBound(headers) + 1
         With xlWs.Cells(2, col)
@@ -221,7 +221,7 @@ Private Function AttachExcelToTicket(ticketID As Long, _
         End With
     Next col
 
-    ' -- 5. Données ------------------------------------------
+    ' -- 5. Donnï¿½es ------------------------------------------
     rowIdx = 3
     If Not dataRows Is Nothing Then
         Dim rowData As Variant
@@ -243,7 +243,7 @@ Private Function AttachExcelToTicket(ticketID As Long, _
         Next rowData
     End If
 
-    ' -- 6. Tableau structuré --------------------------------
+    ' -- 6. Tableau structurï¿½ --------------------------------
     If rowIdx > 3 Then
         Dim lo As Object
         Set lo = xlWs.ListObjects.Add(1, _
@@ -253,7 +253,7 @@ Private Function AttachExcelToTicket(ticketID As Long, _
         lo.TableStyle = "TableStyleMedium2"
     End If
 
-    ' -- 7. Figer titres + en-têtes --------------------------
+    ' -- 7. Figer titres + en-tï¿½tes --------------------------
     xlWs.Cells(3, 1).Select
     xlApp.ActiveWindow.FreezePanes = True
     xlWs.Columns.AutoFit
@@ -271,7 +271,7 @@ Private Function AttachExcelToTicket(ticketID As Long, _
         Exit Function
     End If
     
-    ' -- 10. Uploader via REST — WinHttp pour les PJ ---------
+    ' -- 10. Uploader via REST ï¿½ WinHttp pour les PJ ---------
     ' WinHttp obligatoire ici : SetAutoLogonPolicy + envoi binaire Byte()
     Set stream = CreateObject("ADODB.Stream")
     stream.Type = 1  ' adTypeBinary
@@ -298,8 +298,8 @@ Private Function AttachExcelToTicket(ticketID As Long, _
     On Error GoTo 0
 
     If uploadStatus = 200 Then
-        AttachExcelToTicket = "PJ Excel OK — " & xlName & vbCrLf & _
-                              dataRows.count & " ligne(s) exportée(s)"
+        AttachExcelToTicket = "PJ Excel OK ï¿½ " & xlName & vbCrLf & _
+                              dataRows.count & " ligne(s) exportï¿½e(s)"
     Else
         AttachExcelToTicket = "PJ HTTP " & uploadStatus & vbCrLf & _
                               Left(xhr.responseText, 300)
@@ -307,8 +307,8 @@ Private Function AttachExcelToTicket(ticketID As Long, _
     Exit Function
 
 ErrExcel:
-    AttachExcelToTicket = "Erreur Excel : " & Err.Number & " — " & Err.description
-    MsgBox AttachExcelToTicket, vbCritical, "ATMAP — AttachExcelToTicket"
+    AttachExcelToTicket = "Erreur Excel : " & Err.Number & " ï¿½ " & Err.description
+    MsgBox AttachExcelToTicket, vbCritical, "ATMAP ï¿½ AttachExcelToTicket"
     On Error Resume Next
     If Not xlWb Is Nothing Then xlWb.Close False
     If Not xlApp Is Nothing Then xlApp.Quit
@@ -317,43 +317,43 @@ ErrExcel:
 End Function
 
 ' ============================================================
-' EN-TÊTES PAR TABLE
+' EN-Tï¿½TES PAR TABLE
 ' ============================================================
 
 Private Function GetHeadersForTable(tableName As String) As Variant
     Select Case UCase(tableName)
         Case "PRODUIT"
             GetHeadersForTable = Array( _
-                "DTR", "Désignation", "Node Type", "Fournisseur", _
-                "Réf. Fournisseur", "Drawing Number", "MTBF Intrinsèque (h)", _
+                "DTR", "Dï¿½signation", "Node Type", "Fournisseur", _
+                "Rï¿½f. Fournisseur", "Drawing Number", "MTBF Intrinsï¿½que (h)", _
                 "DVL HARD (ans)", "DVL SOFT (ans)", "Devise")
         Case "INFO_ATM", "INFOATM"
             GetHeadersForTable = Array( _
                 "DTR", "Descriptif FR", "Descriptif EN", "HARD/SOFT", _
                 "Indice", "Plan ATM", "Commentaire FR", "Commentaire EN", _
-                "Réparabilité", "Poids (kg)", "DVL générique (ans)", _
-                "DVL spé. projet (ans)", "Tps générique (h)", "Tps analytique cumulé (h)")
+                "Rï¿½parabilitï¿½", "Poids (kg)", "DVL gï¿½nï¿½rique (ans)", _
+                "DVL spï¿½. projet (ans)", "Tps gï¿½nï¿½rique (h)", "Tps analytique cumulï¿½ (h)")
         Case "TACHES_ATM", "TACHESATM"
             GetHeadersForTable = Array( _
-                "DTR", "Langue", "Rang", "HARD/SOFT", "Catégorie", _
-                "Niveau Qualif", "Description", "Critères dim.", _
-                "Outillage spécifique", "Outillage standard", _
-                "Pièces rech./conso.", "Nb Opérateurs", _
-                "Tps estimé (h)", "Tps analytique cumulé (h)", _
+                "DTR", "Langue", "Rang", "HARD/SOFT", "Catï¿½gorie", _
+                "Niveau Qualif", "Description", "Critï¿½res dim.", _
+                "Outillage spï¿½cifique", "Outillage standard", _
+                "Piï¿½ces rech./conso.", "Nb Opï¿½rateurs", _
+                "Tps estimï¿½ (h)", "Tps analytique cumulï¿½ (h)", _
                 "Pictogramme", "Commentaire picto")
         Case "EMMST"
             GetHeadersForTable = Array( _
                 "DTR", "Dim. Nu L (mm)", "Dim. Nu l (mm)", "Dim. Nu H (mm)", "Poids Nu (kg)", _
                 "Dim. Cond. L (mm)", "Dim. Cond. l (mm)", "Dim. Cond. H (mm)", "Poids Cond. (kg)", _
-                "Date Péremption", "Unité Cond.", "Durée Péremption", _
+                "Date Pï¿½remption", "Unitï¿½ Cond.", "Durï¿½e Pï¿½remption", _
                 "Commentaire Emballage FR", "Commentaire Emballage EN", _
                 "Commentaire Stockage FR", "Commentaire Stockage EN", _
                 "Commentaire Transport FR", "Commentaire Transport EN", "Version")
         Case "PROJET_ASL", "PROJETASL"
             GetHeadersForTable = Array( _
-                "Projet", "DTR", "Sous-Système", "Désignation", "Quantité", _
+                "Projet", "DTR", "Sous-Systï¿½me", "Dï¿½signation", "Quantitï¿½", _
                 "MTBF Fonctionnel (h)", "DVL analytique HARD (ans)", _
-                "DVL analytique SOFT (ans)", "ISP TIS (archivé)")
+                "DVL analytique SOFT (ans)", "ISP TIS (archivï¿½)")
         Case Else
             GetHeadersForTable = Array("Colonne 1", "Colonne 2", "Colonne 3")
     End Select
@@ -384,7 +384,7 @@ Private Function ReadFileBinary(filePath As String) As Variant
     Exit Function
 
 ErrRead:
-    MsgBox "Erreur ReadFileBinary : " & Err.Number & " — " & Err.description, vbCritical, "ATMAP"
+    MsgBox "Erreur ReadFileBinary : " & Err.Number & " ï¿½ " & Err.description, vbCritical, "ATMAP"
     ReadFileBinary = Empty
 
 End Function
@@ -413,12 +413,12 @@ Private Function GetFormDigest() As String
     Exit Function
 
 ErrDigest:
-    MsgBox "Erreur GetFormDigest : " & Err.Number & " — " & Err.description, vbCritical, "ATMAP"
+    MsgBox "Erreur GetFormDigest : " & Err.Number & " ï¿½ " & Err.description, vbCritical, "ATMAP"
 
 End Function
 
 ' ============================================================
-' UTILISATEUR CONNECTÉ
+' UTILISATEUR CONNECTï¿½
 ' ============================================================
 
 Private Function GetCurrentUserID(digest As String) As Long
@@ -457,13 +457,13 @@ Private Function GetCurrentUserID(digest As String) As Long
     Exit Function
 
 ErrUser:
-    MsgBox "Erreur GetCurrentUserID : " & Err.Number & " — " & Err.description, vbCritical, "ATMAP"
+    MsgBox "Erreur GetCurrentUserID : " & Err.Number & " ï¿½ " & Err.description, vbCritical, "ATMAP"
     GetCurrentUserID = -1
 
 End Function
 
 ' ============================================================
-' UTILITAIRES — DIAGNOSTIC
+' UTILITAIRES ï¿½ DIAGNOSTIC
 ' ============================================================
 
 Sub GetFieldInternalNames()
@@ -512,7 +512,7 @@ Sub GetFieldInternalNames()
 
     ws.Columns("A:C").AutoFit
     ws.Activate
-    MsgBox ligne - 2 & " colonnes écrites.", vbInformation, "ATMAP"
+    MsgBox ligne - 2 & " colonnes ï¿½crites.", vbInformation, "ATMAP"
 
 End Sub
 
@@ -547,7 +547,7 @@ Sub Diagnostic_Connexion()
 End Sub
 
 ' ============================================================
-' UTILITAIRES — PARSING JSON
+' UTILITAIRES ï¿½ PARSING JSON
 ' ============================================================
 
 Private Function ParseJsonString(json As String, key As String) As String

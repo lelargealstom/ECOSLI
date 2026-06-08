@@ -1,8 +1,8 @@
-Attribute VB_Name = "G_SIRIUS_PBS"
+Attribute VB_Name = "G_SIRUS_PBS"
 '--------------------------------------------------------------------------------------------------------
 '
 '                                       Generateur Livrables SLI
-'                                       Module G_SIRIUS_PBS
+'                                       Module G_SIRUS_PBS
 '                                       Developpement : LE LARGE Thomas (LGM/Alstom)
 '                                       Cadrage de la feuille DATA_ASL et alimentation de la
 '                                       ListView_Generation du UserForm ECOSLI.
@@ -71,7 +71,7 @@ Public DATA_ASL_HeaderRow As Long          ' Ligne d'entete de DATA_ASL (auto-de
 ' Flag de configuration : True pour activer le lookup BdD des 4 colonnes
 ' ATM-Info / ATM-Taches / EMMST / Produit. False = colonnes laissees vides.
 ' Permet de couper le lookup BdD sans toucher au code de remplissage.
-Public SIRIUS_LookupDTR_Active As Boolean
+Public SIRUS_LookupDTR_Active As Boolean
 
 ' Caches DTR par table BdD - charges une fois par appel.
 Private dictProjetASL As Object
@@ -303,7 +303,7 @@ End Function
 
 
 ' =========================================================================
-' SUB: SIRIUS_RemplirListViewGeneration
+' SUB: SIRUS_RemplirListViewGeneration
 ' Alimente la ListView_Generation du UserForm avec, pour chaque DTR de
 ' la PBS du classeur actif :
 '   Col 1  : DTR
@@ -330,7 +330,7 @@ End Function
 '   4. SELECT [DTR_EMMST]      FROM [EMMST$]
 '   5. SELECT [DTR]            FROM [Produit$]
 ' =========================================================================
-Public Sub SIRIUS_RemplirListViewGeneration()
+Public Sub SIRUS_RemplirListViewGeneration()
 
     Dim wsPBS As Worksheet
     Dim wb As Workbook
@@ -356,7 +356,7 @@ Public Sub SIRIUS_RemplirListViewGeneration()
 
     ' Caches DTR BdD - charges seulement si le lookup est active.
     ' Si False, les 5 colonnes Projet_ASL/ATM/EMMST/Produit restent vides.
-    If SIRIUS_LookupDTR_Active Then
+    If SIRUS_LookupDTR_Active Then
         Set dictProjetASL = ChargerSetDTR_BdD("Projet_ASL$", "DTR")
         Set dictInfoATM = ChargerSetDTR_BdD("Info_ATM$", "DTR_INFOATM")
         Set dictTachesATM = ChargerSetDTR_BdD("Taches_ATM$", "DTR_TACHEATM")
@@ -384,7 +384,7 @@ Public Sub SIRIUS_RemplirListViewGeneration()
         Set li = lv.ListItems.Add(, , dtr)
         ' Col 2 : Projet_ASL utilise OUI/NON (presence binaire critique avant generation).
         ' Cols 3-6 : presence informative en OK / vide.
-        If SIRIUS_LookupDTR_Active Then
+        If SIRUS_LookupDTR_Active Then
             li.SubItems(1) = IIf(SetContient(dictProjetASL, dtr), "OUI", "NON")
         Else
             li.SubItems(1) = ""
@@ -422,13 +422,13 @@ End Sub
 
 
 ' =========================================================================
-' SUB: SIRIUS_RafraichirListViewGeneration
+' SUB: SIRUS_RafraichirListViewGeneration
 ' Bouton de rafraichissement page Generation : vide la ListView et
 ' rappelle la routine d'alimentation. A brancher sur le clic d'un
 ' bouton "Rafraichir PBS".
 ' =========================================================================
-Public Sub SIRIUS_RafraichirListViewGeneration()
-    Call SIRIUS_RemplirListViewGeneration
+Public Sub SIRUS_RafraichirListViewGeneration()
+    Call SIRUS_RemplirListViewGeneration
 End Sub
 
 
@@ -513,7 +513,7 @@ End Function
 ' =========================================================================
 ' FONCTION: EvaluerQualitePrix
 ' Calcule les 3 indicateurs de qualite pour un trio (Manuel / Fournisseur /
-' Catalogue) selon les regles SIRIUS :
+' Catalogue) selon les regles SIRUS :
 '
 '   0/3 connus                -> "NOK - Manque" / "-" / "Manuel + Fournisseur + Catalogue"
 '   1/3 connus                -> "NOK - Manque" / "-" / les 2 sources manquantes
