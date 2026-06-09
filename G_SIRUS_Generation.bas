@@ -28,6 +28,29 @@ Private Const COULEUR_AUTO_HERITE        As Long = 14211288   ' gris clair RGB(2
 Private Const COULEUR_ENTETE_BDD         As Long = 9868950    ' gris fonce RGB(150,150,150)
 
 ' =========================================================================
+' Limite ACE OLE DB : noms de champ Excel tronques a 64 caracteres
+' =========================================================================
+' Le driver Microsoft.ACE.OLEDB.12.0 (et son ancetre Jet) tronque les
+' noms de colonnes Excel a 64 caracteres quand exposes via OLE DB. Donc
+' un SELECT [nom > 64 chars] echoue avec "Aucune valeur donnee pour un
+' ou plusieurs des parametres requis" (Jet interprete le nom inconnu
+' comme un parametre).
+'
+' Strategie SIRUS : on garde le nom complet dans le config (utile pour
+' lisibilite humaine et eventuellement pour la PJ ATMAP cote Data Owner)
+' et on tronque automatiquement dans les SELECT / INSERT via cette
+' fonction.
+Public Const SIRUS_BDD_MAX_NOM_COL As Long = 64
+
+Public Function TronquerColonneBdD(ByVal sNom As String) As String
+    If Len(sNom) > SIRUS_BDD_MAX_NOM_COL Then
+        TronquerColonneBdD = Left$(sNom, SIRUS_BDD_MAX_NOM_COL)
+    Else
+        TronquerColonneBdD = sNom
+    End If
+End Function
+
+' =========================================================================
 ' Connexion BdD SIRUS
 ' =========================================================================
 ' SIRUS lit (et a terme ecrit indirectement via ATMAP) la BdD de TRAVAIL,
@@ -321,11 +344,12 @@ Private Sub PreRemplirDepuisBdD(ws As Worksheet, ByVal sTable As String, _
     End If
 
     ' -- Construire la liste des colonnes a selectionner ---
+    ' Limite ACE OLE DB : on tronque les noms >64 chars (cf. TronquerColonneBdD).
     sSelectCols = ""
     For Each def In col
         If LenB(def.ColonneBdD) > 0 Then
             If LenB(sSelectCols) > 0 Then sSelectCols = sSelectCols & ", "
-            sSelectCols = sSelectCols & "[" & def.ColonneBdD & "]"
+            sSelectCols = sSelectCols & "[" & TronquerColonneBdD(def.ColonneBdD) & "]"
         End If
     Next def
 
@@ -341,7 +365,8 @@ Private Sub PreRemplirDepuisBdD(ws As Worksheet, ByVal sTable As String, _
     For Each cle In vCles
         sSQL = "SELECT " & sSelectCols & _
                " FROM [" & sNomTableSQL & "]" & _
-               " WHERE [" & cleColBdD & "] = '" & Replace(CStr(cle), "'", "''") & "'"
+               " WHERE [" & TronquerColonneBdD(cleColBdD) & "] = '" & _
+               Replace(CStr(cle), "'", "''") & "'"
         Debug.Print "PreRemplirDepuisBdD SQL : " & sSQL
         Call open_REQSEL(sSQL)
 
@@ -349,11 +374,12 @@ Private Sub PreRemplirDepuisBdD(ws As Worksheet, ByVal sTable As String, _
         If Not (REQSEL Is Nothing) Then
             If Not REQSEL.EOF Then
                 ' Remplir la ligne champ par champ
+                ' Lecture REQSEL.Fields avec nom tronque a 64 chars (limite ACE).
                 i = 1
                 For Each def In col
                     If LenB(def.ColonneBdD) > 0 Then
                         On Error Resume Next
-                        ws.Cells(ligne, i).Value = REQSEL.Fields(def.ColonneBdD).Value
+                        ws.Cells(ligne, i).Value = REQSEL.Fields(TronquerColonneBdD(def.ColonneBdD)).Value
                         On Error GoTo SortieBdD
                     End If
                     i = i + 1
@@ -644,7 +670,7 @@ Public Sub Test_DiagnostiquerEcartsAvecCandidats()
 
         Set col = SIRUS_LireConfig(CStr(t(0)))
         For Each def In col
-            If LenB(def.ColonneBdD) > 0 And Not noms.Exists(def.ColonneBdD) Then
+            If LenB(def.ColonneBdD) > 0 And Not noms.Exists(TronquerColonneBdD(def.ColonneBdD)) Then
                 candidat = TrouverCandidatBdD(def.ColonneBdD, noms)
                 posDiff = PositionPremiereDifference(def.ColonneBdD, candidat)
 
@@ -845,14 +871,15 @@ Private Sub DiagnostiquerEcartsTable(ByVal sTable As String, ByVal sTableSQL As 
     End If
     Call Close_CONN(ChaineConnexionSIRUS)
 
-    ' Comparer aux ColonneBdD du config
+    ' Comparer aux ColonneBdD du config (apres troncature a 64 chars
+    ' pour s'aligner sur la limite ACE OLE DB).
     Set col = SIRUS_LireConfig(sTable)
     Debug.Print ""
     Debug.Print "=== Ecarts config <-> BdD pour " & sTable & " ([" & sTableSQL & "]) ==="
 
     For Each def In col
         If LenB(def.ColonneBdD) > 0 Then
-            If noms.Exists(def.ColonneBdD) Then
+            If noms.Exists(TronquerColonneBdD(def.ColonneBdD)) Then
                 nbTrouve = nbTrouve + 1
             Else
                 nbAbsent = nbAbsent + 1
