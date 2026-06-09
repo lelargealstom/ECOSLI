@@ -28,6 +28,17 @@ Private Const COULEUR_AUTO_HERITE        As Long = 14211288   ' gris clair RGB(2
 Private Const COULEUR_ENTETE_BDD         As Long = 9868950    ' gris fonce RGB(150,150,150)
 
 ' =========================================================================
+' Connexion BdD SIRUS
+' =========================================================================
+' SIRUS lit (et a terme ecrit indirectement via ATMAP) la BdD de TRAVAIL,
+' pas la BdD de PROD. La chaine est construite en remplacant 'UserProfile'
+' par le vrai chemin utilisateur via Environ$.
+Private Function ChaineConnexionSIRUS() As String
+    ChaineConnexionSIRUS = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, _
+                                    "UserProfile", Environ$("UserProfile"))
+End Function
+
+' =========================================================================
 ' SIRUS_GenererFeuilleAnalyse
 ' =========================================================================
 ' Genere dans ActiveWorkbook (= classeur projet de l'utilisateur) la feuille
@@ -312,7 +323,7 @@ Private Sub PreRemplirDepuisBdD(ws As Worksheet, ByVal sTable As String, _
 
     ' -- Ouvrir la connexion -------------------------------
     On Error GoTo SortieBdD
-    Call Open_CONN
+    Call Open_CONN(ChaineConnexionSIRUS)
 
     ' -- Boucle par cle ------------------------------------
     ligne = SIRUS_LIGNE_DONNEES_DEBUT
@@ -355,13 +366,13 @@ Private Sub PreRemplirDepuisBdD(ws As Worksheet, ByVal sTable As String, _
         ligne = ligne + 1
     Next cle
 
-    Call Close_CONN
+    Call Close_CONN(ChaineConnexionSIRUS)
     Debug.Print "PreRemplirDepuisBdD : " & nbOk & " trouve(s), " & nbKo & " absent(es)."
     Exit Sub
 
 SortieBdD:
     On Error Resume Next
-    Call Close_CONN
+    Call Close_CONN(ChaineConnexionSIRUS)
     On Error GoTo 0
     MsgBox "Erreur lors du pre-remplissage BdD : " & Err.Description, vbCritical
 End Sub
@@ -445,7 +456,7 @@ Public Sub Test_DiagnostiquerColonnesBdD()
     On Error GoTo Sortie
 
     Debug.Print "=== Test_DiagnostiquerColonnesBdD ==="
-    Call Open_CONN
+    Call Open_CONN(ChaineConnexionSIRUS)
 
     For Each t In tables
         sSQL = "SELECT * FROM [" & t & "] WHERE 1=0"
@@ -461,14 +472,14 @@ Public Sub Test_DiagnostiquerColonnesBdD()
         End If
     Next t
 
-    Call Close_CONN
+    Call Close_CONN(ChaineConnexionSIRUS)
     Debug.Print ""
     Debug.Print "=== Fin diagnostic ==="
     Exit Sub
 
 Sortie:
     On Error Resume Next
-    Call Close_CONN
+    Call Close_CONN(ChaineConnexionSIRUS)
     On Error GoTo 0
     Debug.Print "Erreur Test_DiagnostiquerColonnesBdD : " & Err.Description
 End Sub
@@ -507,7 +518,7 @@ Private Sub DiagnostiquerEcartsTable(ByVal sTable As String, ByVal sTableSQL As 
     noms.CompareMode = 1  ' BinaryCompare (sensible a la casse)
 
     ' Charger les vrais noms BdD
-    Call Open_CONN
+    Call Open_CONN(ChaineConnexionSIRUS)
     sSQL = "SELECT * FROM [" & sTableSQL & "] WHERE 1=0"
     Call open_REQSEL(sSQL)
     If Not (REQSEL Is Nothing) Then
@@ -515,7 +526,7 @@ Private Sub DiagnostiquerEcartsTable(ByVal sTable As String, ByVal sTableSQL As 
             noms(REQSEL.Fields(i).Name) = True
         Next i
     End If
-    Call Close_CONN
+    Call Close_CONN(ChaineConnexionSIRUS)
 
     ' Comparer aux ColonneBdD du config
     Set col = SIRUS_LireConfig(sTable)
@@ -538,7 +549,7 @@ Private Sub DiagnostiquerEcartsTable(ByVal sTable As String, ByVal sTableSQL As 
 
 Sortie:
     On Error Resume Next
-    Call Close_CONN
+    Call Close_CONN(ChaineConnexionSIRUS)
     On Error GoTo 0
     Debug.Print "Erreur DiagnostiquerEcartsTable(" & sTable & ") : " & Err.Description
 End Sub
