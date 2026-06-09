@@ -83,15 +83,23 @@ Public Sub SIRUS_GenererFeuilleAnalyse(ByVal sTable As String, _
     End If
 
     ' -- 2. Verifier le classeur projet actif ----------------
+    ' Note : on ne bloque PAS sur "wb Is ThisWorkbook" car en mode dev,
+    ' Thomas edite les macros dans ECOSLI.xlsm (le template projet lui-meme,
+    ' qui contient DATA_ASL). On valide plutot sur la presence de la feuille
+    ' DATA_ASL (signal qu'on est sur un classeur projet legitime). Si elle
+    ' manque, on previent l'utilisateur et il decide.
     Set wb = ActiveWorkbook
     If wb Is Nothing Then
-        MsgBox "Aucun classeur projet actif. Ouvrir d'abord le fichier projet.", vbExclamation
+        MsgBox "Aucun classeur actif. Ouvrir d'abord le fichier projet.", vbExclamation
         Exit Sub
     End If
-    If wb Is ThisWorkbook Then
-        MsgBox "Le classeur actif est le complement ECOSLI lui-meme. " & _
-               "Activer d'abord le fichier projet avant de generer la feuille SIRUS.", vbExclamation
-        Exit Sub
+    If Not FeuilleExiste(wb, "DATA_ASL") Then
+        resp = MsgBox("Le classeur actif '" & wb.Name & "' ne contient pas de feuille DATA_ASL " & _
+                      "(habituellement le marqueur d'un classeur projet SLI)." & vbCrLf & vbCrLf & _
+                      "Voulez-vous quand meme generer la feuille SIRUS dans ce classeur ?", _
+                      vbYesNo + vbQuestion + vbDefaultButton2, _
+                      "SIRUS - Classeur cible inhabituel")
+        If resp <> vbYes Then Exit Sub
     End If
 
     ' -- 3. Lire le config -----------------------------------
@@ -462,15 +470,13 @@ Public Sub Test_DiagnostiquerColonnesBdDFeuille()
 
     On Error GoTo Sortie
 
-    ' -- 1. ActiveWorkbook (classeur projet) ---------------
+    ' -- 1. ActiveWorkbook (classeur projet ou dev ECOSLI.xlsm) ----
+    ' Pas de blocage sur ThisWorkbook : la feuille de diag peut etre
+    ' generee dans n'importe quel classeur visible (incluant ECOSLI.xlsm
+    ' en mode dev).
     Set wb = ActiveWorkbook
     If wb Is Nothing Then
-        MsgBox "Aucun classeur projet actif.", vbExclamation
-        Exit Sub
-    End If
-    If wb Is ThisWorkbook Then
-        MsgBox "Le classeur actif est le complement ECOSLI lui-meme. " & _
-               "Activer un classeur projet avant.", vbExclamation
+        MsgBox "Aucun classeur actif.", vbExclamation
         Exit Sub
     End If
 
