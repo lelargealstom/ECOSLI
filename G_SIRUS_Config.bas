@@ -85,7 +85,7 @@ Public Sub SIRUS_InitConfigSheet(Optional ByVal bForcer As Boolean = False)
 
     ' -- 3. Ecrire l'entete (13 colonnes, brief section 8) ----
     entetes = Array("Table", "Champ", "ColonneBdD", "Ordre", "TypeChamp", _
-                    "ListeSource", "Obligatoire", "ConditionObligatoire", _
+                    "ListeSource", "Obligatoire", "ConditionDescription", _
                     "Source", "SourceHeritage", "PoidsMeQ", "RegleAlerte", "Commentaire")
     ws.Range("A1").Resize(1, UBound(entetes) - LBound(entetes) + 1).Value = entetes
 
@@ -467,7 +467,8 @@ Private Sub PeuplerProjetASL(lo As ListObject)
                       "En semaines (a confirmer).")
 
     Call AjouterChamp(lo, "ProjetASL", "Testabilite", "Testabilite", 110, _
-                      "Liste", "Testabilite", "Oui", "", "Saisie", "", 1, "", "")
+                      "Texte", "", "Oui", "", "Saisie", "", 1, "", _
+                      "Champ libre (n'est pas une liste).")
 End Sub
 
 ' =========================================================================
@@ -481,7 +482,7 @@ Private Sub AjouterChamp(lo As ListObject, _
                          ByVal sTypeChamp As String, _
                          ByVal sListeSource As String, _
                          ByVal sObligatoire As String, _
-                         ByVal sConditionObligatoire As String, _
+                         ByVal sConditionDescription As String, _
                          ByVal sSource As String, _
                          ByVal sSourceHeritage As String, _
                          ByVal dPoidsMeQ As Double, _
@@ -498,7 +499,7 @@ Private Sub AjouterChamp(lo As ListObject, _
     r.Range(1, 5).Value = sTypeChamp
     r.Range(1, 6).Value = sListeSource
     r.Range(1, 7).Value = sObligatoire
-    r.Range(1, 8).Value = sConditionObligatoire
+    r.Range(1, 8).Value = sConditionDescription
     r.Range(1, 9).Value = sSource
     r.Range(1, 10).Value = sSourceHeritage
     r.Range(1, 11).Value = dPoidsMeQ
@@ -569,7 +570,7 @@ Public Function SIRUS_LireConfig(ByVal sTable As String) As Collection
             def.TypeChamp = CStr(r.Range(1, 5).Value)
             def.ListeSource = CStr(r.Range(1, 6).Value)
             def.Obligatoire = CStr(r.Range(1, 7).Value)
-            def.ConditionObligatoire = CStr(r.Range(1, 8).Value)
+            def.ConditionDescription = CStr(r.Range(1, 8).Value)
             def.Source = CStr(r.Range(1, 9).Value)
             def.SourceHeritage = CStr(r.Range(1, 10).Value)
             def.PoidsMeQ = NzDbl(r.Range(1, 11).Value)
@@ -645,8 +646,8 @@ Public Sub Test_LireConfig()
             " (BdD=" & def.ColonneBdD & ", Type=" & def.TypeChamp & _
             ", Oblig=" & def.Obligatoire & ", Source=" & def.Source & _
             ", MeQ=" & def.PoidsMeQ & ")"
-        If LenB(def.ConditionObligatoire) > 0 Then
-            s = s & " [cond: " & def.ConditionObligatoire & "]"
+        If LenB(def.ConditionDescription) > 0 Then
+            s = s & " [cond: " & def.ConditionDescription & "]"
         End If
         Debug.Print s
     Next def

@@ -24,7 +24,7 @@ Public Ordre As Long                  ' ordre d'affichage dans la feuille genere
 Public TypeChamp As String            ' Texte / Nombre / Date / Liste / Booleen
 Public ListeSource As String          ' cle vers Listes si Liste/Booleen
 Public Obligatoire As String          ' Non / Oui / Conditionnel
-Public ConditionObligatoire As String ' expression evaluable
+Public ConditionDescription As String ' description humaine (NON evaluee) ; la vraie regle vit dans G_SIRUS_Regles
 Public Source As String               ' Saisie / Auto / Herite (Auto/Herite ==> grise)
 Public SourceHeritage As String       ' origine si Herite (ex. Produit.NodeType)
 Public PoidsMeQ As Double             ' poids du champ dans le taux de completude

@@ -6,6 +6,41 @@ Format : `[Date] — Auteur — Périmètre`, puis liste des changements par mod
 
 ---
 
+## 2026-06-09 — Session Claude Code (avec Thomas LE LARGE)
+
+### Périmètre
+Phase 0 ter de SIRUS : décisions structurantes sur l'évaluation des règles et la gestion des listes, création du module `G_SIRUS_Listes`, et renommage de la colonne `ConditionObligatoire` → `ConditionDescription` (devient descriptive, plus évaluée).
+
+### Décisions verrouillées
+- **Règles d'analyse en dur (« D1 »)** : pas de mini-langage évaluable. Les conditions stockées dans le config (`NodeType IN (LRU,SRU)`, `Description CONTAINS 'Torque Tighten'`, etc.) sont désormais **purement descriptives**. Les vraies règles vivront dans `G_SIRUS_Regles` (à créer Phase 2), `Select Case` par (Table, ColonneBdD) qui prend la ligne courante (Dictionary) et renvoie `Boolean`.
+- **Listes en code** (pas en feuille `Listes`). Module `G_SIRUS_Listes` avec `SIRUS_GetListe(cle)` qui renvoie un tableau 1D.
+- **ATMAP fonctionnel** : Thomas confirme que `G_SIRUS_ATMAP` est opérationnel (le brief disait « ~80 % », c'était sous-estimé). Phase 5 = figer le contrat PJ + brancher l'appel.
+
+### `G_SIRUS_Listes.bas` (nouveau module)
+- Constantes des clés : `SIRUS_LIST_NODETYPE`, `HARDSOFT`, `LANGUE`, `BOOLEEN`, `TYPETRAIN`, `DEVISE`, `NIVMAINTENANCE`.
+- `SIRUS_GetListe(cle) As Variant` : tableau 1D ; clé inconnue → `Array()` vide + `Debug.Print`.
+- `SIRUS_ListeEnChaine(cle, [sep=","])` : version chaîne pour `Validation.Add Formula1:=...` (Excel limite à 255 caractères).
+- 7 listes peuplées avec les valeurs validées par Thomas :
+  - `NodeType` : LRU, SRU, LRUNR, SRUNR, KIT, VISSERIE, ASSEMBLY (du brief).
+  - `HardSoft` : HARD, SOFT.
+  - `Langue` : FR, EN.
+  - `Booleen` : Oui, Non.
+  - `TypeTrain` : CORADIA, AVELIA, METROPOLIS, XTRAPOLIS, TRAX, INNOVIA, CITADIS, ADESSIA, Voitures, SIG.
+  - `Devise` : EUR, USD, CAD, JPY, CHF, GBP.
+  - `NiveauMaintenance` : 3, 3/3+, 3+.
+- `Test_GetListe` : trace les 7 listes dans la fenêtre Immediate.
+
+### `SIRUS_Champ_Config.cls` / `G_SIRUS_Config.bas`
+- Renommage `ConditionObligatoire` → `ConditionDescription` (propriété de la classe + colonne du config + paramètre `sConditionObligatoire` → `sConditionDescription` de `AjouterChamp` + accès dans `SIRUS_LireConfig` et `Test_LireConfig`). Commentaire reformulé pour préciser que c'est descriptif (pas évalué).
+- `PeuplerProjetASL` — champ Testabilité : passé de `TypeChamp="Liste", ListeSource="Testabilite"` à `TypeChamp="Texte", ListeSource=""` (n'est pas une liste, validation par Thomas).
+
+### Reste à faire
+- Réimporter `G_SIRUS_Config.bas` + `SIRUS_Champ_Config.cls` + nouveau `G_SIRUS_Listes.bas` dans le `.xlam`. Exécuter `Test_InitConfigSheet`, `Test_LireConfig_Toutes`, `Test_GetListe`.
+- **Phase 1** : `SIRUS_GenererFeuilleAnalyse(table, operation, dtrs)` — générateur de feuille (lit le config, pose les `Validation.Add` via `SIRUS_ListeEnChaine`, grise les champs `Auto`/`Herite`, pré-remplit via ADODB pour `Modifier`).
+- **Phase 2** : créer `G_SIRUS_Regles.bas` (`SIRUS_RegleObligatoire(table, colonneBdD, ligne) As Boolean`, `SIRUS_RegleAlerte(...)`) + généraliser `SIRUS_AnalyserProduit` en `SIRUS_AnalyserFeuille(table)`.
+
+---
+
 ## 2026-06-08 — Session Claude Code (avec Thomas LE LARGE)
 
 ### Périmètre
