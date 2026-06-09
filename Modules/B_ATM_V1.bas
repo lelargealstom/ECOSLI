@@ -408,13 +408,13 @@ Private Sub InsererTacheV1(ByRef dest As Worksheet, ByRef arrTaches As Variant, 
     End Select
 
     If niveau > 1 Then
-        ' Inserer nouvelle ligne
+        ' Inserer nouvelle ligne en heritant directement du format de la
+        ' ligne au-dessus (Excel native, pas de Clipboard). 1 op au lieu
+        ' de 3 (Insert + Range.Copy + CutCopyMode) -> beaucoup plus rapide
+        ' et plus d'erreur Presse-Papier en cascade.
         ligneInsert = ligneBase + 1
-        dest.Range("B" & ligneInsert).EntireRow.Insert
-
-        ' Copier format ligne au-dessus
-        dest.Range("B" & ligneBase & ":J" & ligneBase).Copy dest.Range("B" & ligneInsert)
-        Application.CutCopyMode = False
+        dest.Range("B" & ligneInsert).EntireRow.Insert _
+            Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
     Else
         ' Premiere tache du rang (x-1)
         ligneInsert = ligneBase
