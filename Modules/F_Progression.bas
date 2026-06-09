@@ -112,6 +112,7 @@ Public Sub Progress_Etape(ByVal lCourant As Long, _
         UserForm.barre.Width = lCourant / prog_total * UserForm.barreimage.Width
         UserForm.barretexte.Caption = taux & "%"
         UserForm.Repaint                       ' force le UserForm a se redessiner
+        UserForm.ZOrder 0                      ' fmTop : ramene le UserForm devant
         On Error GoTo 0
     End If
 

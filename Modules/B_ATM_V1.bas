@@ -151,7 +151,7 @@ Private Sub RemplirIndexV1(ByRef index As Worksheet, ByRef Template As Workbook)
                 TabIndex.ListColumns("Designation").DataBodyRange(i).Value = tDES_MEF(i, 1)
             End If
             
-            TabIndex.ListColumns("Sous systeme").DataBodyRange(i).Value = tSS(i, 1)
+            TabIndex.ListColumns("Sous système").DataBodyRange(i).Value = tSS(i, 1)
         Next i
         
         ' Titre
@@ -298,38 +298,38 @@ End Sub
 Public Function RechercherPlagesDTR_V1(ByVal dtr As String, _
                                         ByRef PMB As Integer, ByRef PMH As Integer, _
                                         ByRef test_taches As Boolean, ByRef test_infos As Boolean) As Boolean
-    Dim j As Integer, l As Integer
-    
+    Dim j As Integer
+    Dim cle As String
+
     test_taches = False
     test_infos = False
-    
-    ' Rechercher premiere ligne taches (PMB)
-    For j = 2 To UBound(Taches_tab, 1)
-        If Taches_tab(j, Taches_type.dtr) = dtr And Taches_tab(j, Taches_type.langue) = langue Then
-            PMB = j
+
+    ' PMB : lookup O(1) via dictTachesPMB (cle = DTR|langue).
+    cle = dtr & "|" & langue
+    If Not dictTachesPMB Is Nothing Then
+        If dictTachesPMB.Exists(cle) Then
+            PMB = dictTachesPMB(cle)
             test_taches = True
-            Exit For
         End If
-    Next j
-    
+    End If
+
     If Not test_taches Then
         RechercherPlagesDTR_V1 = False
         Exit Function
     End If
-    
-    ' Rechercher derniere ligne taches (PMH)
+
+    ' PMH : continuation depuis PMB tant que le DTR est identique (V1 ne
+    ' verifie pas la langue en continuation, plus permissif que V2).
+    j = PMB
     Do While j < UBound(Taches_tab, 1) - 1 And Taches_tab(j + 1, Taches_type.dtr) = Taches_tab(j, Taches_type.dtr)
         j = j + 1
     Loop
     PMH = j
-    
-    ' Rechercher dans Infos_ATM
-    For l = 2 To UBound(Infos_tab, 1)
-        If Infos_tab(l, Info_type.dtr) = dtr Then
-            test_infos = True
-            Exit For
-        End If
-    Next l
+
+    ' Infos_ATM : lookup O(1) via dictInfosPMJ.
+    If Not dictInfosPMJ Is Nothing Then
+        If dictInfosPMJ.Exists(dtr) Then test_infos = True
+    End If
     
     RechercherPlagesDTR_V1 = True
 End Function

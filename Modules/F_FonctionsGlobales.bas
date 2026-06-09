@@ -1,7 +1,7 @@
 Attribute VB_Name = "F_FonctionsGlobales"
 Option Explicit
 Public Function LastRowInCol(ByVal ws As Worksheet, ByVal colIndex As Long) As Long
-    ' Renvoie la dernière ligne utilisée de la colonne colIndex (>= 1)
+    ' Renvoie la derniï¿½re ligne utilisï¿½e de la colonne colIndex (>= 1)
     Dim lastCell As Range
     On Error Resume Next
     Set lastCell = ws.Cells(ws.rows.count, colIndex).End(xlUp)
@@ -22,7 +22,7 @@ Public Function SafeNum(v As Variant, Optional fallback As Double = 0#) As Doubl
 End Function
 Public Function NodeTypeToLevel(ByVal NodeType As String) As Long
     Select Case UCase$(Trim$(NodeType))
-        Case "LRU", "LRUNR", "0", "NON TROUVE", "NON TROUVÉ"
+        Case "LRU", "LRUNR", "0", "NON TROUVE", "NON TROUVï¿½"
             NodeTypeToLevel = 3
         Case "SRU", "SRUNR"
             NodeTypeToLevel = 4
@@ -33,10 +33,10 @@ Public Function NodeTypeToLevel(ByVal NodeType As String) As Long
     End Select
 End Function
 
-'Fonction qui vérifie si une feuille est présente ou non dans un workbooks
-'renvoie un False si elle n'est pas là, un true si elle est présente
+'Fonction qui vï¿½rifie si une feuille est prï¿½sente ou non dans un workbooks
+'renvoie un False si elle n'est pas lï¿½, un true si elle est prï¿½sente
 Public Function Test_feuille(FeuilleAVerifier As String) As Boolean
-'fonction qui vérifie si la "FeuilleAVerifier" existe dans le Classeur actif
+'fonction qui vï¿½rifie si la "FeuilleAVerifier" existe dans le Classeur actif
 
     On Error GoTo SiErreur
     Dim feuille
@@ -54,7 +54,7 @@ SiErreur:
         Test_feuille = CVErr(xlErrNA)
 End Function
 Public Function Niv_Maintenance(tableau As Variant, projet As String) As String
-'Fonction qui permet de récupérer le niveau de maintenance d'un projet
+'Fonction qui permet de rï¿½cupï¿½rer le niveau de maintenance d'un projet
     Dim colonne_nvmaint As Integer
     Dim colonne_projet  As Integer
     Dim i As Integer
@@ -74,7 +74,7 @@ Public Function Niv_Maintenance(tableau As Variant, projet As String) As String
     
 End Function
 Public Function Auteur_Projet(tableau As Variant, projet As String) As String
-'Fonction qui permet de récupérer le niveau de maintenance d'un projet
+'Fonction qui permet de rï¿½cupï¿½rer le niveau de maintenance d'un projet
     Dim colonne_auteur As Integer
     Dim colonne_projet  As Integer
     Dim i As Integer
@@ -93,7 +93,7 @@ Public Function Auteur_Projet(tableau As Variant, projet As String) As String
     Next
     
 End Function
-'Fonction qui met à jour la barre de progression dans le UserForm
+'Fonction qui met ï¿½ jour la barre de progression dans le UserForm
 Function barprogress(bar_cpt, bar_tot)
     
     UserForm.barre.Width = bar_cpt / bar_tot * UserForm.barreimage.Width
@@ -101,7 +101,7 @@ Function barprogress(bar_cpt, bar_tot)
     DoEvents
         
 End Function
-'Fonction qui renvoie l'abréviation d'un code projet
+'Fonction qui renvoie l'abrï¿½viation d'un code projet
 Public Function Abrev_Projet(Code_Projet As String) As String
     Dim nb As Integer
     Dim pos1 As Integer, pos2 As Integer
@@ -116,11 +116,11 @@ Public Function Abrev_Projet(Code_Projet As String) As String
             Abrev_Projet = Code_Projet
             
         Case 1
-            ' Un seul "_" ? prendre avant et après jusqu'à espace
+            ' Un seul "_" ? prendre avant et aprï¿½s jusqu'ï¿½ espace
             pos1 = InStr(Code_Projet, "_")
             temp = Left(Code_Projet, pos1 - 1) & "_" & Mid(Code_Projet, pos1 + 1)
             
-            ' Si espace après le deuxième morceau, couper
+            ' Si espace aprï¿½s le deuxiï¿½me morceau, couper
             If InStr(temp, " ") > 0 Then
                 temp = Left(temp, InStr(temp, " ") - 1)
             End If
@@ -128,12 +128,12 @@ Public Function Abrev_Projet(Code_Projet As String) As String
             Abrev_Projet = temp
             
         Case Is >= 2
-            ' Deux "_" ou plus ? prendre tout avant le deuxième "_"
+            ' Deux "_" ou plus ? prendre tout avant le deuxiï¿½me "_"
             pos2 = InStr(InStr(Code_Projet, "_") + 1, Code_Projet, "_")
             Abrev_Projet = Left(Code_Projet, pos2 - 1)
     End Select
 End Function
-' Convertir l'index de colonne numérique en référence de colonne Excel
+' Convertir l'index de colonne numï¿½rique en rï¿½fï¿½rence de colonne Excel
 Function Index_Colonne(colIndex As Long) As String
     Dim colLetter As String
     colLetter = ""
@@ -150,6 +150,7 @@ Public Sub TurnOffFunctionality()
         .EnableEvents = False
         .DisplayAlerts = False
         .ScreenUpdating = False
+        .PrintCommunication = False     ' evite les aller-retours driver imprimante (PageSetup)
     End With
 End Sub
 'Turn on automatic calculations, events and screen updating
@@ -160,13 +161,14 @@ Public Sub TurnOnFunctionality()
         .DisplayAlerts = True
         .EnableEvents = True
         .ScreenUpdating = True
+        .PrintCommunication = True
     End With
 End Sub
 Public Function HARD_SOFT(Range As Variant, dtr As String) As String
-' Fonction permettant de renseigner si le DTR recherché est un HARD, un SOFT ou possède les deux dans un range
+' Fonction permettant de renseigner si le DTR recherchï¿½ est un HARD, un SOFT ou possï¿½de les deux dans un range
 ' ---------------- Variable ----------------
-' range : Sélection de la colonne HARD/SOFT de la BDD dans la table 'Taches_ATM' de la BDD
-' ---------------- Résultat ----------------
+' range : Sï¿½lection de la colonne HARD/SOFT de la BDD dans la table 'Taches_ATM' de la BDD
+' ---------------- Rï¿½sultat ----------------
 ' Resultat = "HARD" si le DTR ne comprend que des lignes HARD
 ' Resultat = "SOFT" si le DTR ne comprend que des lignes SOFT
 ' Resultat = "BOTH" si le DTR comprend des lignes SOFT et HARD
@@ -179,7 +181,7 @@ End If
 
 End Function
 Public Function IsInArray(stringToBeFound As String, arr As Variant) As Boolean
-' Fonction permettant de savoir si une valeur est présente dans un tableau
+' Fonction permettant de savoir si une valeur est prï¿½sente dans un tableau
 ' Renvoie True si Valeur est dans le tableau et False si elle n'y est pas
     
     Dim i
@@ -193,7 +195,7 @@ Public Function IsInArray(stringToBeFound As String, arr As Variant) As Boolean
 
 End Function
 Public Function IsInArray_1D(stringToBeFound As String, arr As Variant) As Boolean
-' Fonction permettant de savoir si une valeur est présente dans un tableau 1D
+' Fonction permettant de savoir si une valeur est prï¿½sente dans un tableau 1D
 ' Renvoie True si Valeur est dans le tableau et False si elle n'y est pas
 
     Dim i
@@ -209,9 +211,9 @@ End Function
 Public Function IsInArrayNb(stringToBeFound As String, arr As Variant) As Integer
 ' Fonction permettant de compter le nombre d'occurrences d'une valeur dans un tableau
 ' Renvoie :
-'   0 si la valeur n'est pas trouvée
-'   1 si elle est trouvée une fois
-'   x si elle est trouvée x fois
+'   0 si la valeur n'est pas trouvï¿½e
+'   1 si elle est trouvï¿½e une fois
+'   x si elle est trouvï¿½e x fois
  
     Dim i
     Dim count As Integer
@@ -228,7 +230,7 @@ Public Function IsInArrayNb(stringToBeFound As String, arr As Variant) As Intege
 
 End Function
 Public Function Contains_str(stringToBeFound As String, arr As Variant) As Integer
-' Fonction permettant de savoir si une valeur est présente dans un tableau 1D
+' Fonction permettant de savoir si une valeur est prï¿½sente dans un tableau 1D
 ' Renvoie True si Valeur est dans le tableau et False si elle n'y est pas
 
     Dim i
@@ -242,7 +244,7 @@ Public Function Contains_str(stringToBeFound As String, arr As Variant) As Integ
 
 End Function
 Public Function UpdateDesignation(des As String) As String
-'Fonction permettant de mettre en forme la désignation d'un code avant de sauver son ATM 2.0 dans le répertoire projet
+'Fonction permettant de mettre en forme la dï¿½signation d'un code avant de sauver son ATM 2.0 dans le rï¿½pertoire projet
 Dim firstspace, secondspace As Double
 
 firstspace = InStr(1, des, " ")
@@ -262,7 +264,7 @@ End If
 End Function
 
 Public Sub ClearOneControl(ByVal c As MSForms.control, ByVal ctrlName As String)
-'Procédure qui vide un contrôle de formulaire selon le type de contrôle
+'Procï¿½dure qui vide un contrï¿½le de formulaire selon le type de contrï¿½le
     On Error Resume Next
     Select Case TypeName(c)
         Case "TextBox": c.Text = ""
@@ -285,18 +287,18 @@ End Sub
 
 
 Public Function EnumFichiers(chemin As String) As String()
-' Fonction permettant de lister dans un tableau le nom de tout les fichiers à partir d'un dossier
+' Fonction permettant de lister dans un tableau le nom de tout les fichiers ï¿½ partir d'un dossier
 ' ---------------- Variable ----------------
-' Chemin : Chemin d'accès du dossier (string)
+' Chemin : Chemin d'accï¿½s du dossier (string)
 
 Dim TableauFichiers() As String
 Dim fichier As String
 Dim i As Integer
 
-'On complète le chemin s'il ne l'est pas
+'On complï¿½te le chemin s'il ne l'est pas
 If Right(chemin, 1) <> "\" Then chemin = chemin & "\"
 
-'On récupère les fichiers
+'On rï¿½cupï¿½re les fichiers
 fichier = Dir(chemin)
 
 'Boucle sur les fichiers du dossier
@@ -316,11 +318,11 @@ Loop
 EnumFichiers = TableauFichiers()
 
 End Function
-Public Sub nettoyer_données()
-'Procédure qui permet de nettoyer la liste de DTR renseignés dans le recueil de données
+Public Sub nettoyer_donnï¿½es()
+'Procï¿½dure qui permet de nettoyer la liste de DTR renseignï¿½s dans le recueil de donnï¿½es
 Dim derlig As Integer
 
-If MsgBox("Voulez-vous effacer la PBS renseignée ?", vbYesNo, "Suppression") = vbNo Then Exit Sub
+If MsgBox("Voulez-vous effacer la PBS renseignï¿½e ?", vbYesNo, "Suppression") = vbNo Then Exit Sub
 
 derlig = Range("B10000").End(xlUp).Row
 
@@ -329,7 +331,7 @@ Range("A2:F" & derlig).Borders.LineStyle = xlLineStyleNone
 End Sub
 
 Public Function Arraypos(tableau As Variant, valeur As String)
-'Fonction permettant le numéro de la colonne d'un tableau 1D
+'Fonction permettant le numï¿½ro de la colonne d'un tableau 1D
 Dim i
 
     Arraypos = -1
@@ -354,7 +356,7 @@ Function RecordsetToArray(rs As ADODB.Recordset) As Variant
     Dim i As Long
     Dim j As Long
     
-    ' Aller au début du Recordset
+    ' Aller au dï¿½but du Recordset
     rs.MoveFirst
     
     ' Compter le nombre de lignes
@@ -364,21 +366,21 @@ Function RecordsetToArray(rs As ADODB.Recordset) As Variant
         rs.MoveNext
     Loop
     
-    ' Aller au début du Recordset encore une fois
+    ' Aller au dï¿½but du Recordset encore une fois
     rs.MoveFirst
     
     ' Nombre de colonnes
     cols = rs.Fields.count
     
-    ' Redimensionner l'array pour contenir les données
+    ' Redimensionner l'array pour contenir les donnï¿½es
     ReDim arr(0 To rows, 0 To cols - 1)
     
-    ' Ajouter les en-têtes de colonnes
+    ' Ajouter les en-tï¿½tes de colonnes
     For j = 0 To cols - 1
         arr(0, j) = rs.Fields(j).Name
     Next j
     
-    ' Copier les données dans l'array
+    ' Copier les donnï¿½es dans l'array
     i = 1
     Do Until rs.EOF
         For j = 0 To cols - 1
@@ -392,7 +394,7 @@ Function RecordsetToArray(rs As ADODB.Recordset) As Variant
     RecordsetToArray = arr
 End Function
 Public Function TauxDevise(AbrevDevIn As String, AbrevDevOut As String)
-'Fonction permettant de récupérer les taux de change entre différentes devises
+'Fonction permettant de rï¿½cupï¿½rer les taux de change entre diffï¿½rentes devises
 
 Dim ApiUrl
 Dim sResponse As String
@@ -420,17 +422,17 @@ Public Function Test_Connexion(chaineconnexion As String) As Variant
     
     On Error GoTo ErrHandler
     
-    ' Création de la connexion
+    ' Crï¿½ation de la connexion
     Set conn = CreateObject("ADODB.Connection")
     conn.ConnectionString = Replace(chaineconnexion, "UserProfile", Environ$("UserProfile"))
     conn.Open
     
     ' Si la connexion est ouverte
     If conn.State = 1 Then
-        result(0) = "Connexion réussie à la base de données."
+        result(0) = "Connexion rï¿½ussie ï¿½ la base de donnï¿½es."
         result(1) = vbInformation
     Else
-        result(0) = "Échec de la connexion à la base de données."
+        result(0) = "ï¿½chec de la connexion ï¿½ la base de donnï¿½es."
         result(1) = vbCritical
     End If
     
@@ -447,7 +449,7 @@ ErrHandler:
     Test_Connexion = result
 End Function
 Public Sub SynchroBDD()
-'Procédure de synchronisation One Drive de la BDD
+'Procï¿½dure de synchronisation One Drive de la BDD
 
 cheminbase = Replace(CONNEXION_EXCEL_BDD_PROD, "UserProfile", Environ$("UserProfile"))
 cheminbase = Split(cheminbase, "Data Source=")(1)
@@ -474,22 +476,22 @@ Public Function FichierDisponible(ByVal cheminFichier As String) As Boolean
     If Err.Number <> 0 Then
         FichierDisponible = False
     Else
-        ' Vérifie si le fichier est marqué comme offline (OneDrive non synchronisé)
+        ' Vï¿½rifie si le fichier est marquï¿½ comme offline (OneDrive non synchronisï¿½)
         FichierDisponible = ((attr And vbOffline) = 0)
     End If
 End Function
 Public Function RechercheValeurdansRS(rs As ADODB.Recordset, valeur As String, field As String) As Boolean
-' Fonction qui vérifie la présence d'une valeur dans un Recordset en utilisant Filter
+' Fonction qui vï¿½rifie la prï¿½sence d'une valeur dans un Recordset en utilisant Filter
 
 On Error GoTo ErrHandler
 
-' Vérifier si le recordset est valide et ouvert
+' Vï¿½rifier si le recordset est valide et ouvert
 If rs Is Nothing Or rs.State <> adStateOpen Then
     RechercheValeurdansRS = False
     Exit Function
 End If
 
-' Vérifier si le recordset contient des données
+' Vï¿½rifier si le recordset contient des donnï¿½es
 If rs.EOF Then
     RechercheValeurdansRS = False
     Exit Function
@@ -498,14 +500,14 @@ End If
 ' Appliquer le filtre (gestion des apostrophes dans valeur)
 rs.Filter = "[" & field & "] = '" & Replace(valeur, "'", "''") & "'"
 
-' Si le recordset filtré n'est pas vide, valeur trouvée
+' Si le recordset filtrï¿½ n'est pas vide, valeur trouvï¿½e
 If Not rs.EOF Then
     RechercheValeurdansRS = True
 Else
     RechercheValeurdansRS = False
 End If
 
-' Réinitialiser le filtre
+' Rï¿½initialiser le filtre
 rs.Filter = ""
 
 Exit Function
@@ -514,7 +516,7 @@ ErrHandler:
     RechercheValeurdansRS = False
 End Function
 Public Function DictToArray2D(ByVal dict As Object) As Variant
-'Fonction qui permet de créer un tableau à partir d'un dictionnaire
+'Fonction qui permet de crï¿½er un tableau ï¿½ partir d'un dictionnaire
 Dim n As Long
 Dim arr, ks, vs As Variant
 
@@ -539,7 +541,7 @@ DictToArray2D = arr
 End Function
 
 Public Function RecupProjetsList() As Variant
-'Fonction permettant de récupérer la liste des projets de la BDD en tableau 1D
+'Fonction permettant de rï¿½cupï¿½rer la liste des projets de la BDD en tableau 1D
 Set REQSEL = CreateObject("ADODB.Recordset")
 
 Dim i As Integer
@@ -579,7 +581,7 @@ Base.Open chainedeconnexion
 
 End Sub
 Public Sub Close_CONN(chainedeconnexion As String)
-'Fonction qui ferme la connexion à la BDD Excel
+'Fonction qui ferme la connexion ï¿½ la BDD Excel
     With Base
         If .State = 1 Then
             .Close
@@ -591,7 +593,7 @@ Public Sub Close_CONN(chainedeconnexion As String)
  
 End Sub
 Public Function open_REQSEL(STRSEL_text As String)
-'Fonction d'exécution d'une requête SQL sur la base de données
+'Fonction d'exï¿½cution d'une requï¿½te SQL sur la base de donnï¿½es
 
     Set REQSEL = CreateObject("ADODB.Recordset")
 
@@ -600,13 +602,13 @@ Public Function open_REQSEL(STRSEL_text As String)
 
 End Function
 Public Function ExecNonQuery(ByVal sqlText As String, Optional ByVal commandTimeout As Long = 30) As Long
-' Exécute une requête d'action (INSERT / UPDATE / DELETE) sur la connexion Base.
-' Retourne le nombre de lignes affectées. Lève une erreur en cas d'échec.
+' Exï¿½cute une requï¿½te d'action (INSERT / UPDATE / DELETE) sur la connexion Base.
+' Retourne le nombre de lignes affectï¿½es. Lï¿½ve une erreur en cas d'ï¿½chec.
     
     Dim rowsAffected As Long
     
     If Base Is Nothing Then
-        Err.Raise vbObjectError + 513, "ExecNonQuery", "La connexion 'Base' n'est pas initialisée."
+        Err.Raise vbObjectError + 513, "ExecNonQuery", "La connexion 'Base' n'est pas initialisï¿½e."
     End If
     
     On Error GoTo EH
@@ -622,8 +624,8 @@ EH:
 End Function
 
 Public Function open_REQSEL1(STRSEL_text As String, targetRecordset As String)
-'Fonction d'exécution d'une requête SQL sur la base de données
-'Elle affecte le résultat à REQSEL1 ou REQSEL2 selon le paramètre targetRecordset
+'Fonction d'exï¿½cution d'une requï¿½te SQL sur la base de donnï¿½es
+'Elle affecte le rï¿½sultat ï¿½ REQSEL1 ou REQSEL2 selon le paramï¿½tre targetRecordset
 
     Dim rs As Object
     Set rs = CreateObject("ADODB.Recordset")
@@ -644,13 +646,13 @@ Public Function open_REQSEL1(STRSEL_text As String, targetRecordset As String)
 End Function
 
 
-' Construit une requête UPDATE pour une feuille Excel (ACE/Jet SQL),
-' avec SET généré à partir d'un array (1..n,1..2) et de valeurs lues sur un UserForm.
+' Construit une requï¿½te UPDATE pour une feuille Excel (ACE/Jet SQL),
+' avec SET gï¿½nï¿½rï¿½ ï¿½ partir d'un array (1..n,1..2) et de valeurs lues sur un UserForm.
 ' - feuille          : nom de la feuille Excel (onglet) cible
-' - arr              : tableau (1..n,1..2) où [i,1]=Nom de colonne ; [i,2]=Nom du contrôle du UserForm
+' - arr              : tableau (1..n,1..2) oï¿½ [i,1]=Nom de colonne ; [i,2]=Nom du contrï¿½le du UserForm
 ' - uf               : instance du UserForm (ex. Me dans le code du UserForm)
-' - projectValue     : valeur de la clé pour WHERE ([Nom projet_PROJET SLI] = projectValue)
-' - iStart, iEnd     : bornes de boucle pour la partie SET (par défaut 1..23)
+' - projectValue     : valeur de la clï¿½ pour WHERE ([Nom projet_PROJET SLI] = projectValue)
+' - iStart, iEnd     : bornes de boucle pour la partie SET (par dï¿½faut 1..23)
 Public Function BuildUpdateSqlFromArray( _
     ByVal arr As Variant, _
     ByVal uf As Object, _
@@ -666,7 +668,7 @@ Public Function BuildUpdateSqlFromArray( _
     Dim sql As String
     Dim setClause As String
  
-    ' Vérifs simples
+    ' Vï¿½rifs simples
     If IsEmpty(arr) Then
         BuildUpdateSqlFromArray = vbNullString
         Exit Function
@@ -680,15 +682,15 @@ Public Function BuildUpdateSqlFromArray( _
 
     Set setParts = New Collection
 
-    ' Boucle SET : de iStart à iEnd (ici 1..23)
+    ' Boucle SET : de iStart ï¿½ iEnd (ici 1..23)
     For i = iStart To iEnd
         colName = CStr(arr(i, 1))
         ctrlName = CStr(arr(i, 2))
 
-        ' Si le contrôle existe dans le UserForm, on récupère sa valeur ; sinon on met Null
+        ' Si le contrï¿½le existe dans le UserForm, on rï¿½cupï¿½re sa valeur ; sinon on met Null
         If ControlExists(uf, ctrlName) Then
-            val = CallByName(uf, ctrlName, VbGet) ' uf.Gen_NomProjet -> renvoie l'objet contrôle
-            ' Si c'est un contrôle MSForms (TextBox/ComboBox), prendre .Value
+            val = CallByName(uf, ctrlName, VbGet) ' uf.Gen_NomProjet -> renvoie l'objet contrï¿½le
+            ' Si c'est un contrï¿½le MSForms (TextBox/ComboBox), prendre .Value
             On Error Resume Next
             val = val.Value
             On Error GoTo 0
@@ -700,22 +702,22 @@ Public Function BuildUpdateSqlFromArray( _
         setParts.Add "[" & colName & "] = " & ToAceSqlLiteral(val)
     Next i
 
-    ' Concatène les éléments du SET par ", "
+    ' Concatï¿½ne les ï¿½lï¿½ments du SET par ", "
     setClause = JoinCollection(setParts, ", ")
 
-    ' WHERE sur la clé "Nom projet_PROJET SLI"
+    ' WHERE sur la clï¿½ "Nom projet_PROJET SLI"
     sql = "UPDATE [Projet_SLI$] " & _
           "SET " & setClause & " " & _
           "WHERE [Nom projet_PROJET SLI] = " & ToAceSqlLiteral(projectValue)
 
     BuildUpdateSqlFromArray = sql
 End Function
-' Construit une requête INSERT INTO pour une feuille Excel (ACE/Jet SQL),
-' à partir d'un array (1..n,1..2) et des valeurs lues sur un UserForm.
-' - feuille      : nom de l’onglet cible (ex. "Projets_SLI")
-' - arr          : tableau (1..n,1..2) où [i,1] = colonne, [i,2] = nom du contrôle du UserForm
+' Construit une requï¿½te INSERT INTO pour une feuille Excel (ACE/Jet SQL),
+' ï¿½ partir d'un array (1..n,1..2) et des valeurs lues sur un UserForm.
+' - feuille      : nom de lï¿½onglet cible (ex. "Projets_SLI")
+' - arr          : tableau (1..n,1..2) oï¿½ [i,1] = colonne, [i,2] = nom du contrï¿½le du UserForm
 ' - uf           : instance du UserForm (ex. Me)
-' - iStart,iEnd  : bornes de boucle pour l’INSERT (par défaut 1..23)
+' - iStart,iEnd  : bornes de boucle pour lï¿½INSERT (par dï¿½faut 1..23)
 ' - skipNulls    : si True, ignore les colonnes dont la valeur est Null => INSERT partiel
 Public Function BuildInsertSqlFromArray( _
     ByVal arr As Variant, _
@@ -732,7 +734,7 @@ Public Function BuildInsertSqlFromArray( _
     Dim cols As New Collection
     Dim vals As New Collection
     
-    ' Vérifs & bornes
+    ' Vï¿½rifs & bornes
     If IsEmpty(arr) Then
         BuildInsertSqlFromArray = vbNullString
         Exit Function
@@ -752,7 +754,7 @@ Public Function BuildInsertSqlFromArray( _
         If ControlExists(uf, ctrlName) Then
             val = CallByName(uf, ctrlName, VbGet)
             On Error Resume Next
-            val = val.Value   ' récupère .Value pour TextBox/ComboBox/etc.
+            val = val.Value   ' rï¿½cupï¿½re .Value pour TextBox/ComboBox/etc.
             On Error GoTo 0
         Else
             val = Null
@@ -785,11 +787,11 @@ Public Function ControlExists(ByVal uf As Object, ByVal ctrlName As String) As B
     On Error GoTo 0
 End Function
 
-' Convertit une valeur VBA en littéral SQL ACE/Jet :
+' Convertit une valeur VBA en littï¿½ral SQL ACE/Jet :
 ' - Null -> NULL
 ' - Date -> #yyyy-mm-dd#
-' - Numérique -> 123.45
-' - Texte -> 'texte' avec apostrophes échappées
+' - Numï¿½rique -> 123.45
+' - Texte -> 'texte' avec apostrophes ï¿½chappï¿½es
 Public Function ToAceSqlLiteral(ByVal v As Variant) As String
     If IsNull(v) Then
         ToAceSqlLiteral = "NULL"
@@ -802,7 +804,7 @@ Public Function ToAceSqlLiteral(ByVal v As Variant) As String
     End If
 End Function
 
-' Joint les items d'une Collection par un séparateur (équivalent à Join() pour Collections)
+' Joint les items d'une Collection par un sï¿½parateur (ï¿½quivalent ï¿½ Join() pour Collections)
 Public Function JoinCollection(ByVal c As Collection, ByVal sep As String) As String
 
 Dim i As Long, s As String

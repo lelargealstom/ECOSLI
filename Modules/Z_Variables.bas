@@ -95,6 +95,13 @@ Public tPrix_FRS_Spare As Variant
 Public tPrix_FRS_Repair As Variant
 Public Infos_tab, Taches_tab, EMMST_tab As Variant
 
+' Index DTR -> ligne pour acces O(1) dans les boucles de generation ATM.
+' Construits une seule fois dans RecupererDonneesBDD_ATM apres les SELECT.
+'   - dictTachesPMB : cle = DTR + "|" + langue -> 1ere ligne du DTR dans Taches_tab
+'   - dictInfosPMJ  : cle = DTR -> ligne du DTR dans Infos_tab
+Public dictTachesPMB As Object
+Public dictInfosPMJ As Object
+
 'Profil User de l'environnement Excel
 Public UserProfile As Integer
 Public versionDisponible As String

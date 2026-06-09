@@ -1,4 +1,9 @@
 Attribute VB_Name = "B_ATM_V2"
+' Cache du template local : copie unique depuis SharePoint en debut d'ATM_V2.
+' Toutes les copies par DTR partent ensuite de cette copie locale (disque
+' local ~10x plus rapide que OneDrive synchronise).
+Private templateLocalV2 As String
+
 Public Sub ATM_V2()
 'Procedure de generation de fiches ATM 2.0
 'Methode :
@@ -39,6 +44,18 @@ Public Sub ATM_V2()
     ' enumeration bibliotheque illustree
     bibli = userpath & BIBLIO_PATH
     Tbl = EnumFichiers(bibli)
+
+    ' Copie locale unique du template (SharePoint -> %TEMP%) pour eviter
+    ' N copies depuis OneDrive synchronise (lent). Reutilisee a chaque
+    ' DTR via templateLocalV2 dans GenererFicheATM / CopierTemplateVide.
+    templateLocalV2 = Environ$("TEMP") & "\ECOSLI_template_ATM_V2_" & langue & ".xlsx"
+    On Error Resume Next
+    If langue = "FR" Then
+        fso.CopyFile userpath & TEMPLATE_V2_FR_PATH, templateLocalV2, True
+    Else
+        fso.CopyFile userpath & TEMPLATE_V2_EN_PATH, templateLocalV2, True
+    End If
+    On Error GoTo 0
 
     ' UX : initialiser la barre de progression + StatusBar + curseur sablier.
     Call Progress_Demarrer(UBound(tDTR), "ATM V2")
@@ -109,20 +126,12 @@ End Function
 ' =========================================================================
 Private Sub CopierTemplateVide(ByVal dtr As String, ByVal Designation As String, ByVal chemin As String)
     Dim nomFichier As String
-    Dim templatePath As String
-    
+
     ' Construire nom fichier
     nomFichier = "(vide)" & dtr & "_" & langue & "_" & Replace(Left(Designation, 10), "/", "_") & ".xlsx"
-    
-    ' Selectionner template
-    If langue = "FR" Then
-        templatePath = userpath & TEMPLATE_V2_FR_PATH
-    Else
-        templatePath = userpath & TEMPLATE_V2_EN_PATH
-    End If
-    
-    ' Copier template
-    fso.CopyFile templatePath, chemin & "\" & nomFichier
+
+    ' Copier depuis le cache local (templateLocalV2 initialise dans ATM_V2).
+    fso.CopyFile templateLocalV2, chemin & "\" & nomFichier
 End Sub
 ' =========================================================================
 ' PROCEDURE PRINCIPALE: GENERER FICHE ATM
@@ -130,24 +139,16 @@ End Sub
 Private Sub GenererFicheATM(ByVal dtr As String, ByVal Designation As String, _
                             ByVal chemin As String, ByVal indexDTR As Integer)
     Dim nomFichier As String
-    Dim templatePath As String
     Dim dest As Worksheet
     Dim CoverPage As Worksheet
     Dim PMB As Integer, PMH As Integer, PMJ As Integer
     Dim test_taches As Boolean, test_infos As Boolean
-    
+
     ' Construire nom fichier
     nomFichier = "(non illustre)" & dtr & "_" & langue & "_" & Replace(Left(Designation, 10), "/", "_") & ".xlsx"
-    
-    ' Selectionner template
-    If langue = "FR" Then
-        templatePath = userpath & TEMPLATE_V2_FR_PATH
-    Else
-        templatePath = userpath & TEMPLATE_V2_EN_PATH
-    End If
-    
-    ' Copier et ouvrir template
-    fso.CopyFile templatePath, chemin & "\" & nomFichier
+
+    ' Copier depuis le cache local (10x plus rapide que SharePoint) puis ouvrir.
+    fso.CopyFile templateLocalV2, chemin & "\" & nomFichier
     Workbooks.Open chemin & "\" & nomFichier
     
     ' Identifier feuilles
@@ -186,35 +187,35 @@ Private Function RechercherPlagesDTR_V2(ByVal dtr As String, _
                                         ByRef PMB As Integer, ByRef PMH As Integer, ByRef PMJ As Integer, _
                                         ByRef test_taches As Boolean, ByRef test_infos As Boolean) As Boolean
 
-Dim j As Integer, l As Integer
-    
+Dim j As Integer
+Dim cle As String
+
     test_taches = False
     test_infos = False
     PMB = 0
     PMH = 0
     PMJ = 0
-    
+
     ' =====================================================================
-    ' RECHERCHE DANS TACHES_ATM
+    ' RECHERCHE DANS TACHES_ATM via dictTachesPMB (O(1))
     ' =====================================================================
-    ' Rechercher premiere ligne taches (PMB) avec DTR + Langue
-    For j = 2 To UBound(Taches_tab, 1)
-        If Taches_tab(j, Taches_type.dtr) = dtr And _
-           Taches_tab(j, Taches_type.langue) = langue Then
-            PMB = j
+    cle = dtr & "|" & langue
+    If Not dictTachesPMB Is Nothing Then
+        If dictTachesPMB.Exists(cle) Then
+            PMB = dictTachesPMB(cle)
             test_taches = True
-            Exit For
         End If
-    Next j
-    
+    End If
+
     ' Si langue non trouvee, retourner False
     If Not test_taches Then
         RechercherPlagesDTR_V2 = False
         Exit Function
     End If
-    
-    ' Rechercher derniere ligne taches (PMH)
-    ' V2 verifie AUSSI la langue dans la continuation (plus strict que V1)
+
+    ' Rechercher derniere ligne taches (PMH) par continuation depuis PMB.
+    ' V2 verifie AUSSI la langue dans la continuation (plus strict que V1).
+    j = PMB
     Do While j < UBound(Taches_tab, 1)
         If Taches_tab(j + 1, Taches_type.dtr) = Taches_tab(j, Taches_type.dtr) And _
            Taches_tab(j + 1, Taches_type.langue) = langue Then
@@ -224,19 +225,17 @@ Dim j As Integer, l As Integer
         End If
     Loop
     PMH = j
-    
+
     ' =====================================================================
-    ' RECHERCHE DANS INFOS_ATM
+    ' RECHERCHE DANS INFOS_ATM via dictInfosPMJ (O(1))
     ' =====================================================================
-    ' Important pour V2: PMJ utilise dans RemplirCouverture (F30)
-    For l = 2 To UBound(Infos_tab, 1)
-        If Infos_tab(l, Info_type.dtr) = dtr Then
-            PMJ = l
+    If Not dictInfosPMJ Is Nothing Then
+        If dictInfosPMJ.Exists(dtr) Then
+            PMJ = dictInfosPMJ(dtr)
             test_infos = True
-            Exit For
         End If
-    Next l
-    
+    End If
+
     RechercherPlagesDTR_V2 = True
 End Function
 ' =========================================================================

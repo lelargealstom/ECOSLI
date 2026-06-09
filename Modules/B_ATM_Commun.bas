@@ -1,13 +1,13 @@
 Attribute VB_Name = "B_ATM_Commun"
 Public Sub RecupererDonneesBDD_ATM(ByVal versionATM As Integer)
-' Récupère les données de la BDD pour ATM V1 ou V2
+' Rï¿½cupï¿½re les donnï¿½es de la BDD pour ATM V1 ou V2
 '
-' Paramètres:
+' Paramï¿½tres:
 '   versionATM: 1 pour ATM V1, 2 pour ATM V2
 '
-' Différences:
-'   - V1: Requête Taches_ATM$ SANS filtre HARD/SOFT
-'   - V2: Requête Taches_ATM$ AVEC filtre WHERE [HARD/SOFT]='HARD'
+' Diffï¿½rences:
+'   - V1: Requï¿½te Taches_ATM$ SANS filtre HARD/SOFT
+'   - V2: Requï¿½te Taches_ATM$ AVEC filtre WHERE [HARD/SOFT]='HARD'
 '
 ' Variables globales remplies:
 '   - Infos_tab (tableau 2D, 17 colonnes)
@@ -18,7 +18,7 @@ Public Sub RecupererDonneesBDD_ATM(ByVal versionATM As Integer)
     Dim STRSEL As String
     
     ' =====================================================================
-    ' REQUÊTE 1: Info_ATM$ (17 champs) - IDENTIQUE V1 ET V2
+    ' REQUï¿½TE 1: Info_ATM$ (17 champs) - IDENTIQUE V1 ET V2
     ' =====================================================================
     STRSEL = "SELECT " & _
          "[DTR_INFOATM], " & _
@@ -33,9 +33,9 @@ Public Sub RecupererDonneesBDD_ATM(ByVal versionATM As Integer)
          "[Reparabilite_INFOATM], " & _
          "[HARD/SOFT], " & _
          "[Poids_INFOATM], " & _
-         "[Temps générique de la tâche_INFOATM], " & _
-         "[Temps générique de la tâche SOFTWARE_INFOATM], " & _
-         "[Temps analytique cumulé de la tache_INFOATM], " & _
+         "[Temps gï¿½nï¿½rique de la tï¿½che_INFOATM], " & _
+         "[Temps gï¿½nï¿½rique de la tï¿½che SOFTWARE_INFOATM], " & _
+         "[Temps analytique cumulï¿½ de la tache_INFOATM], " & _
          "[NbLanguePopulation_INFOATM] " & _
          "FROM [Info_ATM$]"
     
@@ -43,24 +43,24 @@ Public Sub RecupererDonneesBDD_ATM(ByVal versionATM As Integer)
     Infos_tab = RecordsetToArray(REQSEL)
     
     ' =====================================================================
-    ' REQUÊTE 2: Taches_ATM$ (15 champs) - DIFFÉRENCE V1/V2
+    ' REQUï¿½TE 2: Taches_ATM$ (15 champs) - DIFFï¿½RENCE V1/V2
     ' =====================================================================
-    ' V1: PAS de filtre HARD/SOFT (gère les deux types dans le code)
+    ' V1: PAS de filtre HARD/SOFT (gï¿½re les deux types dans le code)
     ' V2: FILTRE WHERE [HARD/SOFT]='HARD' uniquement
     
     If versionATM = 1 Then
-        ' ATM V1: Récupérer TOUTES les tâches (HARD et SOFT)
+        ' ATM V1: Rï¿½cupï¿½rer TOUTES les tï¿½ches (HARD et SOFT)
         STRSEL = "SELECT [DTR_TACHEATM], [Langue_TACHEATM], [Rang_TACHEATM], [HARD/SOFT], " & _
-                 "[Categorie_TACHEATM], [Niveau qualif_TACHEATM], [Description_TACHEATM], [CritèresDimensionnels_TACHEATM], " & _
-                 "[OutillageSpécifique_TACHEATM], [OutillageStandard_TACHEATM], [PiècedeRechangeConsommable_TACHEATM], [NbOpérateurs_TACHEATM], " & _
-                 "[TempsEstiméHeures_TACHEATM] " & _
+                 "[Categorie_TACHEATM], [Niveau qualif_TACHEATM], [Description_TACHEATM], [Critï¿½resDimensionnels_TACHEATM], " & _
+                 "[OutillageSpï¿½cifique_TACHEATM], [OutillageStandard_TACHEATM], [Piï¿½cedeRechangeConsommable_TACHEATM], [NbOpï¿½rateurs_TACHEATM], " & _
+                 "[TempsEstimï¿½Heures_TACHEATM] " & _
                  "FROM [Taches_ATM$]"
     ElseIf versionATM = 2 Then
         ' ATM V2: Filtrer HARD uniquement
         STRSEL = "SELECT [DTR_TACHEATM], [Langue_TACHEATM], [Rang_TACHEATM], [HARD/SOFT], " & _
-                 "[Categorie_TACHEATM], [Niveau qualif_TACHEATM], [Description_TACHEATM], [CritèresDimensionnels_TACHEATM], " & _
-                 "[OutillageSpécifique_TACHEATM], [OutillageStandard_TACHEATM], [PiècedeRechangeConsommable_TACHEATM], [NbOpérateurs_TACHEATM], " & _
-                 "[TempsEstiméHeures_TACHEATM] " & _
+                 "[Categorie_TACHEATM], [Niveau qualif_TACHEATM], [Description_TACHEATM], [Critï¿½resDimensionnels_TACHEATM], " & _
+                 "[OutillageSpï¿½cifique_TACHEATM], [OutillageStandard_TACHEATM], [Piï¿½cedeRechangeConsommable_TACHEATM], [NbOpï¿½rateurs_TACHEATM], " & _
+                 "[TempsEstimï¿½Heures_TACHEATM] " & _
                  "FROM [Taches_ATM$] WHERE [HARD/SOFT] = 'HARD'"
     Else
         ' Version inconnue
@@ -70,9 +70,14 @@ Public Sub RecupererDonneesBDD_ATM(ByVal versionATM As Integer)
     
     Call open_REQSEL(STRSEL)
     Taches_tab = RecordsetToArray(REQSEL)
-    
+
     ' =====================================================================
-    ' REQUÊTE 3: RASL Projet - IDENTIQUE V1 ET V2
+    ' INDEX DTR -> LIGNE (acces O(1) en boucle, gain ~5-20s sur 50 DTR)
+    ' =====================================================================
+    Call IndexerTachesEtInfos
+
+    ' =====================================================================
+    ' REQUï¿½TE 3: RASL Projet - IDENTIQUE V1 ET V2
     ' =====================================================================
     STRSEL = "SELECT [RASL_PROJET SLI] FROM [Projet_SLI$] WHERE [Nom projet_PROJET SLI] = '" & Code_Projet & "'"
     Call open_REQSEL(STRSEL)
@@ -84,7 +89,7 @@ Public Sub RecupererDonneesBDD_ATM(ByVal versionATM As Integer)
     End If
     
     ' =====================================================================
-    ' REQUÊTE 4: Niveau Maintenance - IDENTIQUE V1 ET V2
+    ' REQUï¿½TE 4: Niveau Maintenance - IDENTIQUE V1 ET V2
     ' =====================================================================
     STRSEL = "SELECT [Niv de maintenance_PROJET SLI] FROM [Projet_SLI$] WHERE [Nom projet_PROJET SLI] = '" & Code_Projet & "'"
     Call open_REQSEL(STRSEL)
@@ -96,13 +101,54 @@ Public Sub RecupererDonneesBDD_ATM(ByVal versionATM As Integer)
     End If
     
 End Sub
+
 ' =========================================================================
-' FONCTION: SÉLECTION RÉPERTOIRE
+' PROCEDURE: IndexerTachesEtInfos
+' Construit les Dictionaries dictTachesPMB et dictInfosPMJ pour acceder
+' aux lignes de Taches_tab / Infos_tab en O(1) au lieu de O(N) dans
+' RechercherPlagesDTR_V1/_V2.
+' Appele apres chaque RecupererDonneesBDD_ATM (les tableaux changent).
+' =========================================================================
+Public Sub IndexerTachesEtInfos()
+    Dim j As Long
+    Dim cle As String
+
+    ' Reset
+    Set dictTachesPMB = CreateObject("Scripting.Dictionary")
+    dictTachesPMB.CompareMode = vbTextCompare
+    Set dictInfosPMJ = CreateObject("Scripting.Dictionary")
+    dictInfosPMJ.CompareMode = vbTextCompare
+
+    ' Index Taches_tab : cle = DTR|Langue -> PMB (1ere occurrence).
+    ' Les lignes suivantes du meme DTR restent contigues dans le tableau ;
+    ' RechercherPlagesDTR_V1/_V2 trouve PMH a partir de PMB par continuation.
+    If IsArray(Taches_tab) Then
+        For j = LBound(Taches_tab, 1) + 1 To UBound(Taches_tab, 1)
+            cle = CStr(Taches_tab(j, Taches_type.dtr)) & "|" & _
+                  CStr(Taches_tab(j, Taches_type.langue))
+            If Not dictTachesPMB.Exists(cle) Then dictTachesPMB.Add cle, j
+        Next j
+    End If
+
+    ' Index Infos_tab : cle = DTR -> PMJ (1ere occurrence).
+    If IsArray(Infos_tab) Then
+        For j = LBound(Infos_tab, 1) + 1 To UBound(Infos_tab, 1)
+            cle = CStr(Infos_tab(j, Info_type.dtr))
+            If Not dictInfosPMJ.Exists(cle) Then dictInfosPMJ.Add cle, j
+        Next j
+    End If
+
+    Debug.Print "IndexerTachesEtInfos : " & dictTachesPMB.count & _
+                " entrees Taches, " & dictInfosPMJ.count & " entrees Infos."
+End Sub
+
+' =========================================================================
+' FONCTION: Sï¿½LECTION Rï¿½PERTOIRE
 ' =========================================================================
 Public Function SelectRepertoire(ByRef chemin As String) As Boolean
     Dim Repertoire As FileDialog
     
-    MsgBox "Veuillez sélectionner le répertoire où vous souhaitez déposer les fichiers ATM pour le projet : " & Projet_Abrev, vbOKOnly
+    MsgBox "Veuillez sï¿½lectionner le rï¿½pertoire oï¿½ vous souhaitez dï¿½poser les fichiers ATM pour le projet : " & Projet_Abrev, vbOKOnly
     
     Set Repertoire = Application.FileDialog(msoFileDialogFolderPicker)
     Repertoire.Show
@@ -117,7 +163,7 @@ Public Function SelectRepertoire(ByRef chemin As String) As Boolean
 End Function
 
 ' =========================================================================
-' FONCTION UTILITAIRE: RÉCUPÉRER TEMPS AVEC GESTION NULL
+' FONCTION UTILITAIRE: Rï¿½CUPï¿½RER TEMPS AVEC GESTION NULL
 ' =========================================================================
 Public Function GetTempsFromBDD(ByVal valeurBDD As Variant) As Double
 ' Retourne le temps en Double ou 0 si NULL/vide
