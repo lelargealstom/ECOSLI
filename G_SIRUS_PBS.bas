@@ -398,7 +398,7 @@ Public Sub SIRUS_RemplirListViewGeneration()
         vFrs = LireCellule(wsPBS, ligne, DATA_ASL_type.CoutSpare_AlstomFR_FRS)
         vCat = LireCellule(wsPBS, ligne, DATA_ASL_type.ISP_TIS_FCS)
         resSpare = EvaluerQualitePrix(vMan, vFrs, vCat)
-        Call AjouterSubItemColore(li, CStr(resSpare(0)), False, CouleurQualite(CStr(resSpare(0))))
+        Call AjouterSubItemColore(li, CStr(resSpare(0)), False, CouleurQualite(CStr(resSpare(0)), CStr(resSpare(2))))
         Call AjouterSubItemColore(li, CStr(resSpare(1)), False)
         Call AjouterSubItemColore(li, CStr(resSpare(2)), False)
 
@@ -407,7 +407,7 @@ Public Sub SIRUS_RemplirListViewGeneration()
         vFrs = LireCellule(wsPBS, ligne, DATA_ASL_type.PrixRepair_Alstom_FRS)
         vCat = LireCellule(wsPBS, ligne, DATA_ASL_type.PrixRepa_ISP)
         resRepair = EvaluerQualitePrix(vMan, vFrs, vCat)
-        Call AjouterSubItemColore(li, CStr(resRepair(0)), False, CouleurQualite(CStr(resRepair(0))))
+        Call AjouterSubItemColore(li, CStr(resRepair(0)), False, CouleurQualite(CStr(resRepair(0)), CStr(resRepair(2))))
         Call AjouterSubItemColore(li, CStr(resRepair(1)), False)
         Call AjouterSubItemColore(li, CStr(resRepair(2)), False)
 
@@ -548,8 +548,19 @@ End Sub
 ' FONCTION: CouleurQualite
 ' Couleur associee a un statut qualite prix (OK / NOK *) pour la ListView.
 ' Retourne -1 si pas de couleur particuliere (texte noir par defaut).
+'
+' Cas special : "NOK - Manque" avec sourceManque = "Fournisseur" seul est
+' considere normal (le prix fournisseur n'est pas toujours connu en
+' avance, c'est attendu). Pas de coloration ni de gras dans ce cas.
 ' =========================================================================
-Private Function CouleurQualite(ByVal sQualite As String) As Long
+Private Function CouleurQualite(ByVal sQualite As String, _
+                                 Optional ByVal sSourceManque As String = "") As Long
+    ' Exception : manque uniquement du prix Fournisseur = cas normal
+    If sQualite = "NOK - Manque" And sSourceManque = "Fournisseur" Then
+        CouleurQualite = -1
+        Exit Function
+    End If
+
     Select Case sQualite
         Case "OK":                    CouleurQualite = RGB(0, 128, 0)        ' vert
         Case "NOK - Ecart":           CouleurQualite = RGB(255, 140, 0)      ' orange
