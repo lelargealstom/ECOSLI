@@ -1,7 +1,7 @@
 Attribute VB_Name = "F_FonctionsGlobales"
 Option Explicit
 Public Function LastRowInCol(ByVal ws As Worksheet, ByVal colIndex As Long) As Long
-    ' Renvoie la derni�re ligne utilis�e de la colonne colIndex (>= 1)
+    ' Renvoie la derniere ligne utilisee de la colonne colIndex (>= 1)
     Dim lastCell As Range
     On Error Resume Next
     Set lastCell = ws.Cells(ws.rows.count, colIndex).End(xlUp)
@@ -22,7 +22,7 @@ Public Function SafeNum(v As Variant, Optional fallback As Double = 0#) As Doubl
 End Function
 Public Function NodeTypeToLevel(ByVal NodeType As String) As Long
     Select Case UCase$(Trim$(NodeType))
-        Case "LRU", "LRUNR", "0", "NON TROUVE", "NON TROUV�"
+        Case "LRU", "LRUNR", "0", "NON TROUVE", "NON TROUVE"
             NodeTypeToLevel = 3
         Case "SRU", "SRUNR"
             NodeTypeToLevel = 4
@@ -33,10 +33,10 @@ Public Function NodeTypeToLevel(ByVal NodeType As String) As Long
     End Select
 End Function
 
-'Fonction qui v�rifie si une feuille est pr�sente ou non dans un workbooks
-'renvoie un False si elle n'est pas l�, un true si elle est pr�sente
+'Fonction qui verifie si une feuille est presente ou non dans un workbooks
+'renvoie un False si elle n'est pas la, un true si elle est presente
 Public Function Test_feuille(FeuilleAVerifier As String) As Boolean
-'fonction qui v�rifie si la "FeuilleAVerifier" existe dans le Classeur actif
+'fonction qui verifie si la "FeuilleAVerifier" existe dans le Classeur actif
 
     On Error GoTo SiErreur
     Dim feuille
@@ -54,7 +54,7 @@ SiErreur:
         Test_feuille = CVErr(xlErrNA)
 End Function
 Public Function Niv_Maintenance(tableau As Variant, projet As String) As String
-'Fonction qui permet de r�cup�rer le niveau de maintenance d'un projet
+'Fonction qui permet de recuperer le niveau de maintenance d'un projet
     Dim colonne_nvmaint As Integer
     Dim colonne_projet  As Integer
     Dim i As Integer
@@ -74,7 +74,7 @@ Public Function Niv_Maintenance(tableau As Variant, projet As String) As String
     
 End Function
 Public Function Auteur_Projet(tableau As Variant, projet As String) As String
-'Fonction qui permet de r�cup�rer le niveau de maintenance d'un projet
+'Fonction qui permet de recuperer le niveau de maintenance d'un projet
     Dim colonne_auteur As Integer
     Dim colonne_projet  As Integer
     Dim i As Integer
@@ -93,7 +93,7 @@ Public Function Auteur_Projet(tableau As Variant, projet As String) As String
     Next
     
 End Function
-'Fonction qui met � jour la barre de progression dans le UserForm
+'Fonction qui met à jour la barre de progression dans le UserForm
 Function barprogress(bar_cpt, bar_tot)
     
     UserForm.barre.Width = bar_cpt / bar_tot * UserForm.barreimage.Width
@@ -101,7 +101,7 @@ Function barprogress(bar_cpt, bar_tot)
     DoEvents
         
 End Function
-'Fonction qui renvoie l'abr�viation d'un code projet
+'Fonction qui renvoie l'abreviation d'un code projet
 Public Function Abrev_Projet(Code_Projet As String) As String
     Dim nb As Integer
     Dim pos1 As Integer, pos2 As Integer
@@ -116,11 +116,11 @@ Public Function Abrev_Projet(Code_Projet As String) As String
             Abrev_Projet = Code_Projet
             
         Case 1
-            ' Un seul "_" ? prendre avant et apr�s jusqu'� espace
+            ' Un seul "_" ? prendre avant et apres jusqu'a espace
             pos1 = InStr(Code_Projet, "_")
             temp = Left(Code_Projet, pos1 - 1) & "_" & Mid(Code_Projet, pos1 + 1)
             
-            ' Si espace apr�s le deuxi�me morceau, couper
+            ' Si espace apres le deuxieme morceau, couper
             If InStr(temp, " ") > 0 Then
                 temp = Left(temp, InStr(temp, " ") - 1)
             End If
@@ -128,12 +128,12 @@ Public Function Abrev_Projet(Code_Projet As String) As String
             Abrev_Projet = temp
             
         Case Is >= 2
-            ' Deux "_" ou plus ? prendre tout avant le deuxi�me "_"
+            ' Deux "_" ou plus ? prendre tout avant le deuxieme "_"
             pos2 = InStr(InStr(Code_Projet, "_") + 1, Code_Projet, "_")
             Abrev_Projet = Left(Code_Projet, pos2 - 1)
     End Select
 End Function
-' Convertir l'index de colonne num�rique en r�f�rence de colonne Excel
+' Convertir l'index de colonne numerique en reference de colonne Excel
 Function Index_Colonne(colIndex As Long) As String
     Dim colLetter As String
     colLetter = ""
@@ -165,10 +165,10 @@ Public Sub TurnOnFunctionality()
     End With
 End Sub
 Public Function HARD_SOFT(Range As Variant, dtr As String) As String
-' Fonction permettant de renseigner si le DTR recherch� est un HARD, un SOFT ou poss�de les deux dans un range
+' Fonction permettant de renseigner si le DTR recherché est un HARD, un SOFT ou possède les deux dans un range
 ' ---------------- Variable ----------------
-' range : S�lection de la colonne HARD/SOFT de la BDD dans la table 'Taches_ATM' de la BDD
-' ---------------- R�sultat ----------------
+' range : Sélection de la colonne HARD/SOFT de la BDD dans la table 'Taches_ATM' de la BDD
+' ---------------- Résultat ----------------
 ' Resultat = "HARD" si le DTR ne comprend que des lignes HARD
 ' Resultat = "SOFT" si le DTR ne comprend que des lignes SOFT
 ' Resultat = "BOTH" si le DTR comprend des lignes SOFT et HARD
@@ -181,7 +181,7 @@ End If
 
 End Function
 Public Function IsInArray(stringToBeFound As String, arr As Variant) As Boolean
-' Fonction permettant de savoir si une valeur est pr�sente dans un tableau
+' Fonction permettant de savoir si une valeur est presente dans un tableau
 ' Renvoie True si Valeur est dans le tableau et False si elle n'y est pas
     
     Dim i
@@ -195,7 +195,7 @@ Public Function IsInArray(stringToBeFound As String, arr As Variant) As Boolean
 
 End Function
 Public Function IsInArray_1D(stringToBeFound As String, arr As Variant) As Boolean
-' Fonction permettant de savoir si une valeur est pr�sente dans un tableau 1D
+' Fonction permettant de savoir si une valeur est presente dans un tableau 1D
 ' Renvoie True si Valeur est dans le tableau et False si elle n'y est pas
 
     Dim i
@@ -211,9 +211,9 @@ End Function
 Public Function IsInArrayNb(stringToBeFound As String, arr As Variant) As Integer
 ' Fonction permettant de compter le nombre d'occurrences d'une valeur dans un tableau
 ' Renvoie :
-'   0 si la valeur n'est pas trouv�e
-'   1 si elle est trouv�e une fois
-'   x si elle est trouv�e x fois
+'   0 si la valeur n'est pas trouvee
+'   1 si elle est trouvee une fois
+'   x si elle est trouvee x fois
  
     Dim i
     Dim count As Integer
@@ -230,7 +230,7 @@ Public Function IsInArrayNb(stringToBeFound As String, arr As Variant) As Intege
 
 End Function
 Public Function Contains_str(stringToBeFound As String, arr As Variant) As Integer
-' Fonction permettant de savoir si une valeur est pr�sente dans un tableau 1D
+' Fonction permettant de savoir si une valeur est presente dans un tableau 1D
 ' Renvoie True si Valeur est dans le tableau et False si elle n'y est pas
 
     Dim i
@@ -244,7 +244,7 @@ Public Function Contains_str(stringToBeFound As String, arr As Variant) As Integ
 
 End Function
 Public Function UpdateDesignation(des As String) As String
-'Fonction permettant de mettre en forme la d�signation d'un code avant de sauver son ATM 2.0 dans le r�pertoire projet
+'Fonction permettant de mettre en forme la designation d'un code avant de sauver son ATM 2.0 dans le rpertoire projet
 Dim firstspace, secondspace As Double
 
 firstspace = InStr(1, des, " ")
@@ -264,7 +264,7 @@ End If
 End Function
 
 Public Sub ClearOneControl(ByVal c As MSForms.control, ByVal ctrlName As String)
-'Proc�dure qui vide un contr�le de formulaire selon le type de contr�le
+'Procedure qui vide un controle de formulaire selon le type de controle
     On Error Resume Next
     Select Case TypeName(c)
         Case "TextBox": c.Text = ""
@@ -287,18 +287,18 @@ End Sub
 
 
 Public Function EnumFichiers(chemin As String) As String()
-' Fonction permettant de lister dans un tableau le nom de tout les fichiers � partir d'un dossier
+' Fonction permettant de lister dans un tableau le nom de tout les fichiers a partir d'un dossier
 ' ---------------- Variable ----------------
-' Chemin : Chemin d'acc�s du dossier (string)
+' Chemin : Chemin d'acces du dossier (string)
 
 Dim TableauFichiers() As String
 Dim fichier As String
 Dim i As Integer
 
-'On compl�te le chemin s'il ne l'est pas
+'On complete le chemin s'il ne l'est pas
 If Right(chemin, 1) <> "\" Then chemin = chemin & "\"
 
-'On r�cup�re les fichiers
+'On recupere les fichiers
 fichier = Dir(chemin)
 
 'Boucle sur les fichiers du dossier
@@ -318,8 +318,8 @@ Loop
 EnumFichiers = TableauFichiers()
 
 End Function
-Public Sub nettoyer_donn�es()
-'Proc�dure qui permet de nettoyer la liste de DTR renseign�s dans le recueil de donn�es
+Public Sub nettoyer_donnees()
+'Procedure qui permet de nettoyer la liste de DTR renseignes dans le recueil de donnees
 Dim derlig As Integer
 
 If MsgBox("Voulez-vous effacer la PBS renseignee ?", vbYesNo, "Suppression") = vbNo Then Exit Sub
