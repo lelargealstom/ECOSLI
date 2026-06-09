@@ -592,12 +592,12 @@ Private Sub PeuplerProjetASL(lo As ListObject)
 
     ' --- Saisies projet (RAM report specifique) ---
     Call AjouterChamp(lo, "ProjetASL", "DVL generique HARD", _
-                      "DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) HARDWARE_PROJET ASL", 70, _
+                      "DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) HARDWARE_PROJETASL", 70, _
                       "Nombre", "", "Non", "", "Saisie", "", 0, "", _
                       "DVL Hardware specifique projet (RAM report). Pre-rempli depuis Produit.DVL HARD si dispo.")
 
     Call AjouterChamp(lo, "ProjetASL", "DVL generique SOFT", _
-                      "DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) SOFTWARE_PROJET ASL", 75, _
+                      "DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) SOFTWARE_PROJETASL", 75, _
                       "Nombre", "", "Non", "", "Saisie", "", 0, "", _
                       "DVL Software specifique projet (RAM report). Pre-rempli depuis Produit.DVL SOFT si dispo.")
 

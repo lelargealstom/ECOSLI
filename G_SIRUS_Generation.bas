@@ -433,6 +433,118 @@ Public Sub Test_Generer_EMMST_Creer()
 End Sub
 
 ' =========================================================================
+' Test_DiagnostiquerColonnesBdDFeuille
+' =========================================================================
+' Genere une feuille "SIRUS_Diag_Colonnes" dans ActiveWorkbook avec tous
+' les noms reels des colonnes BdD pour les 6 tables. Pas de troncature
+' (contrairement a la fenetre Immediate de VBE).
+'
+' Layout :
+'   col A : Table SQL (ex. "Produit$")
+'   col B : Index colonne (1, 2, ...)
+'   col C : Nom BdD exact
+'   col D : Longueur du nom (utile pour reperer les espaces de bout)
+'
+' Procedure a privilegier pour resoudre les ecarts identifies par
+' Test_DiagnostiquerEcartsConfig_Toutes.
+Public Sub Test_DiagnostiquerColonnesBdDFeuille()
+
+    Const FEUILLE As String = "SIRUS_Diag_Colonnes"
+
+    Dim tables As Variant
+    Dim t As Variant
+    Dim wb As Workbook
+    Dim ws As Worksheet
+    Dim sSQL As String
+    Dim i As Long
+    Dim ligne As Long
+    Dim sNom As String
+
+    On Error GoTo Sortie
+
+    ' -- 1. ActiveWorkbook (classeur projet) ---------------
+    Set wb = ActiveWorkbook
+    If wb Is Nothing Then
+        MsgBox "Aucun classeur projet actif.", vbExclamation
+        Exit Sub
+    End If
+    If wb Is ThisWorkbook Then
+        MsgBox "Le classeur actif est le complement ECOSLI lui-meme. " & _
+               "Activer un classeur projet avant.", vbExclamation
+        Exit Sub
+    End If
+
+    ' -- 2. (Re)creer la feuille ---------------------------
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    wb.Worksheets(FEUILLE).Delete
+    Application.DisplayAlerts = True
+    On Error GoTo Sortie
+
+    Set ws = wb.Worksheets.Add(After:=wb.Worksheets(wb.Worksheets.Count))
+    ws.Name = FEUILLE
+
+    ' -- 3. Entetes ----------------------------------------
+    ws.Cells(1, 1).Value = "Table"
+    ws.Cells(1, 2).Value = "Index"
+    ws.Cells(1, 3).Value = "Nom BdD"
+    ws.Cells(1, 4).Value = "Longueur"
+    With ws.Range("A1:D1")
+        .Font.Bold = True
+        .Interior.Color = COULEUR_ENTETE
+        .HorizontalAlignment = xlCenter
+    End With
+
+    ' -- 4. Connexion BdD + parcours des tables ------------
+    tables = Array("Produit$", "Info_ATM$", "Taches_ATM$", "EMMST$", _
+                   "Projet_SLI$", "Projet_ASL$")
+
+    Call Open_CONN(ChaineConnexionSIRUS)
+    ligne = 2
+
+    For Each t In tables
+        sSQL = "SELECT * FROM [" & t & "] WHERE 1=0"
+        Call open_REQSEL(sSQL)
+        If Not (REQSEL Is Nothing) Then
+            For i = 0 To REQSEL.Fields.Count - 1
+                sNom = REQSEL.Fields(i).Name
+                ws.Cells(ligne, 1).Value = t
+                ws.Cells(ligne, 2).Value = i + 1
+                ' Forcer ecriture en texte (eviter conversion auto Excel
+                ' qui pourrait transformer un nom commencant par '=' etc.)
+                ws.Cells(ligne, 3).NumberFormat = "@"
+                ws.Cells(ligne, 3).Value = sNom
+                ws.Cells(ligne, 4).Value = Len(sNom)
+                ligne = ligne + 1
+            Next i
+        End If
+    Next t
+
+    Call Close_CONN(ChaineConnexionSIRUS)
+
+    ' -- 5. Mise en forme ----------------------------------
+    ws.Columns("A:B").AutoFit
+    ws.Columns("C").ColumnWidth = 80
+    ws.Columns("D").ColumnWidth = 10
+    ws.Activate
+    ws.Range("A1").Select
+    ActiveWindow.FreezePanes = False
+    ws.Range("A2").Select
+    ActiveWindow.FreezePanes = True
+
+    MsgBox "Feuille '" & FEUILLE & "' generee avec " & (ligne - 2) & _
+           " colonnes BdD au total." & vbCrLf & _
+           "Filtrer la colonne A pour isoler une table.", vbInformation, "SIRUS Diag"
+    Exit Sub
+
+Sortie:
+    On Error Resume Next
+    Call Close_CONN(ChaineConnexionSIRUS)
+    On Error GoTo 0
+    MsgBox "Erreur Test_DiagnostiquerColonnesBdDFeuille : " & Err.Description, vbCritical
+End Sub
+
+' =========================================================================
 ' Test_DiagnostiquerColonnesBdD
 ' =========================================================================
 ' Pour chaque table BdD, fait un SELECT * WHERE 1=0 (structure sans
