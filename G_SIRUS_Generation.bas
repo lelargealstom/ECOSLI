@@ -323,6 +323,7 @@ Private Sub PreRemplirDepuisBdD(ws As Worksheet, ByVal sTable As String, _
         sSQL = "SELECT " & sSelectCols & _
                " FROM [" & sNomTableSQL & "]" & _
                " WHERE [" & cleColBdD & "] = '" & Replace(CStr(cle), "'", "''") & "'"
+        Debug.Print "PreRemplirDepuisBdD SQL : " & sSQL
         Call open_REQSEL(sSQL)
 
         trouve = False
@@ -418,4 +419,126 @@ End Sub
 
 Public Sub Test_Generer_EMMST_Creer()
     Call SIRUS_GenererFeuilleAnalyse(SIRUS_TBL_EMMST, SIRUS_OP_CREER)
+End Sub
+
+' =========================================================================
+' Test_DiagnostiquerColonnesBdD
+' =========================================================================
+' Pour chaque table BdD, fait un SELECT * WHERE 1=0 (structure sans
+' donnees) et trace dans la fenetre Immediate les noms reels des
+' colonnes BdD. Permet de detecter les ecarts avec les ColonneBdD du
+' config (accents, espaces, caractere ellipsis '...', casse...).
+'
+' Usage : lancer depuis VBE, regarder la fenetre Immediate, comparer
+' avec le contenu de SIRUS_Config (ligne 2 des feuilles SIRUS_*).
+Public Sub Test_DiagnostiquerColonnesBdD()
+
+    Dim tables As Variant
+    Dim t As Variant
+    Dim sSQL As String
+    Dim i As Long
+    Dim sNom As String
+
+    tables = Array("Produit$", "Info_ATM$", "Taches_ATM$", "EMMST$", _
+                   "Projet_SLI$", "Projet_ASL$")
+
+    On Error GoTo Sortie
+
+    Debug.Print "=== Test_DiagnostiquerColonnesBdD ==="
+    Call Open_CONN
+
+    For Each t In tables
+        sSQL = "SELECT * FROM [" & t & "] WHERE 1=0"
+        Debug.Print ""
+        Debug.Print "--- Table : [" & t & "] ---"
+        Call open_REQSEL(sSQL)
+        If Not (REQSEL Is Nothing) Then
+            For i = 0 To REQSEL.Fields.Count - 1
+                sNom = REQSEL.Fields(i).Name
+                ' Encadre par '|' pour voir les espaces de tete/queue
+                Debug.Print "  [" & Format$(i + 1, "00") & "] |" & sNom & "|"
+            Next i
+        End If
+    Next t
+
+    Call Close_CONN
+    Debug.Print ""
+    Debug.Print "=== Fin diagnostic ==="
+    Exit Sub
+
+Sortie:
+    On Error Resume Next
+    Call Close_CONN
+    On Error GoTo 0
+    Debug.Print "Erreur Test_DiagnostiquerColonnesBdD : " & Err.Description
+End Sub
+
+' =========================================================================
+' Test_DiagnostiquerEcartsConfig
+' =========================================================================
+' Pour la table demandee, compare les ColonneBdD du config a ceux
+' reellement presents en BdD et signale les noms manquants.
+' Reutilise SIRUS_LireConfig + un SELECT * WHERE 1=0.
+Public Sub Test_DiagnostiquerEcartsConfig_Produit()
+    Call DiagnostiquerEcartsTable(SIRUS_TBL_PRODUIT, "Produit$")
+End Sub
+
+Public Sub Test_DiagnostiquerEcartsConfig_Toutes()
+    Call DiagnostiquerEcartsTable(SIRUS_TBL_PRODUIT, "Produit$")
+    Call DiagnostiquerEcartsTable(SIRUS_TBL_INFOATM, "Info_ATM$")
+    Call DiagnostiquerEcartsTable(SIRUS_TBL_TACHESATM, "Taches_ATM$")
+    Call DiagnostiquerEcartsTable(SIRUS_TBL_EMMST, "EMMST$")
+    Call DiagnostiquerEcartsTable(SIRUS_TBL_PROJETSLI, "Projet_SLI$")
+    Call DiagnostiquerEcartsTable(SIRUS_TBL_PROJETASL, "Projet_ASL$")
+End Sub
+
+Private Sub DiagnostiquerEcartsTable(ByVal sTable As String, ByVal sTableSQL As String)
+
+    Dim col As Collection
+    Dim def As SIRUS_Champ_Config
+    Dim noms As Object  ' Dictionary des noms BdD reels
+    Dim sSQL As String
+    Dim i As Long
+    Dim nbTrouve As Long, nbAbsent As Long
+
+    On Error GoTo Sortie
+
+    Set noms = CreateObject("Scripting.Dictionary")
+    noms.CompareMode = 1  ' BinaryCompare (sensible a la casse)
+
+    ' Charger les vrais noms BdD
+    Call Open_CONN
+    sSQL = "SELECT * FROM [" & sTableSQL & "] WHERE 1=0"
+    Call open_REQSEL(sSQL)
+    If Not (REQSEL Is Nothing) Then
+        For i = 0 To REQSEL.Fields.Count - 1
+            noms(REQSEL.Fields(i).Name) = True
+        Next i
+    End If
+    Call Close_CONN
+
+    ' Comparer aux ColonneBdD du config
+    Set col = SIRUS_LireConfig(sTable)
+    Debug.Print ""
+    Debug.Print "=== Ecarts config <-> BdD pour " & sTable & " ([" & sTableSQL & "]) ==="
+
+    For Each def In col
+        If LenB(def.ColonneBdD) > 0 Then
+            If noms.Exists(def.ColonneBdD) Then
+                nbTrouve = nbTrouve + 1
+            Else
+                nbAbsent = nbAbsent + 1
+                Debug.Print "  ABSENT en BdD : |" & def.ColonneBdD & "|  (champ '" & def.Champ & "')"
+            End If
+        End If
+    Next def
+
+    Debug.Print "  -> " & nbTrouve & " trouve(s), " & nbAbsent & " absent(s)."
+    Exit Sub
+
+Sortie:
+    On Error Resume Next
+    Call Close_CONN
+    On Error GoTo 0
+    Debug.Print "Erreur DiagnostiquerEcartsTable(" & sTable & ") : " & Err.Description
 End Sub
