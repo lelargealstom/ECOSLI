@@ -6,6 +6,49 @@ Format : `[Date] — Auteur — Périmètre`, puis liste des changements par mod
 
 ---
 
+## 2026-06-09 (Phase 1) — Session Claude Code (avec Thomas LE LARGE)
+
+### Périmètre
+**Phase 1 SIRUS** : générateur de feuille d'analyse. Module dédié `G_SIRUS_Generation.bas`.
+
+### `G_SIRUS_Generation.bas` (nouveau module)
+- **`SIRUS_GenererFeuilleAnalyse(table, operation, [cles])`** — point d'entrée public.
+  - Crée la feuille `SIRUS_<Table>_<Operation>` dans **`ActiveWorkbook`** (= classeur projet, jamais le `.xlam`).
+  - **Confirmation utilisateur** (`MsgBox vbYesNo`) si la feuille existe déjà.
+  - Lit le config via `SIRUS_LireConfig(table)`.
+  - **Ligne 1** = libellé `Champ` humain (gras, fond bleu clair, hauteur 30, wrap).
+  - **Ligne 2** = `ColonneBdD` technique (gris, italique, masquée). Sert d'index pour le moteur Phase 2 et la PJ ATMAP Phase 5.
+  - Colonne `Statut` en bout pour le retour du moteur d'analyse.
+  - **Listes déroulantes** (`xlValidateList`) sur les colonnes `TypeChamp = "Liste"` ou `"Booleen"`, source `SIRUS_ListeEnChaine(ListeSource)`. Couvre 1000 lignes.
+  - **Champs `Source = "Auto"` ou `"Herite"`** : fond gris clair (verrouillage réel reporté Phase 2).
+  - **`Operation = "Modifier"`** : ouvre ADODB (`Open_CONN`/`open_REQSEL`/`Close_CONN`), SELECT par clé sur la table BdD, remplit ligne par ligne. Clé absente → colonne Statut = "Cle non trouvee" en rouge.
+  - Sortie : Activate + Freeze panes sous l'entête.
+- **Helpers privés** : `PoserEntetes`, `AppliquerListes`, `GriserChampsAutoHerite`, `PreRemplirDepuisBdD`, `NomTableSQL` (mapping `Produit` → `Produit$`, `InfoATM` → `Info_ATM$`, etc.), `FeuilleExiste`.
+- **Constantes publiques** : `SIRUS_OP_CREER`, `SIRUS_OP_MODIFIER`.
+- **Procédures de test** : `Test_Generer_Produit_Creer`, `Test_Generer_Produit_Modifier` (avec 2 DTR fictifs à remplacer par des DTR réels), `Test_Generer_ProjetSLI_Creer`, `Test_Generer_EMMST_Creer`.
+
+### Décisions
+- **Localisation** : feuille dans `ActiveWorkbook` (cohérent avec `DATA_ASL` et l'export PJ ATMAP). Erreur explicite si `ActiveWorkbook` = `.xlam`.
+- **Entête sur 2 lignes** : ligne 1 humaine + ligne 2 technique masquée (validé Thomas).
+- **Confirmation écrasement** : `MsgBox vbYesNo`, défaut "Non" pour éviter les pertes accidentelles.
+- **Clé de filtrage Modifier** = `ColonneBdD` du 1er champ du config (Ordre 10) — DTR pour la plupart, `Nom projet_PROJET SLI` pour ProjetSLI.
+- **Champs `ColonneBdD` vides** (cas du MTBF intrinsèque info Produit dans ProjetASL) : ignorés dans le SELECT, laissés vides côté feuille.
+
+### Reportés Phase 2
+- Snapshot des valeurs d'origine pour le diff Modifier.
+- Verrouillage réel des cellules `Auto`/`Herite` (avec protection feuille).
+- Évaluation des règles `Source = "Saisie"` obligatoires / conditionnelles via `G_SIRUS_Regles`.
+- Calcul du taux de complétude (MeQ) et écriture du Statut.
+
+### Reste à faire
+- Importer `G_SIRUS_Generation.bas` dans le `.xlam`.
+- Ouvrir un classeur projet (`Ctrl + N` ou ECOSLI.xlsm), l'activer.
+- Tester `Test_Generer_Produit_Creer` → la feuille `SIRUS_Produit_Creer` apparaît dans le classeur projet avec 14 colonnes + Statut, listes déroulantes sur Node Type (LRU/SRU/…), colonne Designation BdD grisée.
+- Tester `Test_Generer_Produit_Modifier` avec des DTR réels présents en BdD.
+- **Phase 2** : `G_SIRUS_Regles.bas` (règles obligatoires/alertes en dur) + généraliser `SIRUS_AnalyserProduit` en `SIRUS_AnalyserFeuille(table)`.
+
+---
+
 ## 2026-06-09 (suite) — Session Claude Code (avec Thomas LE LARGE)
 
 ### Périmètre

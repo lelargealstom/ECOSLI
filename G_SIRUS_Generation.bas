@@ -1,0 +1,421 @@
+Attribute VB_Name = "G_SIRUS_Generation"
+'--------------------------------------------------------------------------------------------------------
+'
+'                                       Generateur Livrables SLI
+'                                       Module G_SIRUS_Generation
+'                                       Developpement : LE LARGE Thomas (LGM/Alstom)
+'                                       SIRUS - Phase 1 : generateur de feuille d'analyse
+'                                       (creation vierge ou modification pre-remplie depuis BdD).
+'                                       Juin 2026
+'
+'--------------------------------------------------------------------------------------------------------
+Option Explicit
+Option Compare Text
+
+' =========================================================================
+' CONSTANTES
+' =========================================================================
+Public Const SIRUS_OP_CREER    As String = "Creer"
+Public Const SIRUS_OP_MODIFIER As String = "Modifier"
+
+Private Const SIRUS_LIGNE_ENTETE_HUMAIN  As Long = 1
+Private Const SIRUS_LIGNE_ENTETE_BDD     As Long = 2
+Private Const SIRUS_LIGNE_DONNEES_DEBUT  As Long = 3
+Private Const SIRUS_NB_LIGNES_VALIDATION As Long = 1000  ' lignes couvertes par les listes deroulantes
+
+Private Const COULEUR_ENTETE             As Long = 14606303   ' bleu tres clair RGB(220,230,241)
+Private Const COULEUR_AUTO_HERITE        As Long = 14211288   ' gris clair RGB(216,216,216)
+Private Const COULEUR_ENTETE_BDD         As Long = 9868950    ' gris fonce RGB(150,150,150)
+
+' =========================================================================
+' SIRUS_GenererFeuilleAnalyse
+' =========================================================================
+' Genere dans ActiveWorkbook (= classeur projet de l'utilisateur) la feuille
+' "SIRUS_<Table>_<Operation>" pour le couple (table, operation) demande.
+'
+' Parametres :
+'   sTable    : "Produit" / "InfoATM" / "TachesATM" / "EMMST" / "ProjetSLI" / "ProjetASL"
+'   sOperation: "Creer" ou "Modifier" (utiliser les constantes SIRUS_OP_*).
+'   vCles     : tableau de cles a pre-remplir (DTR pour la plupart, Nom
+'               projet pour ProjetSLI). Ignore si sOperation = "Creer".
+'
+' Comportement :
+'   - Si la feuille existe deja : demande confirmation a l'utilisateur.
+'   - Ligne 1 = libelle Champ humain, ligne 2 = ColonneBdD masquee.
+'   - Listes deroulantes (xlValidateList) sur les TypeChamp = "Liste" ou "Booleen".
+'   - Champs Source = "Auto" ou "Herite" : fond gris (lecture seule visuelle ;
+'     verrouillage reel reporte Phase 2).
+'   - Operation "Modifier" : ouvre ADODB, SELECT par cle, remplit ligne par ligne.
+'     Cle absente en base : colonne Statut = "Cle non trouvee".
+'
+Public Sub SIRUS_GenererFeuilleAnalyse(ByVal sTable As String, _
+                                       ByVal sOperation As String, _
+                                       Optional ByRef vCles As Variant)
+
+    Dim wb As Workbook
+    Dim wsCible As Worksheet
+    Dim nomFeuille As String
+    Dim col As Collection
+    Dim resp As VbMsgBoxResult
+
+    On Error GoTo Sortie
+
+    ' -- 1. Validation arguments ----------------------------
+    If LenB(sTable) = 0 Then
+        MsgBox "SIRUS : nom de table manquant.", vbCritical
+        Exit Sub
+    End If
+    If sOperation <> SIRUS_OP_CREER And sOperation <> SIRUS_OP_MODIFIER Then
+        MsgBox "SIRUS : operation invalide ('" & sOperation & "'). " & _
+               "Doit etre 'Creer' ou 'Modifier'.", vbCritical
+        Exit Sub
+    End If
+
+    ' -- 2. Verifier le classeur projet actif ----------------
+    Set wb = ActiveWorkbook
+    If wb Is Nothing Then
+        MsgBox "Aucun classeur projet actif. Ouvrir d'abord le fichier projet.", vbExclamation
+        Exit Sub
+    End If
+    If wb Is ThisWorkbook Then
+        MsgBox "Le classeur actif est le complement ECOSLI lui-meme. " & _
+               "Activer d'abord le fichier projet avant de generer la feuille SIRUS.", vbExclamation
+        Exit Sub
+    End If
+
+    ' -- 3. Lire le config -----------------------------------
+    Set col = SIRUS_LireConfig(sTable)
+    If col.Count = 0 Then
+        MsgBox "Aucun champ defini dans SIRUS_Config pour la table '" & sTable & "'. " & _
+               "Lancer SIRUS_InitConfigSheet d'abord.", vbCritical
+        Exit Sub
+    End If
+
+    ' -- 4. Nom de la feuille + confirmation si existante ---
+    nomFeuille = "SIRUS_" & sTable & "_" & sOperation
+    If Len(nomFeuille) > 31 Then nomFeuille = Left$(nomFeuille, 31)  ' limite Excel
+
+    If FeuilleExiste(wb, nomFeuille) Then
+        resp = MsgBox("La feuille '" & nomFeuille & "' existe deja dans le classeur '" & _
+                      wb.Name & "'." & vbCrLf & vbCrLf & _
+                      "Voulez-vous l'ecraser ?", _
+                      vbYesNo + vbQuestion + vbDefaultButton2, _
+                      "SIRUS - Generation de feuille")
+        If resp <> vbYes Then Exit Sub
+        Application.DisplayAlerts = False
+        wb.Worksheets(nomFeuille).Delete
+        Application.DisplayAlerts = True
+    End If
+
+    ' -- 5. Creer la feuille --------------------------------
+    Set wsCible = wb.Worksheets.Add(After:=wb.Worksheets(wb.Worksheets.Count))
+    wsCible.Name = nomFeuille
+
+    ' -- 6. Entetes (humain L1 + ColonneBdD L2 masquee) -----
+    Call PoserEntetes(wsCible, col)
+
+    ' -- 7. Pre-remplissage si Modifier ---------------------
+    If sOperation = SIRUS_OP_MODIFIER Then
+        If IsMissing(vCles) Then
+            MsgBox "Operation 'Modifier' : il faut fournir des cles (DTR ou Nom projet) " & _
+                   "a pre-remplir. La feuille a ete creee vierge.", vbExclamation
+        Else
+            Call PreRemplirDepuisBdD(wsCible, sTable, col, vCles)
+        End If
+    End If
+
+    ' -- 8. Listes deroulantes ------------------------------
+    Call AppliquerListes(wsCible, col)
+
+    ' -- 9. Griser les champs Auto / Herite -----------------
+    Call GriserChampsAutoHerite(wsCible, col)
+
+    ' -- 10. Aller a la cellule de saisie -------------------
+    wsCible.Activate
+    wsCible.Cells(SIRUS_LIGNE_DONNEES_DEBUT, 1).Select
+    ActiveWindow.FreezePanes = False
+    wsCible.Cells(SIRUS_LIGNE_DONNEES_DEBUT, 1).Select
+    ActiveWindow.FreezePanes = True
+
+    MsgBox "Feuille '" & nomFeuille & "' generee avec succes." & vbCrLf & _
+           col.Count & " colonnes + colonne Statut.", vbInformation, "SIRUS"
+    Exit Sub
+
+Sortie:
+    MsgBox "Erreur dans SIRUS_GenererFeuilleAnalyse : " & Err.Description, vbCritical
+End Sub
+
+' =========================================================================
+' PoserEntetes
+' =========================================================================
+' Ligne 1 : libelles humains (Champ du config) + colonne "Statut" en bout.
+' Ligne 2 : ColonneBdD techniques (masquee). Sert d'index BdD <-> colonne
+'           pour le moteur d'analyse Phase 2 et la PJ ATMAP Phase 5.
+Private Sub PoserEntetes(ws As Worksheet, col As Collection)
+
+    Dim def As SIRUS_Champ_Config
+    Dim i As Long
+    Dim nbCol As Long
+
+    i = 1
+    For Each def In col
+        ws.Cells(SIRUS_LIGNE_ENTETE_HUMAIN, i).Value = def.Champ
+        ws.Cells(SIRUS_LIGNE_ENTETE_BDD, i).Value = def.ColonneBdD
+        i = i + 1
+    Next def
+    nbCol = col.Count
+
+    ' Statut en derniere colonne
+    ws.Cells(SIRUS_LIGNE_ENTETE_HUMAIN, nbCol + 1).Value = "Statut"
+    ws.Cells(SIRUS_LIGNE_ENTETE_BDD, nbCol + 1).Value = "_statut"
+
+    ' Formatage ligne 1 (humain)
+    With ws.Range(ws.Cells(SIRUS_LIGNE_ENTETE_HUMAIN, 1), _
+                  ws.Cells(SIRUS_LIGNE_ENTETE_HUMAIN, nbCol + 1))
+        .Font.Bold = True
+        .Interior.Color = COULEUR_ENTETE
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlCenter
+        .WrapText = True
+    End With
+
+    ' Formatage ligne 2 (BdD) + masquage
+    With ws.Range(ws.Cells(SIRUS_LIGNE_ENTETE_BDD, 1), _
+                  ws.Cells(SIRUS_LIGNE_ENTETE_BDD, nbCol + 1))
+        .Font.Color = COULEUR_ENTETE_BDD
+        .Font.Size = 8
+        .Font.Italic = True
+    End With
+    ws.Rows(SIRUS_LIGNE_ENTETE_BDD).Hidden = True
+
+    ' Largeur auto
+    ws.Range(ws.Cells(SIRUS_LIGNE_ENTETE_HUMAIN, 1), _
+             ws.Cells(SIRUS_LIGNE_ENTETE_HUMAIN, nbCol + 1)).EntireColumn.AutoFit
+
+    ' Hauteur entete + figer
+    ws.Rows(SIRUS_LIGNE_ENTETE_HUMAIN).RowHeight = 30
+End Sub
+
+' =========================================================================
+' AppliquerListes
+' =========================================================================
+' Pour chaque champ TypeChamp = "Liste" ou "Booleen", ajoute une
+' Validation.Add xlValidateList sur SIRUS_NB_LIGNES_VALIDATION lignes.
+' Source de la liste : SIRUS_GetListe via SIRUS_ListeEnChaine.
+Private Sub AppliquerListes(ws As Worksheet, col As Collection)
+
+    Dim def As SIRUS_Champ_Config
+    Dim i As Long
+    Dim sFormula As String
+    Dim plage As Range
+
+    i = 1
+    For Each def In col
+        If def.TypeChamp = "Liste" Or def.TypeChamp = "Booleen" Then
+            sFormula = SIRUS_ListeEnChaine(def.ListeSource)
+            If LenB(sFormula) > 0 Then
+                Set plage = ws.Range( _
+                    ws.Cells(SIRUS_LIGNE_DONNEES_DEBUT, i), _
+                    ws.Cells(SIRUS_LIGNE_DONNEES_DEBUT + SIRUS_NB_LIGNES_VALIDATION - 1, i))
+                On Error Resume Next
+                plage.Validation.Delete
+                plage.Validation.Add Type:=xlValidateList, _
+                                     AlertStyle:=xlValidAlertStop, _
+                                     Operator:=xlBetween, _
+                                     Formula1:=sFormula
+                On Error GoTo 0
+            Else
+                Debug.Print "AppliquerListes : liste '" & def.ListeSource & _
+                            "' vide ou inconnue pour le champ '" & def.Champ & "'."
+            End If
+        End If
+        i = i + 1
+    Next def
+End Sub
+
+' =========================================================================
+' GriserChampsAutoHerite
+' =========================================================================
+' Fond gris clair sur les colonnes Source = "Auto" ou "Herite", pour
+' signaler visuellement que ce sont des champs en lecture seule
+' (heritage ou calcul automatique).
+' Verrouillage cellule reel : reporte Phase 2 (avec protection feuille).
+Private Sub GriserChampsAutoHerite(ws As Worksheet, col As Collection)
+
+    Dim def As SIRUS_Champ_Config
+    Dim i As Long
+    Dim plage As Range
+
+    i = 1
+    For Each def In col
+        If def.Source = "Auto" Or def.Source = "Herite" Then
+            Set plage = ws.Range( _
+                ws.Cells(SIRUS_LIGNE_DONNEES_DEBUT, i), _
+                ws.Cells(SIRUS_LIGNE_DONNEES_DEBUT + SIRUS_NB_LIGNES_VALIDATION - 1, i))
+            plage.Interior.Color = COULEUR_AUTO_HERITE
+        End If
+        i = i + 1
+    Next def
+End Sub
+
+' =========================================================================
+' PreRemplirDepuisBdD
+' =========================================================================
+' Pour Modifier : execute un SELECT par cle, remplit la feuille ligne par
+' ligne. Cle = ColonneBdD du 1er champ du config (DTR pour la plupart des
+' tables, Nom projet pour ProjetSLI).
+' Champs avec ColonneBdD vide (ex. MTBF intrinseque info Produit dans
+' ProjetASL) : ignores pour le SELECT, laisses vides cote feuille.
+' Cle absente en BdD : ligne marquee dans la colonne Statut.
+Private Sub PreRemplirDepuisBdD(ws As Worksheet, ByVal sTable As String, _
+                                 col As Collection, ByRef vCles As Variant)
+
+    Dim def As SIRUS_Champ_Config
+    Dim cleColBdD As String
+    Dim sNomTableSQL As String
+    Dim sSelectCols As String
+    Dim sSQL As String
+    Dim i As Long
+    Dim ligne As Long
+    Dim cle As Variant
+    Dim trouve As Boolean
+    Dim nbOk As Long, nbKo As Long
+
+    ' -- Cle = 1er champ du config -------------------------
+    cleColBdD = ""
+    For Each def In col
+        cleColBdD = def.ColonneBdD
+        Exit For
+    Next def
+
+    If LenB(cleColBdD) = 0 Then
+        MsgBox "Cle BdD introuvable pour la table '" & sTable & _
+               "' (1er champ du config sans ColonneBdD).", vbCritical
+        Exit Sub
+    End If
+
+    ' -- Nom de la table SQL -------------------------------
+    sNomTableSQL = NomTableSQL(sTable)
+    If LenB(sNomTableSQL) = 0 Then
+        MsgBox "Table SQL inconnue pour '" & sTable & "'.", vbCritical
+        Exit Sub
+    End If
+
+    ' -- Construire la liste des colonnes a selectionner ---
+    sSelectCols = ""
+    For Each def In col
+        If LenB(def.ColonneBdD) > 0 Then
+            If LenB(sSelectCols) > 0 Then sSelectCols = sSelectCols & ", "
+            sSelectCols = sSelectCols & "[" & def.ColonneBdD & "]"
+        End If
+    Next def
+
+    ' -- Ouvrir la connexion -------------------------------
+    On Error GoTo SortieBdD
+    Call Open_CONN
+
+    ' -- Boucle par cle ------------------------------------
+    ligne = SIRUS_LIGNE_DONNEES_DEBUT
+    nbOk = 0
+    nbKo = 0
+
+    For Each cle In vCles
+        sSQL = "SELECT " & sSelectCols & _
+               " FROM [" & sNomTableSQL & "]" & _
+               " WHERE [" & cleColBdD & "] = '" & Replace(CStr(cle), "'", "''") & "'"
+        Call open_REQSEL(sSQL)
+
+        trouve = False
+        If Not (REQSEL Is Nothing) Then
+            If Not REQSEL.EOF Then
+                ' Remplir la ligne champ par champ
+                i = 1
+                For Each def In col
+                    If LenB(def.ColonneBdD) > 0 Then
+                        On Error Resume Next
+                        ws.Cells(ligne, i).Value = REQSEL.Fields(def.ColonneBdD).Value
+                        On Error GoTo SortieBdD
+                    End If
+                    i = i + 1
+                Next def
+                trouve = True
+                nbOk = nbOk + 1
+            End If
+        End If
+
+        If Not trouve Then
+            ' Cle non trouvee : on remplit au moins la cle + un Statut explicite
+            ws.Cells(ligne, 1).Value = cle
+            ws.Cells(ligne, col.Count + 1).Value = "Cle non trouvee en BdD"
+            ws.Cells(ligne, col.Count + 1).Font.Color = vbRed
+            nbKo = nbKo + 1
+        End If
+
+        ligne = ligne + 1
+    Next cle
+
+    Call Close_CONN
+    Debug.Print "PreRemplirDepuisBdD : " & nbOk & " trouve(s), " & nbKo & " absent(es)."
+    Exit Sub
+
+SortieBdD:
+    On Error Resume Next
+    Call Close_CONN
+    On Error GoTo 0
+    MsgBox "Erreur lors du pre-remplissage BdD : " & Err.Description, vbCritical
+End Sub
+
+' =========================================================================
+' NomTableSQL
+' =========================================================================
+' Mapping table logique config -> nom de table SQL Excel (entoure de [...$]).
+Private Function NomTableSQL(ByVal sTable As String) As String
+    Select Case sTable
+        Case "Produit":    NomTableSQL = "Produit$"
+        Case "InfoATM":    NomTableSQL = "Info_ATM$"
+        Case "TachesATM":  NomTableSQL = "Taches_ATM$"
+        Case "EMMST":      NomTableSQL = "EMMST$"
+        Case "ProjetSLI":  NomTableSQL = "Projet_SLI$"
+        Case "ProjetASL":  NomTableSQL = "Projet_ASL$"
+        Case Else:         NomTableSQL = ""
+    End Select
+End Function
+
+' =========================================================================
+' FeuilleExiste
+' =========================================================================
+Private Function FeuilleExiste(wb As Workbook, ByVal sNom As String) As Boolean
+    Dim ws As Worksheet
+    For Each ws In wb.Worksheets
+        If ws.Name = sNom Then
+            FeuilleExiste = True
+            Exit Function
+        End If
+    Next ws
+    FeuilleExiste = False
+End Function
+
+' =========================================================================
+' PROCEDURES DE TEST (executables depuis VBE)
+' =========================================================================
+' Important : pour ces tests, le classeur projet (.xlsx/.xlsm) doit etre
+' ouvert ET actif (ActiveWorkbook != .xlam) AVANT de lancer le test.
+
+Public Sub Test_Generer_Produit_Creer()
+    Call SIRUS_GenererFeuilleAnalyse(SIRUS_TBL_PRODUIT, SIRUS_OP_CREER)
+End Sub
+
+Public Sub Test_Generer_Produit_Modifier()
+    Dim cles As Variant
+    ' Remplacer par des DTR reels presents en BdD pour tester le pre-remplissage.
+    cles = Array("DTR_TEST_001", "DTR_TEST_002")
+    Call SIRUS_GenererFeuilleAnalyse(SIRUS_TBL_PRODUIT, SIRUS_OP_MODIFIER, cles)
+End Sub
+
+Public Sub Test_Generer_ProjetSLI_Creer()
+    Call SIRUS_GenererFeuilleAnalyse(SIRUS_TBL_PROJETSLI, SIRUS_OP_CREER)
+End Sub
+
+Public Sub Test_Generer_EMMST_Creer()
+    Call SIRUS_GenererFeuilleAnalyse(SIRUS_TBL_EMMST, SIRUS_OP_CREER)
+End Sub
