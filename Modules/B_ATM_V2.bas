@@ -187,8 +187,7 @@ Private Function RechercherPlagesDTR_V2(ByVal dtr As String, _
                                         ByRef PMB As Integer, ByRef PMH As Integer, ByRef PMJ As Integer, _
                                         ByRef test_taches As Boolean, ByRef test_infos As Boolean) As Boolean
 
-Dim j As Integer
-Dim cle As String
+Dim j As Integer, l As Integer
 
     test_taches = False
     test_infos = False
@@ -197,15 +196,17 @@ Dim cle As String
     PMJ = 0
 
     ' =====================================================================
-    ' RECHERCHE DANS TACHES_ATM via dictTachesPMB (O(1))
+    ' RECHERCHE DANS TACHES_ATM
     ' =====================================================================
-    cle = dtr & "|" & langue
-    If Not dictTachesPMB Is Nothing Then
-        If dictTachesPMB.Exists(cle) Then
-            PMB = dictTachesPMB(cle)
+    ' Rechercher premiere ligne taches (PMB) avec DTR + Langue
+    For j = 2 To UBound(Taches_tab, 1)
+        If Taches_tab(j, Taches_type.dtr) = dtr And _
+           Taches_tab(j, Taches_type.langue) = langue Then
+            PMB = j
             test_taches = True
+            Exit For
         End If
-    End If
+    Next j
 
     ' Si langue non trouvee, retourner False
     If Not test_taches Then
@@ -213,9 +214,8 @@ Dim cle As String
         Exit Function
     End If
 
-    ' Rechercher derniere ligne taches (PMH) par continuation depuis PMB.
-    ' V2 verifie AUSSI la langue dans la continuation (plus strict que V1).
-    j = PMB
+    ' Rechercher derniere ligne taches (PMH)
+    ' V2 verifie AUSSI la langue dans la continuation (plus strict que V1)
     Do While j < UBound(Taches_tab, 1)
         If Taches_tab(j + 1, Taches_type.dtr) = Taches_tab(j, Taches_type.dtr) And _
            Taches_tab(j + 1, Taches_type.langue) = langue Then
@@ -227,14 +227,16 @@ Dim cle As String
     PMH = j
 
     ' =====================================================================
-    ' RECHERCHE DANS INFOS_ATM via dictInfosPMJ (O(1))
+    ' RECHERCHE DANS INFOS_ATM
     ' =====================================================================
-    If Not dictInfosPMJ Is Nothing Then
-        If dictInfosPMJ.Exists(dtr) Then
-            PMJ = dictInfosPMJ(dtr)
+    ' Important pour V2: PMJ utilise dans RemplirCouverture (F30)
+    For l = 2 To UBound(Infos_tab, 1)
+        If Infos_tab(l, Info_type.dtr) = dtr Then
+            PMJ = l
             test_infos = True
+            Exit For
         End If
-    End If
+    Next l
 
     RechercherPlagesDTR_V2 = True
 End Function

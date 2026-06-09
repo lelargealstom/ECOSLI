@@ -72,11 +72,6 @@ Public Sub RecupererDonneesBDD_ATM(ByVal versionATM As Integer)
     Taches_tab = RecordsetToArray(REQSEL)
 
     ' =====================================================================
-    ' INDEX DTR -> LIGNE (acces O(1) en boucle, gain ~5-20s sur 50 DTR)
-    ' =====================================================================
-    Call IndexerTachesEtInfos
-
-    ' =====================================================================
     ' REQU�TE 3: RASL Projet - IDENTIQUE V1 ET V2
     ' =====================================================================
     STRSEL = "SELECT [RASL_PROJET SLI] FROM [Projet_SLI$] WHERE [Nom projet_PROJET SLI] = '" & Code_Projet & "'"
@@ -100,46 +95,6 @@ Public Sub RecupererDonneesBDD_ATM(ByVal versionATM As Integer)
         Nv_Maint_Projet = REQSEL.Fields(0).Value
     End If
     
-End Sub
-
-' =========================================================================
-' PROCEDURE: IndexerTachesEtInfos
-' Construit les Dictionaries dictTachesPMB et dictInfosPMJ pour acceder
-' aux lignes de Taches_tab / Infos_tab en O(1) au lieu de O(N) dans
-' RechercherPlagesDTR_V1/_V2.
-' Appele apres chaque RecupererDonneesBDD_ATM (les tableaux changent).
-' =========================================================================
-Public Sub IndexerTachesEtInfos()
-    Dim j As Long
-    Dim cle As String
-
-    ' Reset
-    Set dictTachesPMB = CreateObject("Scripting.Dictionary")
-    dictTachesPMB.CompareMode = vbTextCompare
-    Set dictInfosPMJ = CreateObject("Scripting.Dictionary")
-    dictInfosPMJ.CompareMode = vbTextCompare
-
-    ' Index Taches_tab : cle = DTR|Langue -> PMB (1ere occurrence).
-    ' Les lignes suivantes du meme DTR restent contigues dans le tableau ;
-    ' RechercherPlagesDTR_V1/_V2 trouve PMH a partir de PMB par continuation.
-    If IsArray(Taches_tab) Then
-        For j = LBound(Taches_tab, 1) + 1 To UBound(Taches_tab, 1)
-            cle = CStr(Taches_tab(j, Taches_type.dtr)) & "|" & _
-                  CStr(Taches_tab(j, Taches_type.langue))
-            If Not dictTachesPMB.Exists(cle) Then dictTachesPMB.Add cle, j
-        Next j
-    End If
-
-    ' Index Infos_tab : cle = DTR -> PMJ (1ere occurrence).
-    If IsArray(Infos_tab) Then
-        For j = LBound(Infos_tab, 1) + 1 To UBound(Infos_tab, 1)
-            cle = CStr(Infos_tab(j, Info_type.dtr))
-            If Not dictInfosPMJ.Exists(cle) Then dictInfosPMJ.Add cle, j
-        Next j
-    End If
-
-    Debug.Print "IndexerTachesEtInfos : " & dictTachesPMB.count & _
-                " entrees Taches, " & dictInfosPMJ.count & " entrees Infos."
 End Sub
 
 ' =========================================================================

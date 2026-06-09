@@ -298,38 +298,38 @@ End Sub
 Public Function RechercherPlagesDTR_V1(ByVal dtr As String, _
                                         ByRef PMB As Integer, ByRef PMH As Integer, _
                                         ByRef test_taches As Boolean, ByRef test_infos As Boolean) As Boolean
-    Dim j As Integer
-    Dim cle As String
+    Dim j As Integer, l As Integer
 
     test_taches = False
     test_infos = False
 
-    ' PMB : lookup O(1) via dictTachesPMB (cle = DTR|langue).
-    cle = dtr & "|" & langue
-    If Not dictTachesPMB Is Nothing Then
-        If dictTachesPMB.Exists(cle) Then
-            PMB = dictTachesPMB(cle)
+    ' Rechercher premiere ligne taches (PMB)
+    For j = 2 To UBound(Taches_tab, 1)
+        If Taches_tab(j, Taches_type.dtr) = dtr And Taches_tab(j, Taches_type.langue) = langue Then
+            PMB = j
             test_taches = True
+            Exit For
         End If
-    End If
+    Next j
 
     If Not test_taches Then
         RechercherPlagesDTR_V1 = False
         Exit Function
     End If
 
-    ' PMH : continuation depuis PMB tant que le DTR est identique (V1 ne
-    ' verifie pas la langue en continuation, plus permissif que V2).
-    j = PMB
+    ' Rechercher derniere ligne taches (PMH)
     Do While j < UBound(Taches_tab, 1) - 1 And Taches_tab(j + 1, Taches_type.dtr) = Taches_tab(j, Taches_type.dtr)
         j = j + 1
     Loop
     PMH = j
 
-    ' Infos_ATM : lookup O(1) via dictInfosPMJ.
-    If Not dictInfosPMJ Is Nothing Then
-        If dictInfosPMJ.Exists(dtr) Then test_infos = True
-    End If
+    ' Rechercher dans Infos_ATM
+    For l = 2 To UBound(Infos_tab, 1)
+        If Infos_tab(l, Info_type.dtr) = dtr Then
+            test_infos = True
+            Exit For
+        End If
+    Next l
     
     RechercherPlagesDTR_V1 = True
 End Function
