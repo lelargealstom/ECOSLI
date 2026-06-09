@@ -5,12 +5,46 @@ Attribute VB_Name = "F_Progression"
 '                                       Module F_Progression
 '                                       Developpement : LE LARGE Thomas (LGM/Alstom)
 '                                       UX progression : barre du UserForm + StatusBar Excel +
-'                                       curseur sablier + DTR en cours + temps ecoule / restant.
+'                                       curseur sablier + DTR en cours + temps ecoule / restant
+'                                       + UserForm "toujours devant" via API Windows.
 '                                       A appeler depuis ATM V1/V2, EMMST, Providor, etc.
 '                                       Juin 2026
 '
 '--------------------------------------------------------------------------------------------------------
 Option Explicit
+
+' =========================================================================
+' API Windows pour forcer le UserForm en TopMost ("always on top") pendant
+' la generation. Disponible nativement sur toutes les machines Windows
+' (user32.dll). Pas de droits admin requis.
+' =========================================================================
+#If VBA7 Then
+    Private Declare PtrSafe Function FindWindowA Lib "user32" ( _
+        ByVal lpClassName As String, _
+        ByVal lpWindowName As String) As LongPtr
+    Private Declare PtrSafe Function SetWindowPos Lib "user32" ( _
+        ByVal hWnd As LongPtr, _
+        ByVal hWndInsertAfter As LongPtr, _
+        ByVal x As Long, ByVal y As Long, _
+        ByVal cx As Long, ByVal cy As Long, _
+        ByVal wFlags As Long) As Long
+#Else
+    Private Declare Function FindWindowA Lib "user32" ( _
+        ByVal lpClassName As String, _
+        ByVal lpWindowName As String) As Long
+    Private Declare Function SetWindowPos Lib "user32" ( _
+        ByVal hWnd As Long, _
+        ByVal hWndInsertAfter As Long, _
+        ByVal x As Long, ByVal y As Long, _
+        ByVal cx As Long, ByVal cy As Long, _
+        ByVal wFlags As Long) As Long
+#End If
+
+Private Const HWND_TOPMOST    As Long = -1
+Private Const HWND_NOTOPMOST  As Long = -2
+Private Const SWP_NOMOVE      As Long = &H2
+Private Const SWP_NOSIZE      As Long = &H1
+Private Const SWP_NOACTIVATE  As Long = &H10
 
 ' Etat courant (Private, scope module)
 Private prog_total As Long
@@ -18,6 +52,11 @@ Private prog_titre As String
 Private prog_tDebut As Double      ' Timer() au demarrage
 Private prog_actif As Boolean
 Private prog_dernierTaux As Long   ' eviter de re-peindre pour rien
+#If VBA7 Then
+Private prog_hWndUserForm As LongPtr   ' handle Windows du UserForm, recupere 1x dans Progress_Demarrer
+#Else
+Private prog_hWndUserForm As Long
+#End If
 
 ' =========================================================================
 ' Progress_Demarrer
@@ -52,6 +91,20 @@ Public Sub Progress_Demarrer(ByVal lTotal As Long, ByVal sTitre As String)
     UserForm.barreimage.Visible = True
     UserForm.barrearriere.Visible = True
     On Error GoTo 0
+
+    ' Recuperer le handle Windows du UserForm UNE FOIS (avant que le
+    ' Caption ne soit modifie a chaque tick par Progress_Etape).
+    ' Classe Windows du UserForm VBA : "ThunderDFrame" (Office 2007+),
+    ' fallback "ThunderXFrame" pour versions plus anciennes.
+    On Error Resume Next
+    prog_hWndUserForm = FindWindowA("ThunderDFrame", UserForm.Caption)
+    If prog_hWndUserForm = 0 Then
+        prog_hWndUserForm = FindWindowA("ThunderXFrame", UserForm.Caption)
+    End If
+    On Error GoTo 0
+
+    ' Activer mode TopMost ("always on top") pendant toute la generation.
+    Call PinUserFormTopMost(True)
 
     DoEvents
 End Sub
@@ -145,6 +198,11 @@ Public Sub Progress_Terminer()
 
     prog_actif = False
 
+    ' Desactiver le mode TopMost AVANT toute autre operation (le UserForm
+    ' redevient une fenetre normale et peut etre cachee par d'autres).
+    Call PinUserFormTopMost(False)
+    prog_hWndUserForm = 0
+
     Application.Cursor = xlDefault
     Application.StatusBar = False   ' restaure l'affichage natif Excel
 
@@ -158,6 +216,33 @@ Public Sub Progress_Terminer()
     UserForm.Caption = "ECOSLI"     ' restaure le titre du UserForm
     Application.CutCopyMode = False
     On Error GoTo 0
+End Sub
+
+' =========================================================================
+' PinUserFormTopMost
+' =========================================================================
+' Active (True) ou desactive (False) le mode "always on top" du UserForm.
+' Utilise prog_hWndUserForm recupere une seule fois dans Progress_Demarrer.
+' Si handle = 0 (UserForm pas trouve), no-op silencieux.
+Private Sub PinUserFormTopMost(ByVal bActif As Boolean)
+#If VBA7 Then
+    Dim hAfter As LongPtr
+#Else
+    Dim hAfter As Long
+#End If
+
+    If prog_hWndUserForm = 0 Then Exit Sub
+
+    If bActif Then
+        hAfter = HWND_TOPMOST
+    Else
+        hAfter = HWND_NOTOPMOST
+    End If
+
+    ' SWP_NOMOVE + SWP_NOSIZE + SWP_NOACTIVATE : on ne change que l'ordre Z,
+    ' pas la position, la taille ou le focus (pas de clignotement visuel).
+    SetWindowPos prog_hWndUserForm, hAfter, 0, 0, 0, 0, _
+                 SWP_NOMOVE Or SWP_NOSIZE Or SWP_NOACTIVATE
 End Sub
 
 ' =========================================================================
