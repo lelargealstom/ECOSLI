@@ -416,6 +416,13 @@ SuivanteLigne:
 
     Debug.Print "SIRUS_RemplirListViewGeneration : " & nbAjoutees & _
                 " ligne(s) (Lookup=" & SIRUS_LookupDTR_Active & ")"
+    Debug.Print "  Colonnes prix mappees (0 = introuvable) :"
+    Debug.Print "    PrixManuelSpare        = col " & DATA_ASL_type.PrixManuelSpare
+    Debug.Print "    CoutSpare_AlstomFR_FRS = col " & DATA_ASL_type.CoutSpare_AlstomFR_FRS
+    Debug.Print "    ISP_TIS_FCS            = col " & DATA_ASL_type.ISP_TIS_FCS
+    Debug.Print "    PrixManuelRepair       = col " & DATA_ASL_type.PrixManuelRepair
+    Debug.Print "    PrixRepair_Alstom_FRS  = col " & DATA_ASL_type.PrixRepair_Alstom_FRS
+    Debug.Print "    PrixRepa_ISP           = col " & DATA_ASL_type.PrixRepa_ISP
 
 Sortie:
     Application.ScreenUpdating = True
@@ -524,10 +531,14 @@ Private Sub AjouterSubItemColore(li As MSComctlLib.ListItem, _
     Set lsi = li.ListSubItems.Add(, , sTexte)
     If lColorOverride <> -1 Then
         lsi.ForeColor = lColorOverride
+        ' Gras sur les statuts critiques (NOK *).
+        If Left$(sTexte, 3) = "NOK" Then lsi.Bold = True
     ElseIf bColoreOuiNon Then
         Select Case sTexte
             Case "OUI": lsi.ForeColor = RGB(0, 128, 0)        ' vert fonce
-            Case "NON": lsi.ForeColor = RGB(192, 0, 0)        ' rouge
+            Case "NON"
+                lsi.ForeColor = RGB(192, 0, 0)                ' rouge
+                lsi.Bold = True                                ' NON en gras
         End Select
     End If
 End Sub
