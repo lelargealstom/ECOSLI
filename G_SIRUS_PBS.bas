@@ -415,17 +415,22 @@ Public Sub SIRUS_RemplirListViewGeneration()
 
         Set li = lv.ListItems.Add(, , dtr)
         nbAjoutees = nbAjoutees + 1
-        ' Col 2 : Projet_ASL utilise OUI/NON (presence binaire critique avant generation).
-        ' Cols 3-6 : presence informative en OK / vide.
+        ' Cols 2 a 6 : presence OUI/NON dans les 5 tables BdD si lookup
+        ' active, sinon vide. OUI/NON explicite permet de distinguer
+        ' "DTR absent en base" d'une colonne pas alimentee.
         If SIRUS_LookupDTR_Active Then
             li.SubItems(1) = IIf(SetContient(dictProjetASL, dtr), "OUI", "NON")
+            li.SubItems(2) = IIf(SetContient(dictInfoATM, dtr), "OUI", "NON")
+            li.SubItems(3) = IIf(SetContient(dictTachesATM, dtr), "OUI", "NON")
+            li.SubItems(4) = IIf(SetContient(dictEMMST, dtr), "OUI", "NON")
+            li.SubItems(5) = IIf(SetContient(dictProduit, dtr), "OUI", "NON")
         Else
             li.SubItems(1) = ""
+            li.SubItems(2) = ""
+            li.SubItems(3) = ""
+            li.SubItems(4) = ""
+            li.SubItems(5) = ""
         End If
-        li.SubItems(2) = IIf(SetContient(dictInfoATM, dtr), "OK", "")
-        li.SubItems(3) = IIf(SetContient(dictTachesATM, dtr), "OK", "")
-        li.SubItems(4) = IIf(SetContient(dictEMMST, dtr), "OK", "")
-        li.SubItems(5) = IIf(SetContient(dictProduit, dtr), "OK", "")
 
         ' Qualite SPARE : Prix Manuel Spare / Cout spare ALSTOM FRANCE FOURNISSEUR / ISP TIS FRANCE (FCS)
         vMan = LireCellule(wsPBS, ligne, DATA_ASL_type.PrixManuelSpare)
