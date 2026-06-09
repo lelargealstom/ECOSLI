@@ -66,6 +66,26 @@ Alignement de `ColonneBdD` sur les vrais noms BdD (référentiel `Champs_BDD.xls
 
 Total après refactor : ~94 champs (vs 79 avant), majoritairement grâce à l'extension EMMST.
 
+### Extension du config (validation Thomas 2026-06-09)
+Extensions Produit, ProjetSLI, ProjetASL pour couvrir le périmètre métier réel. Total config passe de **~98 à ~158 champs**.
+
+- **Produit (14 → 20)** : ajout de 6 colonnes Repair/catalogue (Réparabilité D&IS Service France VBN Repair Catalog, Prix REPAIR catalogue à date, Lead time REPAIR catalogue/manuel, LCS_Repair, Data_Catalogue_Repair).
+
+- **ProjetSLI (15 → 62)** — refactor majeur. Périmètre fixé avec Thomas :
+  - **Inclus** : identité (Nom projet, Projet/Offre, Region, CT Code, Type de train, Client final), configuration (Durée circulation, Nombre trains, Durée garantie, Niv maintenance, Nombre DTR EAP/PBS, Nombre fournisseurs CDRL, Type de pack, UO grand père, Statut), profil de mission (Servicing/PH/RH/Km by year), économique (Devise, MAN hour cost, LCC scope total), GDP (4 champs), Requis client/fournisseur (4), documents PSLI préliminaire/final, références (PBS/EAP, RAM report, Version Providor/BASL), **interlocuteurs (RSLI, RASL, LU + 7 LU + 6 VBN + 11 DL par scope + Autres)**.
+  - **Exclus** : dates de jalons (~90 colonnes), livrables intermédiaires PROVIDOR/ATM/EMMST/MUL, prix Formation/BTE/MCO/OBSO, LCC par sous-domaine, colonnes formules Excel (Mise en qualité, Correcteur, Date de MEQ), F206-F209 vides.
+
+- **ProjetASL (12 → 19)** — ajouts : Sous Système, Prix Repair/Préventif/After Market Spare/After Market Repair, STBI/DAT, LCS. Refactor du MTBF intrinsèque (passe d'hérité info pure à saisie pré-remplie depuis Produit, conforme à la structure BdD). Exclus : ID Projet (ASL) auto, ISP TIS HORS FRANCE (archivé), Mise en qualité, Correcteur, Date de MEQ (formules Excel).
+
+- **DVL HARD/SOFT (ProjetASL)** : suffixe corrigé `_PROJET ASL` (avec espace, coquille de Champs_BDD.xlsx) → `_PROJETASL` (sans espace, conforme aux autres ProjetASL).
+
+### Diagnostic colonnes BdD vers feuille Excel
+- `Test_DiagnostiquerColonnesBdDFeuille` : génère une feuille `SIRUS_Diag_Colonnes` dans `ActiveWorkbook` avec les vrais noms BdD non tronqués (colonne C format texte, largeur 80, colonne D longueur). Évite la troncature de la fenêtre Immediate de VBE.
+- `Test_DiagnostiquerEcartsConfig_Toutes` reste utilisable pour le diff config↔BdD (case-sensitive).
+
+### Convention `Open_CONN` / `Close_CONN`
+Mémoire conventions VBA #1 mise à jour : ces 2 fonctions **prennent la chaîne de connexion en argument**. SIRUS utilise BdD TRAVAIL avec helper privé `ChaineConnexionSIRUS = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))`.
+
 ### Ambiguïtés résolues (validation Thomas)
 1. **TachesATM / Critère Nm** ✅ : confirmé `CritèresDimensionnels_TACHEATM`.
 2. **TachesATM / Banc test** ✅ : pas de champ Banc test — les BTE sont couverts par `OutillageStandard_TACHEATM` et `OutillageSpécifique_TACHEATM`. Mon "Banc test" remplacé par ces 2 outillages (rang 2.1/5.1 + NodeType >= SRU).
