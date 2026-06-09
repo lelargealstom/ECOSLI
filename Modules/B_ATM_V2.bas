@@ -188,6 +188,7 @@ Private Function RechercherPlagesDTR_V2(ByVal dtr As String, _
                                         ByRef test_taches As Boolean, ByRef test_infos As Boolean) As Boolean
 
 Dim j As Integer, l As Integer
+Dim cle As String
 
     test_taches = False
     test_infos = False
@@ -195,18 +196,27 @@ Dim j As Integer, l As Integer
     PMH = 0
     PMJ = 0
 
-    ' =====================================================================
-    ' RECHERCHE DANS TACHES_ATM
-    ' =====================================================================
-    ' Rechercher premiere ligne taches (PMB) avec DTR + Langue
-    For j = 2 To UBound(Taches_tab, 1)
-        If Taches_tab(j, Taches_type.dtr) = dtr And _
-           Taches_tab(j, Taches_type.langue) = langue Then
-            PMB = j
+    ' --- PMB : tentative dico O(1) --------------------------
+    cle = dtr & "|" & langue
+    If Not dictTachesPMB Is Nothing Then
+        If dictTachesPMB.Exists(cle) Then
+            PMB = dictTachesPMB(cle)
             test_taches = True
-            Exit For
         End If
-    Next j
+    End If
+
+    ' --- PMB : fallback lineaire (filet de securite) --------
+    If Not test_taches Then
+        For j = 2 To UBound(Taches_tab, 1)
+            If Taches_tab(j, Taches_type.dtr) = dtr And _
+               Taches_tab(j, Taches_type.langue) = langue Then
+                PMB = j
+                test_taches = True
+                Debug.Print "RechercherPlagesDTR_V2 [" & dtr & "] : dico miss, fallback lineaire OK PMB=" & PMB
+                Exit For
+            End If
+        Next j
+    End If
 
     ' Si langue non trouvee, retourner False
     If Not test_taches Then
@@ -214,8 +224,9 @@ Dim j As Integer, l As Integer
         Exit Function
     End If
 
-    ' Rechercher derniere ligne taches (PMH)
+    ' --- PMH : continuation depuis PMB ----------------------
     ' V2 verifie AUSSI la langue dans la continuation (plus strict que V1)
+    j = PMB
     Do While j < UBound(Taches_tab, 1)
         If Taches_tab(j + 1, Taches_type.dtr) = Taches_tab(j, Taches_type.dtr) And _
            Taches_tab(j + 1, Taches_type.langue) = langue Then
@@ -226,17 +237,24 @@ Dim j As Integer, l As Integer
     Loop
     PMH = j
 
-    ' =====================================================================
-    ' RECHERCHE DANS INFOS_ATM
-    ' =====================================================================
-    ' Important pour V2: PMJ utilise dans RemplirCouverture (F30)
-    For l = 2 To UBound(Infos_tab, 1)
-        If Infos_tab(l, Info_type.dtr) = dtr Then
-            PMJ = l
+    ' --- PMJ : tentative dico (V2 a besoin de la ligne, pas juste un bool) ----
+    If Not dictInfosPMJ Is Nothing Then
+        If dictInfosPMJ.Exists(dtr) Then
+            PMJ = dictInfosPMJ(dtr)
             test_infos = True
-            Exit For
         End If
-    Next l
+    End If
+
+    ' --- PMJ : fallback lineaire ----------------------------
+    If Not test_infos Then
+        For l = 2 To UBound(Infos_tab, 1)
+            If Infos_tab(l, Info_type.dtr) = dtr Then
+                PMJ = l
+                test_infos = True
+                Exit For
+            End If
+        Next l
+    End If
 
     RechercherPlagesDTR_V2 = True
 End Function

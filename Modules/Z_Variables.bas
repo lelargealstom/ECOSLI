@@ -95,6 +95,13 @@ Public tPrix_FRS_Spare As Variant
 Public tPrix_FRS_Repair As Variant
 Public Infos_tab, Taches_tab, EMMST_tab As Variant
 
+' Index DTR -> ligne pour acces O(1) dans RechercherPlagesDTR_V1/V2.
+' Construits une seule fois dans RecupererDonneesBDD_ATM (B_ATM_Commun).
+' Si l'indexation echoue (dico Nothing ou cle absente), RechercherPlages
+' retombe automatiquement sur une boucle lineaire (safe fallback).
+Public dictTachesPMB As Object   ' cle = DTR + "|" + langue -> 1ere ligne dans Taches_tab
+Public dictInfosPMJ As Object    ' cle = DTR -> ligne dans Infos_tab
+
 'Profil User de l'environnement Excel
 Public UserProfile As Integer
 Public versionDisponible As String

@@ -72,6 +72,11 @@ Public Sub RecupererDonneesBDD_ATM(ByVal versionATM As Integer)
     Taches_tab = RecordsetToArray(REQSEL)
 
     ' =====================================================================
+    ' INDEX DTR -> LIGNE (acces O(1) avec fallback lineaire si KO)
+    ' =====================================================================
+    Call IndexerTachesEtInfos
+
+    ' =====================================================================
     ' REQU�TE 3: RASL Projet - IDENTIQUE V1 ET V2
     ' =====================================================================
     STRSEL = "SELECT [RASL_PROJET SLI] FROM [Projet_SLI$] WHERE [Nom projet_PROJET SLI] = '" & Code_Projet & "'"
@@ -95,6 +100,70 @@ Public Sub RecupererDonneesBDD_ATM(ByVal versionATM As Integer)
         Nv_Maint_Projet = REQSEL.Fields(0).Value
     End If
     
+End Sub
+
+' =========================================================================
+' PROCEDURE: IndexerTachesEtInfos
+' Construit dictTachesPMB et dictInfosPMJ pour acceder aux lignes en O(1)
+' dans RechercherPlagesDTR_V1/V2. Trace les bornes du tableau et les 3
+' premieres cles indexees pour diagnostic (Debug.Print).
+' =========================================================================
+Public Sub IndexerTachesEtInfos()
+    Dim j As Long
+    Dim cle As String
+    Dim lb As Long, ub As Long
+    Dim nbTraces As Long
+
+    Set dictTachesPMB = CreateObject("Scripting.Dictionary")
+    dictTachesPMB.CompareMode = vbTextCompare
+    Set dictInfosPMJ = CreateObject("Scripting.Dictionary")
+    dictInfosPMJ.CompareMode = vbTextCompare
+
+    ' Index Taches_tab : cle = DTR|Langue -> PMB.
+    If IsArray(Taches_tab) Then
+        lb = LBound(Taches_tab, 1)
+        ub = UBound(Taches_tab, 1)
+        Debug.Print "IndexerTachesEtInfos : Taches_tab LBound=" & lb & " UBound=" & ub & _
+                    " (Taches_type.dtr=" & Taches_type.dtr & " Taches_type.langue=" & Taches_type.langue & ")"
+        nbTraces = 0
+        For j = lb + 1 To ub
+            cle = CStr(Taches_tab(j, Taches_type.dtr)) & "|" & _
+                  CStr(Taches_tab(j, Taches_type.langue))
+            If Not dictTachesPMB.Exists(cle) Then
+                dictTachesPMB.Add cle, j
+                If nbTraces < 3 Then
+                    Debug.Print "  Taches[" & j & "] cle = |" & cle & "|"
+                    nbTraces = nbTraces + 1
+                End If
+            End If
+        Next j
+    Else
+        Debug.Print "IndexerTachesEtInfos : Taches_tab n'est pas un Array, skip."
+    End If
+
+    ' Index Infos_tab : cle = DTR -> PMJ.
+    If IsArray(Infos_tab) Then
+        lb = LBound(Infos_tab, 1)
+        ub = UBound(Infos_tab, 1)
+        Debug.Print "IndexerTachesEtInfos : Infos_tab LBound=" & lb & " UBound=" & ub & _
+                    " (Info_type.dtr=" & Info_type.dtr & ")"
+        nbTraces = 0
+        For j = lb + 1 To ub
+            cle = CStr(Infos_tab(j, Info_type.dtr))
+            If Not dictInfosPMJ.Exists(cle) Then
+                dictInfosPMJ.Add cle, j
+                If nbTraces < 3 Then
+                    Debug.Print "  Infos[" & j & "] cle = |" & cle & "|"
+                    nbTraces = nbTraces + 1
+                End If
+            End If
+        Next j
+    Else
+        Debug.Print "IndexerTachesEtInfos : Infos_tab n'est pas un Array, skip."
+    End If
+
+    Debug.Print "IndexerTachesEtInfos : " & dictTachesPMB.count & _
+                " entrees Taches, " & dictInfosPMJ.count & " entrees Infos."
 End Sub
 
 ' =========================================================================

@@ -299,37 +299,58 @@ Public Function RechercherPlagesDTR_V1(ByVal dtr As String, _
                                         ByRef PMB As Integer, ByRef PMH As Integer, _
                                         ByRef test_taches As Boolean, ByRef test_infos As Boolean) As Boolean
     Dim j As Integer, l As Integer
+    Dim cle As String
 
     test_taches = False
     test_infos = False
 
-    ' Rechercher premiere ligne taches (PMB)
-    For j = 2 To UBound(Taches_tab, 1)
-        If Taches_tab(j, Taches_type.dtr) = dtr And Taches_tab(j, Taches_type.langue) = langue Then
-            PMB = j
+    ' --- PMB : tentative dico O(1) --------------------------
+    cle = dtr & "|" & langue
+    If Not dictTachesPMB Is Nothing Then
+        If dictTachesPMB.Exists(cle) Then
+            PMB = dictTachesPMB(cle)
             test_taches = True
-            Exit For
         End If
-    Next j
+    End If
+
+    ' --- PMB : fallback lineaire (filet de securite) --------
+    If Not test_taches Then
+        For j = 2 To UBound(Taches_tab, 1)
+            If Taches_tab(j, Taches_type.dtr) = dtr And Taches_tab(j, Taches_type.langue) = langue Then
+                PMB = j
+                test_taches = True
+                Debug.Print "RechercherPlagesDTR_V1 [" & dtr & "] : dico miss, fallback lineaire OK PMB=" & PMB
+                Exit For
+            End If
+        Next j
+    End If
 
     If Not test_taches Then
         RechercherPlagesDTR_V1 = False
         Exit Function
     End If
 
-    ' Rechercher derniere ligne taches (PMH)
+    ' --- PMH : continuation depuis PMB ----------------------
+    j = PMB
     Do While j < UBound(Taches_tab, 1) - 1 And Taches_tab(j + 1, Taches_type.dtr) = Taches_tab(j, Taches_type.dtr)
         j = j + 1
     Loop
     PMH = j
 
-    ' Rechercher dans Infos_ATM
-    For l = 2 To UBound(Infos_tab, 1)
-        If Infos_tab(l, Info_type.dtr) = dtr Then
-            test_infos = True
-            Exit For
-        End If
-    Next l
+    ' --- Infos : tentative dico ------------------------------
+    If Not dictInfosPMJ Is Nothing Then
+        If dictInfosPMJ.Exists(dtr) Then test_infos = True
+    End If
+
+    ' --- Infos : fallback lineaire ---------------------------
+    If Not test_infos Then
+        For l = 2 To UBound(Infos_tab, 1)
+            If Infos_tab(l, Info_type.dtr) = dtr Then
+                test_infos = True
+                Exit For
+            End If
+        Next l
+    End If
     
     RechercherPlagesDTR_V1 = True
 End Function
