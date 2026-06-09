@@ -4,6 +4,14 @@ Attribute VB_Name = "B_ATM_V2"
 ' local ~10x plus rapide que OneDrive synchronise).
 Private templateLocalV2 As String
 
+' Cache des positions des marqueurs de chapitre dans le template.
+' Le template etant constant, les 4 Find sur "A"/"B"/"C"/"D" donnent toujours
+' les memes lignes. On les calcule UNE seule fois au 1er DTR genere puis on
+' reutilise les valeurs pour tous les DTR suivants (gain : ~8 Find par DTR).
+Private cacheChapInitialise As Boolean
+Private cacheChapLigneDebut(1 To 4) As Long
+Private cacheChapLigneProchain(1 To 4) As Long
+
 Public Sub ATM_V2()
 'Procedure de generation de fiches ATM 2.0
 'Methode :
@@ -19,7 +27,9 @@ Public Sub ATM_V2()
     Dim Tbl() As String
     Dim bibli As String
 
-    
+    ' Reset cache positions chapitres (recalcul au 1er DTR genere de cette run)
+    cacheChapInitialise = False
+
     'Initialisation parametres user
     userpath = Environ$("UserProfile")
     Set fso = CreateObject("Scripting.FileSystemObject")
@@ -155,7 +165,13 @@ Private Sub GenererFicheATM(ByVal dtr As String, ByVal Designation As String, _
     ' Copier depuis le cache local (10x plus rapide que SharePoint) puis ouvrir.
     fso.CopyFile templateLocalV2, chemin & "\" & nomFichier
     Workbooks.Open chemin & "\" & nomFichier
-    
+
+    ' Workbooks.Open peut restaurer Calculation au mode du classeur ouvert
+    ' (Excel aligne le mode sur le 1er classeur). On force manuel ici pour
+    ' eviter le recalcul a chaque Insert/ecriture de cellule pendant la
+    ' generation. TurnOnFunctionality (fin de ATM_V2) restaure xlCalculationAutomatic.
+    Application.Calculation = xlCalculationManual
+
     ' Identifier feuilles
     If langue = "FR" Then
         Set dest = ActiveWorkbook.Sheets("DESCRIPTION_TACHE")
@@ -313,35 +329,34 @@ End Sub
 ' =========================================================================
 ' PROCEDURE: INITIALISER CHAPITRES
 ' =========================================================================
+' Utilise le cache cacheChapLigneDebut / cacheChapLigneProchain alimente au
+' premier DTR genere (8 Find sur le template effectues une seule fois pour
+' toute la run). Pour les DTR suivants : remplissage direct sans Find.
 Private Sub InitialiserChapitres(ByRef dest As Worksheet, ByRef chapitres() As ChapitreInfo)
-    
-    ' Chapitre A
-    chapitres(1).Marqueur = "A"
-    chapitres(1).ligneDebut = dest.Range("B:B").Find(What:="A", LookIn:=xlValues, lookat:=xlWhole).Row
-    chapitres(1).LigneProchainChap = dest.Range("B:B").Find(What:="B", LookIn:=xlValues, lookat:=xlWhole).Row
-    chapitres(1).TotalTemps = 0
-    chapitres(1).NombreInsertions = 0
-    
-    ' Chapitre B
-    chapitres(2).Marqueur = "B"
-    chapitres(2).ligneDebut = dest.Range("B:B").Find(What:="B", LookIn:=xlValues, lookat:=xlWhole).Row
-    chapitres(2).LigneProchainChap = dest.Range("B:B").Find(What:="C", LookIn:=xlValues, lookat:=xlWhole).Row
-    chapitres(2).TotalTemps = 0
-    chapitres(2).NombreInsertions = 0
-    
-    ' Chapitre C
-    chapitres(3).Marqueur = "C"
-    chapitres(3).ligneDebut = dest.Range("B:B").Find(What:="C", LookIn:=xlValues, lookat:=xlWhole).Row
-    chapitres(3).LigneProchainChap = dest.Range("B:B").Find(What:="D", LookIn:=xlValues, lookat:=xlWhole).Row
-    chapitres(3).TotalTemps = 0
-    chapitres(3).NombreInsertions = 0
-    
-    ' Chapitre D
-    chapitres(4).Marqueur = "D"
-    chapitres(4).ligneDebut = dest.Range("B:B").Find(What:="D", LookIn:=xlValues, lookat:=xlWhole).Row
-    chapitres(4).LigneProchainChap = -1 ' Dernier chapitre
-    chapitres(4).TotalTemps = 0
-    chapitres(4).NombreInsertions = 0
+    Dim i As Integer
+    Dim marqueurs As Variant
+
+    If Not cacheChapInitialise Then
+        ' Premier DTR de la run : 8 Find sur le template (le seul moment)
+        cacheChapLigneDebut(1) = dest.Range("B:B").Find(What:="A", LookIn:=xlValues, lookat:=xlWhole).Row
+        cacheChapLigneProchain(1) = dest.Range("B:B").Find(What:="B", LookIn:=xlValues, lookat:=xlWhole).Row
+        cacheChapLigneDebut(2) = cacheChapLigneProchain(1)
+        cacheChapLigneProchain(2) = dest.Range("B:B").Find(What:="C", LookIn:=xlValues, lookat:=xlWhole).Row
+        cacheChapLigneDebut(3) = cacheChapLigneProchain(2)
+        cacheChapLigneProchain(3) = dest.Range("B:B").Find(What:="D", LookIn:=xlValues, lookat:=xlWhole).Row
+        cacheChapLigneDebut(4) = cacheChapLigneProchain(3)
+        cacheChapLigneProchain(4) = -1 ' Dernier chapitre
+        cacheChapInitialise = True
+    End If
+
+    marqueurs = Array("", "A", "B", "C", "D")  ' index 1..4
+    For i = 1 To 4
+        chapitres(i).Marqueur = marqueurs(i)
+        chapitres(i).ligneDebut = cacheChapLigneDebut(i)
+        chapitres(i).LigneProchainChap = cacheChapLigneProchain(i)
+        chapitres(i).TotalTemps = 0
+        chapitres(i).NombreInsertions = 0
+    Next i
 End Sub
 
 ' =========================================================================
@@ -377,20 +392,15 @@ Private Sub InsererTacheChapitre(ByRef dest As Worksheet, ByRef chapitres() As C
             ligvide = chapitres(numChapitre).LigneProchainChap - 1
         End If
     Else
-        ' *** CORRECTION CHAPITRE D ***
-        ' Chapitre D (dernier chapitre): chercher la premiere ligne vide
-        ' Ne PAS utiliser End(xlDown) car il descend jusqu'e ligne 1048576 si pas de donnees
-        
-        ligvide = chapitres(numChapitre).ligneDebut + 1
-        
-        ' Parcourir vers le bas pour trouver la premiere ligne vide
-        Do While dest.Range("B" & ligvide).Value <> ""
-            ligvide = ligvide + 1
-            ' Securite: limite a 500 lignes apres le debut du chapitre
-            If ligvide > chapitres(numChapitre).ligneDebut + 500 Then
-                Exit Do
-            End If
-        Loop
+        ' Chapitre D (dernier chapitre) : premiere ligne vide apres la
+        ' derniere ligne remplie de la colonne B. End(xlUp) depuis la
+        ' derniere ligne de la feuille est O(1) cote Excel, contrairement
+        ' a une boucle Do While qui lit cellule par cellule.
+        ' Borne basse : ligneDebut (marqueur D), donc +1 minimum.
+        ligvide = dest.Cells(dest.rows.count, "B").End(xlUp).Row + 1
+        If ligvide < chapitres(numChapitre).ligneDebut + 1 Then
+            ligvide = chapitres(numChapitre).ligneDebut + 1
+        End If
     End If
     
     ' Remplir la ligne
