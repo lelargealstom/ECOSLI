@@ -166,6 +166,68 @@ Public Sub IndexerTachesEtInfos()
 End Sub
 
 ' =========================================================================
+' FONCTION: RecupererTachesDTR_BdD
+' Renvoie un Recordset des taches du DTR pour la langue ATM donnee.
+'   - versionATM = 1 : toutes les taches (HARD + SOFT)
+'   - versionATM = 2 : taches HARD uniquement (filtre supplementaire)
+' Recordset vide (rs.EOF = True) si DTR absent en BdD ou langue non
+' disponible pour ce DTR : l'appelant decide quoi faire.
+'
+' Pourquoi pas open_REQSEL (REQSEL global) : on a besoin d'avoir 2
+' Recordsets ouverts en parallele (taches + infos) pour le meme DTR
+' sans que le second ecrase le premier. CreateObject + Base = nouvelle
+' instance independante.
+' =========================================================================
+Public Function RecupererTachesDTR_BdD(ByVal dtr As String, _
+                                        ByVal langueATM As String, _
+                                        ByVal versionATM As Integer) As Object
+    Dim rs As Object
+    Dim sSQL As String
+
+    sSQL = "SELECT [DTR_TACHEATM], [Langue_TACHEATM], [Rang_TACHEATM], [HARD/SOFT], " & _
+           "[Categorie_TACHEATM], [Niveau qualif_TACHEATM], [Description_TACHEATM], " & _
+           "[CritèresDimensionnels_TACHEATM], [OutillageSpécifique_TACHEATM], " & _
+           "[OutillageStandard_TACHEATM], [PiècedeRechangeConsommable_TACHEATM], " & _
+           "[NbOpérateurs_TACHEATM], [TempsEstiméHeures_TACHEATM] " & _
+           "FROM [Taches_ATM$] " & _
+           "WHERE [DTR_TACHEATM] = '" & Replace(dtr, "'", "''") & "' " & _
+           "AND [Langue_TACHEATM] = '" & Replace(langueATM, "'", "''") & "'"
+
+    If versionATM = 2 Then sSQL = sSQL & " AND [HARD/SOFT] = 'HARD'"
+
+    Set rs = CreateObject("ADODB.Recordset")
+    rs.CursorLocation = 3                ' adUseClient
+    rs.Open sSQL, Base, 3, 1, 1          ' adOpenStatic, adLockReadOnly, adCmdText
+
+    Set RecupererTachesDTR_BdD = rs
+End Function
+
+' =========================================================================
+' FONCTION: RecupererInfoATM_DTR
+' Renvoie un Recordset de l'info ATM du DTR (1 ligne attendue).
+' Recordset vide si DTR absent en BdD : l'appelant decide.
+' =========================================================================
+Public Function RecupererInfoATM_DTR(ByVal dtr As String) As Object
+    Dim rs As Object
+    Dim sSQL As String
+
+    sSQL = "SELECT [DTR_INFOATM], [DescriptifATMFR_INFOATM], [LocalisationATM_INFOATM], " & _
+           "[PLANATM_INFOATM], [CommentaireATM_INFOATM], [Version_INFOATM], " & _
+           "[DescriptifATMEN_INFOATM], [LocalisationATMEN_INFOATM], [CommentairesATMEN_INFOATM], " & _
+           "[Reparabilite_INFOATM], [HARD/SOFT], [Poids_INFOATM], " & _
+           "[Temps générique de la tâche_INFOATM], [Temps générique de la tâche SOFTWARE_INFOATM], " & _
+           "[Temps analytique cumulé de la tache_INFOATM], [NbLanguePopulation_INFOATM] " & _
+           "FROM [Info_ATM$] " & _
+           "WHERE [DTR_INFOATM] = '" & Replace(dtr, "'", "''") & "'"
+
+    Set rs = CreateObject("ADODB.Recordset")
+    rs.CursorLocation = 3
+    rs.Open sSQL, Base, 3, 1, 1
+
+    Set RecupererInfoATM_DTR = rs
+End Function
+
+' =========================================================================
 ' FONCTION: S�LECTION R�PERTOIRE
 ' =========================================================================
 Public Function SelectRepertoire(ByRef chemin As String) As Boolean

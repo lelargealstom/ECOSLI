@@ -1,4 +1,40 @@
 Attribute VB_Name = "B_ATM_V1"
+Option Explicit
+
+' Index des colonnes dans les Recordsets renvoyes par RecupererTachesDTR_BdD
+' et RecupererInfoATM_DTR (B_ATM_Commun). L'ordre est celui du SELECT.
+' GetRows() renvoie un tableau (champ, ligne) 0-based.
+Private Const RC_TACHES_DTR             As Long = 0
+Private Const RC_TACHES_LANGUE          As Long = 1
+Private Const RC_TACHES_RANG            As Long = 2
+Private Const RC_TACHES_HARD_SOFT       As Long = 3
+Private Const RC_TACHES_CATEGORIE       As Long = 4
+Private Const RC_TACHES_NIV_QUALIF      As Long = 5
+Private Const RC_TACHES_DESCRIPTION     As Long = 6
+Private Const RC_TACHES_CRITERES_DIM    As Long = 7
+Private Const RC_TACHES_OUTILLAGE_SPE   As Long = 8
+Private Const RC_TACHES_OUTILLAGE_STD   As Long = 9
+Private Const RC_TACHES_PIECE_RECHANGE  As Long = 10
+Private Const RC_TACHES_NB_OPERATEUR    As Long = 11
+Private Const RC_TACHES_TPS_ESTIME      As Long = 12
+
+Private Const RC_INFO_DTR               As Long = 0
+Private Const RC_INFO_DESCRIPTIF_FR     As Long = 1
+Private Const RC_INFO_LOCALISATION_FR   As Long = 2
+Private Const RC_INFO_PLAN              As Long = 3
+Private Const RC_INFO_COMMENTAIRE_FR    As Long = 4
+Private Const RC_INFO_VERSION           As Long = 5
+Private Const RC_INFO_DESCRIPTIF_EN     As Long = 6
+Private Const RC_INFO_LOCALISATION_EN   As Long = 7
+Private Const RC_INFO_COMMENTAIRE_EN    As Long = 8
+Private Const RC_INFO_REPARABILITE      As Long = 9
+Private Const RC_INFO_HARD_SOFT         As Long = 10
+Private Const RC_INFO_POIDS             As Long = 11
+Private Const RC_INFO_TPS_GEN           As Long = 12
+Private Const RC_INFO_TPS_GEN_SOFT      As Long = 13
+Private Const RC_INFO_TPS_ANA_CUMUL     As Long = 14
+Private Const RC_INFO_NB_LANGUE         As Long = 15
+
 Public Sub ATM_V1()
 'Procedure de generation de fiches ATM V1
 
@@ -185,26 +221,46 @@ Private Sub GenererFicheATM_V1(ByRef Template As Workbook, ByRef index As Worksh
                                ByVal indexDTR As Integer)
     Dim dest As Worksheet
     Dim system As String
-    Dim test_taches As Boolean, test_infos As Boolean
-    Dim PMB As Integer, PMH As Integer
     Dim cpt As Integer
-    
+    Dim rsTaches As Object, rsInfo As Object
+    Dim arrTaches As Variant, arrInfo As Variant
+    Dim hasTaches As Boolean, hasInfo As Boolean
+    Dim dtrCourant As String
+
     system = tSS(indexDTR, 1)
     cpt = 0
-    
+    dtrCourant = CStr(tDTR(indexDTR, 1))
+
+    ' --- Recuperation des taches + infos du DTR (1 SELECT chacun) ----------
+    ' Cas "DTR absent en BdD" : Recordset.EOF = True, on marque "A faire".
+    Set rsTaches = RecupererTachesDTR_BdD(dtrCourant, langue, 1)
+    hasTaches = Not (rsTaches Is Nothing)
+    If hasTaches Then hasTaches = Not rsTaches.EOF
+    If hasTaches Then
+        arrTaches = rsTaches.GetRows()       ' (champ, ligne) 0-based
+        rsTaches.Close
+    End If
+    Set rsTaches = Nothing
+
+    Set rsInfo = RecupererInfoATM_DTR(dtrCourant)
+    hasInfo = Not (rsInfo Is Nothing)
+    If hasInfo Then hasInfo = Not rsInfo.EOF
+    If hasInfo Then
+        arrInfo = rsInfo.GetRows()
+        rsInfo.Close
+    End If
+    Set rsInfo = Nothing
+
     ' Verifier doublons noms feuilles
     cpt = CompterDoublonsFeuilles(Template, index, indexDTR, system)
-    
+
     ' Copier template selon type HARD/SOFT
     Select Case tHARD_SOFT(indexDTR, 1)
         Case "", "HARD"
             Template_HARD.Copy After:=Template.Worksheets(Template.Worksheets.count)
-
         Case "SOFT"
             Template_SOFT.Copy After:=Template.Worksheets(Template.Worksheets.count)
-
         Case "BOTH"
-            ' Creer les deux feuilles
             Template_SOFT.Copy After:=Template.Worksheets(Template.Worksheets.count)
             ActiveSheet.Name = index.Range("B" & indexDTR + 5) & "_" & Trim(Left(system, 4)) & "_SOFT"
             Template_HARD.Copy After:=Template.Worksheets(Template.Worksheets.count)
@@ -212,27 +268,26 @@ Private Sub GenererFicheATM_V1(ByRef Template As Workbook, ByRef index As Worksh
 
     ' Liberer le presse-papier apres Sheets.Copy (anti-erreur Clipboard).
     Application.CutCopyMode = False
-    
+
     ' Nommer la feuille
     Set dest = ActiveSheet
     Call NommerFeuilleV1(dest, index, indexDTR, system, cpt)
-    
-    ' Rechercher plages dans BDD
-    If Not RechercherPlagesDTR_V1(tDTR(indexDTR, 1), PMB, PMH, test_taches, test_infos) Then
-        ' DTR non trouve
+
+    ' Si DTR pas dans la BdD pour cette langue : marquer "A faire"
+    If Not hasTaches Then
         Call MarquerStatutIndex(index, indexDTR, "A faire")
         GoTo AjouterLien
     End If
-    
-    ' Remplir taches
-    Call RemplirTachesV1(dest, PMB, PMH, tHARD_SOFT(indexDTR, 1))
-    
-    ' Remplir niveau qualif
-    dest.Range("I7") = Taches_tab(PMB, Taches_type.Niveau_Qualif)
-    
+
+    ' Remplir taches depuis le tableau local
+    Call RemplirTachesV1(dest, arrTaches, tHARD_SOFT(indexDTR, 1))
+
+    ' Remplir niveau qualif (1ere tache : col 5 = Niveau qualif)
+    dest.Range("I7") = arrTaches(RC_TACHES_NIV_QUALIF, LBound(arrTaches, 2))
+
     ' Remplir infos generales
-    Call RemplirInfosV1(dest, indexDTR, test_infos)
-    
+    Call RemplirInfosV1(dest, indexDTR, arrInfo, hasInfo)
+
 AjouterLien:
     ' Creer lien hypertexte
     Call CreerLienHypertexte(index, indexDTR, dest)
@@ -297,109 +352,51 @@ Private Sub NommerFeuilleV1(ByRef dest As Worksheet, ByRef index As Worksheet, _
     End If
 End Sub
 ' =========================================================================
-' FONCTION: RECHERCHER PLAGES DTR
+' PROCEDURE: REMPLIR TACHES V1 (depuis tableau local rs.GetRows())
 ' =========================================================================
-Public Function RechercherPlagesDTR_V1(ByVal dtr As String, _
-                                        ByRef PMB As Integer, ByRef PMH As Integer, _
-                                        ByRef test_taches As Boolean, ByRef test_infos As Boolean) As Boolean
-    Dim j As Integer, l As Integer
-    Dim cle As String
-
-    test_taches = False
-    test_infos = False
-
-    ' --- PMB : tentative dico O(1) --------------------------
-    cle = dtr & "|" & langue
-    If Not dictTachesPMB Is Nothing Then
-        If dictTachesPMB.Exists(cle) Then
-            PMB = dictTachesPMB(cle)
-            test_taches = True
-        End If
-    End If
-
-    ' --- PMB : fallback lineaire (filet de securite) --------
-    If Not test_taches Then
-        For j = 2 To UBound(Taches_tab, 1)
-            If Taches_tab(j, Taches_type.dtr) = dtr And Taches_tab(j, Taches_type.langue) = langue Then
-                PMB = j
-                test_taches = True
-                Debug.Print "RechercherPlagesDTR_V1 [" & dtr & "] : dico miss, fallback lineaire OK PMB=" & PMB
-                Exit For
-            End If
-        Next j
-    End If
-
-    If Not test_taches Then
-        RechercherPlagesDTR_V1 = False
-        Exit Function
-    End If
-
-    ' --- PMH : continuation depuis PMB ----------------------
-    j = PMB
-    Do While j < UBound(Taches_tab, 1) - 1 And Taches_tab(j + 1, Taches_type.dtr) = Taches_tab(j, Taches_type.dtr)
-        j = j + 1
-    Loop
-    PMH = j
-
-    ' --- Infos : tentative dico ------------------------------
-    If Not dictInfosPMJ Is Nothing Then
-        If dictInfosPMJ.Exists(dtr) Then test_infos = True
-    End If
-
-    ' --- Infos : fallback lineaire ---------------------------
-    If Not test_infos Then
-        For l = 2 To UBound(Infos_tab, 1)
-            If Infos_tab(l, Info_type.dtr) = dtr Then
-                test_infos = True
-                Exit For
-            End If
-        Next l
-    End If
-    
-    RechercherPlagesDTR_V1 = True
-End Function
-' =========================================================================
-' PROCEDURE: REMPLIR TACHES V1 (VERSION SIMPLIFIEE)
-' =========================================================================
-Private Sub RemplirTachesV1(ByRef dest As Worksheet, ByVal PMB As Integer, ByVal PMH As Integer, _
+' arrTaches est un tableau 2D (champ, ligne) 0-based renvoye par
+' RecupererTachesDTR_BdD(...).GetRows(). Pre-filtre SQL : WHERE DTR + Langue,
+' donc on ne filtre plus que sur HARD/SOFT cote VBA.
+Private Sub RemplirTachesV1(ByRef dest As Worksheet, ByRef arrTaches As Variant, _
                             ByVal typeHARDSOFT As String)
-    Dim j As Integer
+    Dim j As Long
     Dim nvx As Integer
     Dim rang As String
     Dim rangChiffre As String
-    
+
     ' Parcourir taches de la derniere a la premiere (insertion avant)
-    For j = PMH To PMB Step -1
-        
-        ' Verifier langue et type HARD
-        If Taches_tab(j, Taches_type.langue) <> langue Then GoTo NextTache
-        If Taches_tab(j, Taches_type.HARD_SOFT) <> "HARD" Then GoTo NextTache
-        
-        rang = Taches_tab(j, Taches_type.rang)
-        
+    For j = UBound(arrTaches, 2) To LBound(arrTaches, 2) Step -1
+
+        ' Filtre HARD : seules les taches HARD sont placees dans une feuille
+        ' V1 (la feuille SOFT est gere a part par le flow appelant).
+        If CStr(arrTaches(RC_TACHES_HARD_SOFT, j)) <> "HARD" Then GoTo NextTache
+
+        rang = CStr(arrTaches(RC_TACHES_RANG, j))
+
         ' Verifier format rang (skip si >3 caracteres)
         If Len(rang) > 3 Then GoTo NextTache
-        
-        ' Extraire niveau (ex: "5-2" ? 2)
+
+        ' Extraire niveau (ex: "5-2" -> 2)
         nvx = CInt(Right(rang, Len(rang) - InStr(1, rang, "-")))
         rangChiffre = Left(rang, 1)
-        
+
         ' Inserer tache selon rang
-        Call InsererTacheV1(dest, j, rangChiffre, nvx)
-        
+        Call InsererTacheV1(dest, arrTaches, j, rangChiffre, nvx)
+
 NextTache:
     Next j
 End Sub
 
 ' =========================================================================
-' PROCEDURE: INSERER TACHE V1
+' PROCEDURE: INSERER TACHE V1 (depuis tableau local)
 ' =========================================================================
-Private Sub InsererTacheV1(ByRef dest As Worksheet, ByVal indexTache As Integer, _
+Private Sub InsererTacheV1(ByRef dest As Worksheet, ByRef arrTaches As Variant, _
+                           ByVal indexTache As Long, _
                            ByVal rangChiffre As String, ByVal niveau As Integer)
     Dim ligneBase As Integer
     Dim ligneInsert As Integer
     Dim temps As Double
-    
+
     ' Determiner ligne de base selon rang
     Select Case rangChiffre
         Case "1": ligneBase = LIGNE_RANG_1
@@ -409,34 +406,32 @@ Private Sub InsererTacheV1(ByRef dest As Worksheet, ByVal indexTache As Integer,
         Case "5": ligneBase = LIGNE_RANG_5
         Case Else: Exit Sub
     End Select
-    
+
     If niveau > 1 Then
         ' Inserer nouvelle ligne
         ligneInsert = ligneBase + 1
         dest.Range("B" & ligneInsert).EntireRow.Insert
 
-        ' Copier format ligne au-dessus (PasteSpecial Formats serait plus
-        ' propre mais Range.Copy avec destination directe = 1 seul aller-
-        ' retour clipboard, qu'on libere ensuite).
+        ' Copier format ligne au-dessus
         dest.Range("B" & ligneBase & ":J" & ligneBase).Copy dest.Range("B" & ligneInsert)
         Application.CutCopyMode = False
     Else
         ' Premiere tache du rang (x-1)
         ligneInsert = ligneBase
     End If
-    
-    ' Remplir donnees
+
+    ' Remplir donnees depuis le tableau local
     With dest
-        .Range("B" & ligneInsert) = Taches_tab(indexTache, Taches_type.rang)
-        .Range("C" & ligneInsert) = Taches_tab(indexTache, Taches_type.description)
-        .Range("E" & ligneInsert) = Taches_tab(indexTache, Taches_type.Critere_Dim)
-        .Range("F" & ligneInsert) = Taches_tab(indexTache, Taches_type.OutillageSpe)
-        .Range("G" & ligneInsert) = Taches_tab(indexTache, Taches_type.OutillageStd)
-        .Range("H" & ligneInsert) = Taches_tab(indexTache, Taches_type.PieceRechangeCons)
-        .Range("I" & ligneInsert) = Taches_tab(indexTache, Taches_type.NbOperateur)
-        
+        .Range("B" & ligneInsert) = arrTaches(RC_TACHES_RANG, indexTache)
+        .Range("C" & ligneInsert) = arrTaches(RC_TACHES_DESCRIPTION, indexTache)
+        .Range("E" & ligneInsert) = arrTaches(RC_TACHES_CRITERES_DIM, indexTache)
+        .Range("F" & ligneInsert) = arrTaches(RC_TACHES_OUTILLAGE_SPE, indexTache)
+        .Range("G" & ligneInsert) = arrTaches(RC_TACHES_OUTILLAGE_STD, indexTache)
+        .Range("H" & ligneInsert) = arrTaches(RC_TACHES_PIECE_RECHANGE, indexTache)
+        .Range("I" & ligneInsert) = arrTaches(RC_TACHES_NB_OPERATEUR, indexTache)
+
         ' Temps avec gestion NULL
-        temps = GetTempsFromBDD(Taches_tab(indexTache, Taches_type.TpsEstime))
+        temps = GetTempsFromBDD(arrTaches(RC_TACHES_TPS_ESTIME, indexTache))
         If temps > 0 Then
             .Range("J" & ligneInsert) = temps
             .Range("J" & ligneInsert).NumberFormat = "0.000"
@@ -449,40 +444,43 @@ End Sub
 ' =========================================================================
 ' PROCEDURE: REMPLIR INFOS V1
 ' =========================================================================
-Private Sub RemplirInfosV1(ByRef dest As Worksheet, ByVal indexDTR As Integer, ByVal test_infos As Boolean)
-    Dim j As Integer
-    
-    ' Donnees toujours presentes
+Private Sub RemplirInfosV1(ByRef dest As Worksheet, ByVal indexDTR As Integer, _
+                            ByRef arrInfo As Variant, ByVal hasInfo As Boolean)
+    Dim j As Long
+
+    ' Donnees toujours presentes (depuis la PBS)
     dest.Range("D4") = tDES_MEF(indexDTR, 1)
     dest.Range("D6") = tDTR(indexDTR, 1)
     dest.Range("D7") = Code_Projet
     dest.Range("D8") = tSS(indexDTR, 1)
-    
+
     ' Remplir donnees RAM selon gate
     Call RemplirDonneesRAM_V1(dest, indexDTR)
-    
-    ' Rechercher dans Infos_ATM
-    If Not test_infos Then Exit Sub
-    
-    For j = 2 To UBound(Infos_tab, 1)
-        If Infos_tab(j, Info_type.dtr) = tDTR(indexDTR, 1) And Infos_tab(j, Info_type.HARD_SOFT) = "HARD" Then
-            
-            dest.Range("D9") = Infos_tab(j, Info_type.version)
-            dest.Range("I6") = Infos_tab(j, Info_type.Poids)
-            
+
+    ' Si pas d'Info ATM en BdD, on s'arrete la (le DTR existe en PBS mais
+    ' pas encore d'Info ATM en base - pas critique).
+    If Not hasInfo Then Exit Sub
+
+    ' Chercher la 1ere ligne HARD du DTR dans arrInfo
+    For j = LBound(arrInfo, 2) To UBound(arrInfo, 2)
+        If CStr(arrInfo(RC_INFO_HARD_SOFT, j)) = "HARD" Then
+
+            dest.Range("D9") = arrInfo(RC_INFO_VERSION, j)
+            dest.Range("I6") = arrInfo(RC_INFO_POIDS, j)
+
             If langue = "EN" Then
-                dest.Range("D5") = Infos_tab(j, Info_type.DescriptifEN)
-                If Infos_tab(j, Info_type.Repa) = "REPARABLE" Then
+                dest.Range("D5") = arrInfo(RC_INFO_DESCRIPTIF_EN, j)
+                If CStr(arrInfo(RC_INFO_REPARABILITE, j)) = "REPARABLE" Then
                     dest.Range("I9") = "REPAIRABLE"
                 Else
                     dest.Range("I9") = "SPARE"
                 End If
             Else
-                dest.Range("D5") = Infos_tab(j, Info_type.DescriptifFR)
-                dest.Range("I8") = Infos_tab(j, Info_type.Plan)
-                dest.Range("I9") = Infos_tab(j, Info_type.Repa)
+                dest.Range("D5") = arrInfo(RC_INFO_DESCRIPTIF_FR, j)
+                dest.Range("I8") = arrInfo(RC_INFO_PLAN, j)
+                dest.Range("I9") = arrInfo(RC_INFO_REPARABILITE, j)
             End If
-            
+
             Exit For
         End If
     Next j
