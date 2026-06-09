@@ -71,10 +71,9 @@ Public Sub RecupererDonneesBDD_ATM(ByVal versionATM As Integer)
     Call open_REQSEL(STRSEL)
     Taches_tab = RecordsetToArray(REQSEL)
 
-    ' =====================================================================
-    ' INDEX DTR -> LIGNE (acces O(1) avec fallback lineaire si KO)
-    ' =====================================================================
-    Call IndexerTachesEtInfos
+    ' Note : IndexerTachesEtInfos n'est PAS appelee ici. Elle doit l'etre
+    ' apres Cadrage_Taches_ATM et Cadrage_Infos_ATM (qui initialisent
+    ' Taches_type et Info_type) - donc depuis ATM_V1 et ATM_V2 directement.
 
     ' =====================================================================
     ' REQU�TE 3: RASL Projet - IDENTIQUE V1 ET V2

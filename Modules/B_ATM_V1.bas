@@ -33,11 +33,15 @@ Public Sub ATM_V1()
     
     ' Recuperation donnees BDD (reutilise fonction ATM V2)
     Call RecupererDonneesBDD_ATM(1)
-    
-    ' Cadrage tableaux
+
+    ' Cadrage tableaux : initialise Taches_type / Info_type (numeros de colonnes)
     Call Cadrage_Taches_ATM(Taches_tab)
     Call Cadrage_Infos_ATM(Infos_tab)
-    
+
+    ' Indexation DTR -> ligne en O(1). Doit etre APRES les Cadrage_* sinon
+    ' Taches_type.dtr / Info_type.dtr valent 0 et l'index est cassé.
+    Call IndexerTachesEtInfos
+
     ' Recuperation PBS
     Set DS1 = Generateur.Worksheets("DATA_ASL")
     
