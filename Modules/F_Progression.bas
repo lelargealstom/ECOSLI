@@ -89,7 +89,7 @@ Public Sub Progress_Etape(ByVal lCourant As Long, _
         tRestant = 0
     End If
 
-    ' --- StatusBar Excel ------------------------------------
+    ' --- StatusBar Excel (visible si barre d'etat Excel activee) ----
     Dim sBar As String
     sBar = prog_titre & " - " & lCourant & "/" & prog_total & " (" & taux & "%)"
     If LenB(sIdItem) > 0 Then sBar = sBar & " - " & sIdItem
@@ -98,6 +98,12 @@ Public Sub Progress_Etape(ByVal lCourant As Long, _
     If tRestant > 0 Then sBar = sBar & ", restant ~" & FormaterDuree(tRestant)
     Application.StatusBar = sBar
 
+    ' --- Caption du UserForm (toujours visible, plus fiable que StatusBar) ----
+    On Error Resume Next
+    UserForm.Caption = "ECOSLI - " & prog_titre & " - " & lCourant & "/" & prog_total
+    If LenB(sIdItem) > 0 Then UserForm.Caption = UserForm.Caption & " : " & sIdItem
+    On Error GoTo 0
+
     ' --- Barre visuelle du UserForm -------------------------
     ' Ne re-peindre que si le taux a change (eviter le flicker).
     If taux <> prog_dernierTaux Then
@@ -105,8 +111,17 @@ Public Sub Progress_Etape(ByVal lCourant As Long, _
         On Error Resume Next
         UserForm.barre.Width = lCourant / prog_total * UserForm.barreimage.Width
         UserForm.barretexte.Caption = taux & "%"
+        UserForm.Repaint                       ' force le UserForm a se redessiner
         On Error GoTo 0
     End If
+
+    ' --- Liberer le presse-papier (anti-erreur Clipboard) -----------
+    ' Les Range.Copy et Sheets.Copy dans la boucle remplissent le
+    ' presse-papier Excel qui finit par saturer ("Erreur du
+    ' Presse-Papiers"). On le vide a chaque etape.
+    On Error Resume Next
+    Application.CutCopyMode = False
+    On Error GoTo 0
 
     DoEvents
 End Sub
@@ -137,6 +152,8 @@ Public Sub Progress_Terminer()
     UserForm.barretexte.Visible = False
     UserForm.barreimage.Visible = False
     UserForm.barrearriere.Visible = False
+    UserForm.Caption = "ECOSLI"     ' restaure le titre du UserForm
+    Application.CutCopyMode = False
     On Error GoTo 0
 End Sub
 

@@ -195,16 +195,19 @@ Private Sub GenererFicheATM_V1(ByRef Template As Workbook, ByRef index As Worksh
     Select Case tHARD_SOFT(indexDTR, 1)
         Case "", "HARD"
             Template_HARD.Copy After:=Template.Worksheets(Template.Worksheets.count)
-            
+
         Case "SOFT"
             Template_SOFT.Copy After:=Template.Worksheets(Template.Worksheets.count)
-            
+
         Case "BOTH"
             ' Creer les deux feuilles
             Template_SOFT.Copy After:=Template.Worksheets(Template.Worksheets.count)
             ActiveSheet.Name = index.Range("B" & indexDTR + 5) & "_" & Trim(Left(system, 4)) & "_SOFT"
             Template_HARD.Copy After:=Template.Worksheets(Template.Worksheets.count)
     End Select
+
+    ' Liberer le presse-papier apres Sheets.Copy (anti-erreur Clipboard).
+    Application.CutCopyMode = False
     
     ' Nommer la feuille
     Set dest = ActiveSheet
@@ -386,9 +389,12 @@ Private Sub InsererTacheV1(ByRef dest As Worksheet, ByVal indexTache As Integer,
         ' Inserer nouvelle ligne
         ligneInsert = ligneBase + 1
         dest.Range("B" & ligneInsert).EntireRow.Insert
-        
-        ' Copier format ligne au-dessus
+
+        ' Copier format ligne au-dessus (PasteSpecial Formats serait plus
+        ' propre mais Range.Copy avec destination directe = 1 seul aller-
+        ' retour clipboard, qu'on libere ensuite).
         dest.Range("B" & ligneBase & ":J" & ligneBase).Copy dest.Range("B" & ligneInsert)
+        Application.CutCopyMode = False
     Else
         ' Premiere tache du rang (x-1)
         ligneInsert = ligneBase
