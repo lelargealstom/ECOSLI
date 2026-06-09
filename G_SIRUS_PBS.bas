@@ -335,8 +335,7 @@ Public Sub SIRUS_RemplirListViewGeneration()
     Dim wsPBS As Worksheet
     Dim wb As Workbook
     Dim lv As MSComctlLib.ListView
-    Dim ligne As Long
-    Dim derniereLigne As Long
+    Dim ligne As Long, derniereLigne As Long
     Dim dtr As String
     Dim vMan As Variant, vFrs As Variant, vCat As Variant
     Dim resSpare As Variant, resRepair As Variant
@@ -345,97 +344,49 @@ Public Sub SIRUS_RemplirListViewGeneration()
 
     On Error GoTo Sortie
 
-    Debug.Print "=== SIRUS_RemplirListViewGeneration : DEBUT ==="
-    Debug.Print "  ActiveWorkbook = " & IIf(ActiveWorkbook Is Nothing, "<Nothing>", ActiveWorkbook.Name)
-    Debug.Print "  SIRUS_LookupDTR_Active = " & SIRUS_LookupDTR_Active
-
     Set wb = ActiveWorkbook
-    If wb Is Nothing Then
-        Debug.Print "  ABORT : ActiveWorkbook est Nothing."
-        GoTo Sortie
-    End If
-
+    If wb Is Nothing Then Exit Sub
     Set lv = UserForm.ListView_Generation
-    If lv Is Nothing Then
-        Debug.Print "  ABORT : UserForm.ListView_Generation est Nothing."
-        GoTo Sortie
-    End If
-
-    ' Reset systematique pour tolerer DATA_ASL absent / vide sans ListView residuelle
+    If lv Is Nothing Then Exit Sub
     lv.ListItems.Clear
 
-    If Not VerifierFeuilleDATA_ASL(wb, wsPBS) Then
-        Debug.Print "  ABORT : VerifierFeuilleDATA_ASL = False (DATA_ASL absente ou vide dans '" & wb.Name & "')."
-        GoTo Sortie
-    End If
-    Debug.Print "  DATA_ASL OK : ws=" & wsPBS.Name & ", UsedRange.rows=" & wsPBS.UsedRange.rows.count
+    If Not VerifierFeuilleDATA_ASL(wb, wsPBS) Then Exit Sub
+    If Not MapColonnesDATA_ASL(wsPBS) Then Exit Sub
+    If DATA_ASL_type.DTR_PBS = 0 Then Exit Sub
 
-    If Not MapColonnesDATA_ASL(wsPBS) Then
-        Debug.Print "  ABORT : MapColonnesDATA_ASL = False (colonne critique introuvable)."
-        GoTo Sortie
-    End If
-    Debug.Print "  Mapping DATA_ASL OK : DTR_PBS=col" & DATA_ASL_type.DTR_PBS & _
-                ", HeaderRow=" & DATA_ASL_HeaderRow
-
-    ' Caches DTR BdD - charges seulement si le lookup est active.
+    ' Caches DTR BdD - une seule requete par table, chargee si Lookup actif.
+    ' Colonne DTR : 'DTR' pour Produit$ et Projet_ASL$ (en realite
+    ' Projet_ASL$ a 'DTR_PROJETASL'), sinon 'DTR_<TABLE>'.
     If SIRUS_LookupDTR_Active Then
-        Debug.Print "  Chargement des 5 caches DTR BdD..."
-        ' Colonne DTR : varie par table (cf. diag Thomas + Champs_BDD.xlsx).
-        ' Produit$ et tables sans suffixe table -> 'DTR'.
-        ' Projet_ASL$ -> 'DTR_PROJETASL' (NB : c'etait 'DTR' avant, bug fixe).
         Set dictProjetASL = ChargerSetDTR_BdD("Projet_ASL$", "DTR_PROJETASL")
         Set dictInfoATM = ChargerSetDTR_BdD("Info_ATM$", "DTR_INFOATM")
         Set dictTachesATM = ChargerSetDTR_BdD("Taches_ATM$", "DTR_TACHEATM")
         Set dictEMMST = ChargerSetDTR_BdD("EMMST$", "DTR_EMMST")
         Set dictProduit = ChargerSetDTR_BdD("Produit$", "DTR")
-    Else
-        Set dictProjetASL = Nothing
-        Set dictInfoATM = Nothing
-        Set dictTachesATM = Nothing
-        Set dictEMMST = Nothing
-        Set dictProduit = Nothing
     End If
 
-    ' Derniere ligne sur la colonne DTR
-    If DATA_ASL_type.DTR_PBS = 0 Then
-        Debug.Print "  ABORT : DATA_ASL_type.DTR_PBS = 0 (colonne DTR non mappee)."
-        GoTo Sortie
-    End If
     derniereLigne = wsPBS.Cells(wsPBS.rows.count, DATA_ASL_type.DTR_PBS).End(xlUp).Row
-    Debug.Print "  Derniere ligne DTR_PBS = " & derniereLigne & " (HeaderRow = " & DATA_ASL_HeaderRow & ")"
-    If derniereLigne <= DATA_ASL_HeaderRow Then
-        Debug.Print "  ABORT : aucune ligne de donnees sous l'entete."
-        GoTo Sortie
-    End If
+    If derniereLigne <= DATA_ASL_HeaderRow Then Exit Sub
 
     Application.ScreenUpdating = False
-    nbAjoutees = 0
 
     For ligne = DATA_ASL_HeaderRow + 1 To derniereLigne
-
         dtr = Trim$(CStr(wsPBS.Cells(ligne, DATA_ASL_type.DTR_PBS).Value))
         If Len(dtr) = 0 Then GoTo SuivanteLigne
 
         Set li = lv.ListItems.Add(, , dtr)
         nbAjoutees = nbAjoutees + 1
-        ' Cols 2 a 6 : presence OUI/NON dans les 5 tables BdD si lookup
-        ' active, sinon vide. OUI/NON explicite permet de distinguer
-        ' "DTR absent en base" d'une colonne pas alimentee.
+
+        ' Cols 2 a 6 : presence OUI/NON dans les 5 tables BdD si lookup actif.
         If SIRUS_LookupDTR_Active Then
             li.SubItems(1) = IIf(SetContient(dictProjetASL, dtr), "OUI", "NON")
             li.SubItems(2) = IIf(SetContient(dictInfoATM, dtr), "OUI", "NON")
             li.SubItems(3) = IIf(SetContient(dictTachesATM, dtr), "OUI", "NON")
             li.SubItems(4) = IIf(SetContient(dictEMMST, dtr), "OUI", "NON")
             li.SubItems(5) = IIf(SetContient(dictProduit, dtr), "OUI", "NON")
-        Else
-            li.SubItems(1) = ""
-            li.SubItems(2) = ""
-            li.SubItems(3) = ""
-            li.SubItems(4) = ""
-            li.SubItems(5) = ""
         End If
 
-        ' Qualite SPARE : Prix Manuel Spare / Cout spare ALSTOM FRANCE FOURNISSEUR / ISP TIS FRANCE (FCS)
+        ' Qualite SPARE (Manuel / Alstom FRS / ISP catalogue)
         vMan = LireCellule(wsPBS, ligne, DATA_ASL_type.PrixManuelSpare)
         vFrs = LireCellule(wsPBS, ligne, DATA_ASL_type.CoutSpare_AlstomFR_FRS)
         vCat = LireCellule(wsPBS, ligne, DATA_ASL_type.ISP_TIS_FCS)
@@ -444,7 +395,7 @@ Public Sub SIRUS_RemplirListViewGeneration()
         li.SubItems(7) = resSpare(1)
         li.SubItems(8) = resSpare(2)
 
-        ' Qualite REPAIR : Prix Manuel Repair / Prix repair ALSTOM FOURNISSEUR / Prix repa (ISP Catalogue Repa)
+        ' Qualite REPAIR (Manuel / Alstom FRS / ISP catalogue)
         vMan = LireCellule(wsPBS, ligne, DATA_ASL_type.PrixManuelRepair)
         vFrs = LireCellule(wsPBS, ligne, DATA_ASL_type.PrixRepair_Alstom_FRS)
         vCat = LireCellule(wsPBS, ligne, DATA_ASL_type.PrixRepa_ISP)
@@ -456,18 +407,14 @@ Public Sub SIRUS_RemplirListViewGeneration()
 SuivanteLigne:
     Next ligne
 
-    Debug.Print "  TERMINE : " & nbAjoutees & " ligne(s) ajoutee(s) dans la ListView_Generation."
-    Debug.Print "=== SIRUS_RemplirListViewGeneration : FIN ==="
-    Application.ScreenUpdating = True
-    Exit Sub
+    Debug.Print "SIRUS_RemplirListViewGeneration : " & nbAjoutees & _
+                " ligne(s) (Lookup=" & SIRUS_LookupDTR_Active & ")"
 
 Sortie:
     Application.ScreenUpdating = True
     If Err.Number <> 0 Then
-        Debug.Print "  ERREUR " & Err.Number & " : " & Err.Description & _
-                    " (source : " & Err.Source & ")"
+        Debug.Print "ERREUR SIRUS_RemplirListViewGeneration : " & Err.Description
     End If
-    Debug.Print "=== SIRUS_RemplirListViewGeneration : FIN (sortie anticipee) ==="
 End Sub
 
 
@@ -494,9 +441,12 @@ End Sub
 ' forward-only fragile).
 ' =========================================================================
 Private Function ChargerSetDTR_BdD(ByVal nomTable As String, ByVal colonneDTR As String) As Object
+' Renvoie un Dictionary { DTR -> True } des DTR presents dans la colonne
+' demandee de la table BdD. Une seule requete ADODB SELECT, RecordSet
+' materialise en tableau via GetRows pour eviter MoveNext sur ODBC Excel.
+' Suppose Open_CONN deja appelee (par UserForm_Initialize).
 
     Dim dict As Object
-    Dim STRSEL As String
     Dim arr As Variant
     Dim i As Long
     Dim valeur As String
@@ -506,45 +456,24 @@ Private Function ChargerSetDTR_BdD(ByVal nomTable As String, ByVal colonneDTR As
 
     On Error GoTo Sortie
 
-    STRSEL = "SELECT [" & colonneDTR & "] FROM [" & nomTable & "]"
-    Call open_REQSEL(STRSEL)
+    Call open_REQSEL("SELECT [" & colonneDTR & "] FROM [" & nomTable & "]")
+    If REQSEL Is Nothing Then GoTo Sortie
+    If REQSEL.EOF And REQSEL.BOF Then GoTo Sortie
 
-    If REQSEL Is Nothing Then
-        Debug.Print "  [" & nomTable & "] ABORT : REQSEL = Nothing (Open_CONN appele ?)"
-        GoTo Sortie
-    End If
-    If REQSEL.State <> 1 Then
-        Debug.Print "  [" & nomTable & "] ABORT : REQSEL.State = " & REQSEL.State & " (attendu 1=adStateOpen)"
-        GoTo Sortie
-    End If
-    If REQSEL.EOF And REQSEL.BOF Then
-        Debug.Print "  [" & nomTable & "] table vide (EOF et BOF)"
-        GoTo Sortie
-    End If
-
-    ' Extraction complete en une passe. arr est dimensionne (champs x lignes).
     arr = REQSEL.GetRows()
-
     For i = LBound(arr, 2) To UBound(arr, 2)
         valeur = NzStr(arr(0, i))
-        If Len(valeur) > 0 Then
-            If Not dict.Exists(valeur) Then dict.Add valeur, True
-        End If
+        If Len(valeur) > 0 And Not dict.Exists(valeur) Then dict.Add valeur, True
     Next i
-
-    Debug.Print "  [" & nomTable & "] DTR charges : " & dict.count
 
 Sortie:
     If Err.Number <> 0 Then
-        Debug.Print "  [" & nomTable & "] ERREUR " & Err.Number & " : " & Err.Description
+        Debug.Print "[" & nomTable & "] ChargerSetDTR_BdD : " & Err.Description
     End If
     On Error Resume Next
-    If Not REQSEL Is Nothing Then
-        If REQSEL.State = 1 Then REQSEL.Close
-    End If
+    If Not REQSEL Is Nothing Then If REQSEL.State = 1 Then REQSEL.Close
     On Error GoTo 0
     Set ChargerSetDTR_BdD = dict
-
 End Function
 
 

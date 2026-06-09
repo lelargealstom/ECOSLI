@@ -10,6 +10,24 @@ Public Sub SIRUS_Init()
     Set lignesProduit = New Collection
     UserForm.ListBox_Produit.Clear
 End Sub
+
+' ============================================================
+' SIRUS_InitGeneration
+' Point d'entree unique appele par UserForm_Initialize :
+'   - configure les 4 ListView SIRUS
+'   - active le lookup BdD
+'   - remplit la ListView_Generation depuis DATA_ASL + BdD
+' Regroupe ce qui etait des lignes eparpillees dans Initialize
+' (risque d'oublier de decommenter une ligne intermediaire).
+' ============================================================
+Public Sub SIRUS_InitGeneration()
+    Call SIRUS_ConfigListViewProduit
+    Call SIRUS_ConfigListViewTaches
+    Call SIRUS_ConfigListViewATM
+    Call SIRUS_ConfigListViewGeneration
+    G_SIRUS_PBS.SIRUS_LookupDTR_Active = True
+    Call G_SIRUS_PBS.SIRUS_RemplirListViewGeneration
+End Sub
 ' ============================================================
 ' CONFIGURATION LISTVIEW_PRODUIT � dans UserForm_Initialize
 ' ============================================================

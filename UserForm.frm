@@ -634,15 +634,8 @@ For i = LBound(family) To UBound(family)
     FamilyProduct_List.AddItem family(i)
 Next i
 
-'SIRUS
-Call G_SIRUS_UserForm.SIRUS_ConfigListViewProduit
-Call G_SIRUS_UserForm.SIRUS_ConfigListViewTaches
-Call G_SIRUS_UserForm.SIRUS_ConfigListViewATM
-Call G_SIRUS_UserForm.SIRUS_ConfigListViewGeneration
-
-' SIRUS - Alimentation PBS dans ListView_Generation a partir de DATA_ASL du classeur actif
-G_SIRUS_PBS.SIRUS_LookupDTR_Active = True
-Call G_SIRUS_PBS.SIRUS_RemplirListViewGeneration
+'SIRUS - configuration ListViews + alimentation Generation depuis DATA_ASL + BdD
+Call G_SIRUS_UserForm.SIRUS_InitGeneration
 
 ' SIRUS � �tat initial NavTab type de demande
 Call SIRUS_SetType("Cr�ation")
