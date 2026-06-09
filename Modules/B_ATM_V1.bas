@@ -254,43 +254,60 @@ Private Sub GenererFicheATM_V1(ByRef Template As Workbook, ByRef index As Worksh
     ' Verifier doublons noms feuilles
     cpt = CompterDoublonsFeuilles(Template, index, indexDTR, system)
 
-    ' Copier template selon type HARD/SOFT
-    Select Case tHARD_SOFT(indexDTR, 1)
-        Case "", "HARD"
-            Template_HARD.Copy After:=Template.Worksheets(Template.Worksheets.count)
-        Case "SOFT"
-            Template_SOFT.Copy After:=Template.Worksheets(Template.Worksheets.count)
-        Case "BOTH"
-            Template_SOFT.Copy After:=Template.Worksheets(Template.Worksheets.count)
-            ActiveSheet.Name = index.Range("B" & indexDTR + 5) & "_" & Trim(Left(system, 4)) & "_SOFT"
-            Template_HARD.Copy After:=Template.Worksheets(Template.Worksheets.count)
-    End Select
-
-    ' Liberer le presse-papier apres Sheets.Copy (anti-erreur Clipboard).
-    Application.CutCopyMode = False
-
-    ' Nommer la feuille
-    Set dest = ActiveSheet
-    Call NommerFeuilleV1(dest, index, indexDTR, system, cpt)
-
-    ' Si DTR pas dans la BdD pour cette langue : marquer "A faire"
-    If Not hasTaches Then
-        Call MarquerStatutIndex(index, indexDTR, "A faire")
-        GoTo AjouterLien
+    ' --- Generer la feuille SOFT si DTR a des taches SOFT (SOFT ou BOTH) ----
+    Dim typeDTR As String
+    typeDTR = CStr(tHARD_SOFT(indexDTR, 1))
+    Dim destSOFT As Worksheet
+    Set destSOFT = Nothing
+    If typeDTR = "SOFT" Or typeDTR = "BOTH" Then
+        Template_SOFT.Copy After:=Template.Worksheets(Template.Worksheets.count)
+        Application.CutCopyMode = False
+        Set destSOFT = ActiveSheet
+        Call NommerFeuilleV1(destSOFT, index, indexDTR, system, cpt, "SOFT")
+        If hasTaches Then
+            Call RemplirTachesV1(destSOFT, arrTaches, "SOFT")
+            Call PoserNiveauQualif(destSOFT, arrTaches, "SOFT")
+            Call RemplirInfosV1(destSOFT, indexDTR, arrInfo, hasInfo, "SOFT")
+        End If
     End If
 
-    ' Remplir taches depuis le tableau local
-    Call RemplirTachesV1(dest, arrTaches, tHARD_SOFT(indexDTR, 1))
+    ' --- Generer la feuille HARD si DTR a des taches HARD ("", HARD ou BOTH) -
+    Set dest = Nothing
+    If typeDTR = "" Or typeDTR = "HARD" Or typeDTR = "BOTH" Then
+        Template_HARD.Copy After:=Template.Worksheets(Template.Worksheets.count)
+        Application.CutCopyMode = False
+        Set dest = ActiveSheet
+        Call NommerFeuilleV1(dest, index, indexDTR, system, cpt, "HARD")
+        If hasTaches Then
+            Call RemplirTachesV1(dest, arrTaches, "HARD")
+            Call PoserNiveauQualif(dest, arrTaches, "HARD")
+            Call RemplirInfosV1(dest, indexDTR, arrInfo, hasInfo, "HARD")
+        End If
+    End If
 
-    ' Remplir niveau qualif (1ere tache : col 5 = Niveau qualif)
-    dest.Range("I7") = arrTaches(RC_TACHES_NIV_QUALIF, LBound(arrTaches, 2))
+    ' Pour le lien hypertexte : on prefere HARD si dispo, sinon SOFT.
+    If dest Is Nothing Then Set dest = destSOFT
 
-    ' Remplir infos generales
-    Call RemplirInfosV1(dest, indexDTR, arrInfo, hasInfo)
+    ' Si DTR pas dans la BdD pour cette langue : marquer "A faire"
+    If Not hasTaches Then Call MarquerStatutIndex(index, indexDTR, "A faire")
 
 AjouterLien:
-    ' Creer lien hypertexte
-    Call CreerLienHypertexte(index, indexDTR, dest)
+    ' Creer lien hypertexte (vers la 1ere feuille creee si dispo)
+    If Not dest Is Nothing Then Call CreerLienHypertexte(index, indexDTR, dest)
+End Sub
+
+' =========================================================================
+' PoserNiveauQualif : ecrit le niveau qualif de la 1ere tache du bon type
+' dans la cellule I7 de la feuille. Tolere l'absence de tache (no-op).
+' =========================================================================
+Private Sub PoserNiveauQualif(ByRef dest As Worksheet, ByRef arrTaches As Variant, ByVal typeHS As String)
+    Dim j As Long
+    For j = LBound(arrTaches, 2) To UBound(arrTaches, 2)
+        If CStr(arrTaches(RC_TACHES_HARD_SOFT, j)) = typeHS Then
+            dest.Range("I7") = arrTaches(RC_TACHES_NIV_QUALIF, j)
+            Exit Sub
+        End If
+    Next j
 End Sub
 
 ' =========================================================================
@@ -319,24 +336,26 @@ End Function
 ' PROCEDURE: NOMMER FEUILLE V1
 ' =========================================================================
 Private Sub NommerFeuilleV1(ByRef dest As Worksheet, ByRef index As Worksheet, _
-                            ByVal indexDTR As Integer, ByVal system As String, ByVal cpt As Integer)
+                            ByVal indexDTR As Integer, ByVal system As String, _
+                            ByVal cpt As Integer, ByVal typeHS As String)
     Dim baseName As String
+    Dim suffixe As String
     Dim k As Integer
     Dim estnum As String
-    
+
     baseName = index.Range("B" & indexDTR + 5) & "_" & Trim(Left(system, 4))
-    
+
+    ' Suffixe selon le type de feuille demande.
+    Select Case typeHS
+        Case "SOFT":            suffixe = "_SOFT"
+        Case Else:              suffixe = "_HARD"     ' HARD, BOTH, "" -> HARD par defaut
+    End Select
+
     If cpt = 0 Then
         ' Pas de doublon
-        If tHARD_SOFT(indexDTR, 1) = "" Or tHARD_SOFT(indexDTR, 1) = "HARD" Then
-            dest.Name = baseName & "_HARD"
-        ElseIf tHARD_SOFT(indexDTR, 1) = "SOFT" Then
-            dest.Name = baseName & "_SOFT"
-        ElseIf tHARD_SOFT(indexDTR, 1) = "BOTH" Then
-            dest.Name = baseName & "_HARD"
-        End If
+        dest.Name = baseName & suffixe
     Else
-        ' Il y a des doublons
+        ' Il y a des doublons : numeroter
         For k = Worksheets.count To 1 Step -1
             If InStr(1, Worksheets(k).Name, baseName, vbTextCompare) = 1 Then
                 estnum = Mid(Worksheets(k).Name, Len(Worksheets(k).Name) - 1, 1)
@@ -357,19 +376,24 @@ End Sub
 ' arrTaches est un tableau 2D (champ, ligne) 0-based renvoye par
 ' RecupererTachesDTR_BdD(...).GetRows(). Pre-filtre SQL : WHERE DTR + Langue,
 ' donc on ne filtre plus que sur HARD/SOFT cote VBA.
+' typeHARDSOFT : "HARD" ou "SOFT" -> filtre exact. Tout autre valeur ->
+' on filtre par "HARD" par defaut (comportement legacy).
 Private Sub RemplirTachesV1(ByRef dest As Worksheet, ByRef arrTaches As Variant, _
                             ByVal typeHARDSOFT As String)
     Dim j As Long
     Dim nvx As Integer
     Dim rang As String
     Dim rangChiffre As String
+    Dim filtre As String
+
+    ' Filtre effectif : "SOFT" pour la feuille SOFT, "HARD" sinon.
+    If typeHARDSOFT = "SOFT" Then filtre = "SOFT" Else filtre = "HARD"
 
     ' Parcourir taches de la derniere a la premiere (insertion avant)
     For j = UBound(arrTaches, 2) To LBound(arrTaches, 2) Step -1
 
-        ' Filtre HARD : seules les taches HARD sont placees dans une feuille
-        ' V1 (la feuille SOFT est gere a part par le flow appelant).
-        If CStr(arrTaches(RC_TACHES_HARD_SOFT, j)) <> "HARD" Then GoTo NextTache
+        ' Filtre HARD/SOFT selon le type de feuille demande
+        If CStr(arrTaches(RC_TACHES_HARD_SOFT, j)) <> filtre Then GoTo NextTache
 
         rang = CStr(arrTaches(RC_TACHES_RANG, j))
 
@@ -445,8 +469,10 @@ End Sub
 ' PROCEDURE: REMPLIR INFOS V1
 ' =========================================================================
 Private Sub RemplirInfosV1(ByRef dest As Worksheet, ByVal indexDTR As Integer, _
-                            ByRef arrInfo As Variant, ByVal hasInfo As Boolean)
+                            ByRef arrInfo As Variant, ByVal hasInfo As Boolean, _
+                            ByVal typeHS As String)
     Dim j As Long
+    Dim filtre As String
 
     ' Donnees toujours presentes (depuis la PBS)
     dest.Range("D4") = tDES_MEF(indexDTR, 1)
@@ -461,9 +487,11 @@ Private Sub RemplirInfosV1(ByRef dest As Worksheet, ByVal indexDTR As Integer, _
     ' pas encore d'Info ATM en base - pas critique).
     If Not hasInfo Then Exit Sub
 
-    ' Chercher la 1ere ligne HARD du DTR dans arrInfo
+    ' Filtre Info ATM selon le type de feuille
+    If typeHS = "SOFT" Then filtre = "SOFT" Else filtre = "HARD"
+
     For j = LBound(arrInfo, 2) To UBound(arrInfo, 2)
-        If CStr(arrInfo(RC_INFO_HARD_SOFT, j)) = "HARD" Then
+        If CStr(arrInfo(RC_INFO_HARD_SOFT, j)) = filtre Then
 
             dest.Range("D9") = arrInfo(RC_INFO_VERSION, j)
             dest.Range("I6") = arrInfo(RC_INFO_POIDS, j)
