@@ -322,7 +322,7 @@ Public Sub nettoyer_donn�es()
 'Proc�dure qui permet de nettoyer la liste de DTR renseign�s dans le recueil de donn�es
 Dim derlig As Integer
 
-If MsgBox("Voulez-vous effacer la PBS renseign�e ?", vbYesNo, "Suppression") = vbNo Then Exit Sub
+If MsgBox("Voulez-vous effacer la PBS renseignee ?", vbYesNo, "Suppression") = vbNo Then Exit Sub
 
 derlig = Range("B10000").End(xlUp).Row
 
@@ -331,7 +331,7 @@ Range("A2:F" & derlig).Borders.LineStyle = xlLineStyleNone
 End Sub
 
 Public Function Arraypos(tableau As Variant, valeur As String)
-'Fonction permettant le num�ro de la colonne d'un tableau 1D
+'Fonction permettant le numero de la colonne d'un tableau 1D
 Dim i
 
     Arraypos = -1
@@ -356,7 +356,7 @@ Function RecordsetToArray(rs As ADODB.Recordset) As Variant
     Dim i As Long
     Dim j As Long
     
-    ' Aller au d�but du Recordset
+    ' Aller au debut du Recordset
     rs.MoveFirst
     
     ' Compter le nombre de lignes
@@ -366,21 +366,21 @@ Function RecordsetToArray(rs As ADODB.Recordset) As Variant
         rs.MoveNext
     Loop
     
-    ' Aller au d�but du Recordset encore une fois
+    ' Aller au debut du Recordset encore une fois
     rs.MoveFirst
     
     ' Nombre de colonnes
     cols = rs.Fields.count
     
-    ' Redimensionner l'array pour contenir les donn�es
+    ' Redimensionner l'array pour contenir les donnees
     ReDim arr(0 To rows, 0 To cols - 1)
     
-    ' Ajouter les en-t�tes de colonnes
+    ' Ajouter les en-tetes de colonnes
     For j = 0 To cols - 1
         arr(0, j) = rs.Fields(j).Name
     Next j
     
-    ' Copier les donn�es dans l'array
+    ' Copier les donnees dans l'array
     i = 1
     Do Until rs.EOF
         For j = 0 To cols - 1
@@ -394,7 +394,7 @@ Function RecordsetToArray(rs As ADODB.Recordset) As Variant
     RecordsetToArray = arr
 End Function
 Public Function TauxDevise(AbrevDevIn As String, AbrevDevOut As String)
-'Fonction permettant de r�cup�rer les taux de change entre diff�rentes devises
+'Fonction permettant de recuperer les taux de change entre differentes devises
 
 Dim ApiUrl
 Dim sResponse As String
@@ -422,17 +422,17 @@ Public Function Test_Connexion(chaineconnexion As String) As Variant
     
     On Error GoTo ErrHandler
     
-    ' Cr�ation de la connexion
+    ' Creation de la connexion
     Set conn = CreateObject("ADODB.Connection")
     conn.ConnectionString = Replace(chaineconnexion, "UserProfile", Environ$("UserProfile"))
     conn.Open
     
     ' Si la connexion est ouverte
     If conn.State = 1 Then
-        result(0) = "Connexion r�ussie � la base de donn�es."
+        result(0) = "Connexion reussie a la base de donnees."
         result(1) = vbInformation
     Else
-        result(0) = "�chec de la connexion � la base de donn�es."
+        result(0) = "Echec de la connexion a la base de donnees."
         result(1) = vbCritical
     End If
     
@@ -449,7 +449,7 @@ ErrHandler:
     Test_Connexion = result
 End Function
 Public Sub SynchroBDD()
-'Proc�dure de synchronisation One Drive de la BDD
+'Procedure de synchronisation One Drive de la BDD
 
 cheminbase = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
 cheminbase = Split(cheminbase, "Data Source=")(1)
@@ -476,22 +476,22 @@ Public Function FichierDisponible(ByVal cheminFichier As String) As Boolean
     If Err.Number <> 0 Then
         FichierDisponible = False
     Else
-        ' V�rifie si le fichier est marqu� comme offline (OneDrive non synchronis�)
+        ' Verifie si le fichier est marque comme offline (OneDrive non synchronise)
         FichierDisponible = ((attr And vbOffline) = 0)
     End If
 End Function
 Public Function RechercheValeurdansRS(rs As ADODB.Recordset, valeur As String, field As String) As Boolean
-' Fonction qui v�rifie la pr�sence d'une valeur dans un Recordset en utilisant Filter
+' Fonction qui verifie la presence d'une valeur dans un Recordset en utilisant Filter
 
 On Error GoTo ErrHandler
 
-' V�rifier si le recordset est valide et ouvert
+' Verifier si le recordset est valide et ouvert
 If rs Is Nothing Or rs.State <> adStateOpen Then
     RechercheValeurdansRS = False
     Exit Function
 End If
 
-' V�rifier si le recordset contient des donn�es
+' Verifier si le recordset contient des donnees
 If rs.EOF Then
     RechercheValeurdansRS = False
     Exit Function
@@ -500,14 +500,14 @@ End If
 ' Appliquer le filtre (gestion des apostrophes dans valeur)
 rs.Filter = "[" & field & "] = '" & Replace(valeur, "'", "''") & "'"
 
-' Si le recordset filtr� n'est pas vide, valeur trouv�e
+' Si le recordset filtre n'est pas vide, valeur trouvee
 If Not rs.EOF Then
     RechercheValeurdansRS = True
 Else
     RechercheValeurdansRS = False
 End If
 
-' R�initialiser le filtre
+' Reinitialiser le filtre
 rs.Filter = ""
 
 Exit Function
@@ -516,7 +516,7 @@ ErrHandler:
     RechercheValeurdansRS = False
 End Function
 Public Function DictToArray2D(ByVal dict As Object) As Variant
-'Fonction qui permet de cr�er un tableau � partir d'un dictionnaire
+'Fonction qui permet de creer un tableau a partir d'un dictionnaire
 Dim n As Long
 Dim arr, ks, vs As Variant
 
@@ -541,7 +541,7 @@ DictToArray2D = arr
 End Function
 
 Public Function RecupProjetsList() As Variant
-'Fonction permettant de r�cup�rer la liste des projets de la BDD en tableau 1D
+'Fonction permettant de recuperer la liste des projets de la BDD en tableau 1D
 Set REQSEL = CreateObject("ADODB.Recordset")
 
 Dim i As Integer
@@ -581,7 +581,7 @@ Base.Open chainedeconnexion
 
 End Sub
 Public Sub Close_CONN(chainedeconnexion As String)
-'Fonction qui ferme la connexion � la BDD Excel
+'Fonction qui ferme la connexion a la BDD Excel
     With Base
         If .State = 1 Then
             .Close
@@ -593,7 +593,7 @@ Public Sub Close_CONN(chainedeconnexion As String)
  
 End Sub
 Public Function open_REQSEL(STRSEL_text As String)
-'Fonction d'ex�cution d'une requ�te SQL sur la base de donn�es
+'Fonction d'execution d'une requete SQL sur la base de donnees
 
     Set REQSEL = CreateObject("ADODB.Recordset")
 
@@ -602,13 +602,13 @@ Public Function open_REQSEL(STRSEL_text As String)
 
 End Function
 Public Function ExecNonQuery(ByVal sqlText As String, Optional ByVal commandTimeout As Long = 30) As Long
-' Ex�cute une requ�te d'action (INSERT / UPDATE / DELETE) sur la connexion Base.
-' Retourne le nombre de lignes affect�es. L�ve une erreur en cas d'�chec.
+' Execute une requete d'action (INSERT / UPDATE / DELETE) sur la connexion Base.
+' Retourne le nombre de lignes affectees. Leve une erreur en cas d'echec.
     
     Dim rowsAffected As Long
     
     If Base Is Nothing Then
-        Err.Raise vbObjectError + 513, "ExecNonQuery", "La connexion 'Base' n'est pas initialis�e."
+        Err.Raise vbObjectError + 513, "ExecNonQuery", "La connexion 'Base' n'est pas initialisee."
     End If
     
     On Error GoTo EH
@@ -624,8 +624,8 @@ EH:
 End Function
 
 Public Function open_REQSEL1(STRSEL_text As String, targetRecordset As String)
-'Fonction d'ex�cution d'une requ�te SQL sur la base de donn�es
-'Elle affecte le r�sultat � REQSEL1 ou REQSEL2 selon le param�tre targetRecordset
+'Fonction d'execution d'une requete SQL sur la base de donnees
+'Elle affecte le resultat a REQSEL1 ou REQSEL2 selon le parametre targetRecordset
 
     Dim rs As Object
     Set rs = CreateObject("ADODB.Recordset")
@@ -646,13 +646,13 @@ Public Function open_REQSEL1(STRSEL_text As String, targetRecordset As String)
 End Function
 
 
-' Construit une requ�te UPDATE pour une feuille Excel (ACE/Jet SQL),
-' avec SET g�n�r� � partir d'un array (1..n,1..2) et de valeurs lues sur un UserForm.
+' Construit une requete UPDATE pour une feuille Excel (ACE/Jet SQL),
+' avec SET genere a partir d'un array (1..n,1..2) et de valeurs lues sur un UserForm.
 ' - feuille          : nom de la feuille Excel (onglet) cible
-' - arr              : tableau (1..n,1..2) o� [i,1]=Nom de colonne ; [i,2]=Nom du contr�le du UserForm
+' - arr              : tableau (1..n,1..2) o [i,1]=Nom de colonne ; [i,2]=Nom du contrle du UserForm
 ' - uf               : instance du UserForm (ex. Me dans le code du UserForm)
-' - projectValue     : valeur de la cl� pour WHERE ([Nom projet_PROJET SLI] = projectValue)
-' - iStart, iEnd     : bornes de boucle pour la partie SET (par d�faut 1..23)
+' - projectValue     : valeur de la cle pour WHERE ([Nom projet_PROJET SLI] = projectValue)
+' - iStart, iEnd     : bornes de boucle pour la partie SET (par defaut 1..23)
 Public Function BuildUpdateSqlFromArray( _
     ByVal arr As Variant, _
     ByVal uf As Object, _
@@ -668,7 +668,7 @@ Public Function BuildUpdateSqlFromArray( _
     Dim sql As String
     Dim setClause As String
  
-    ' V�rifs simples
+    ' Verifs simples
     If IsEmpty(arr) Then
         BuildUpdateSqlFromArray = vbNullString
         Exit Function
@@ -682,15 +682,15 @@ Public Function BuildUpdateSqlFromArray( _
 
     Set setParts = New Collection
 
-    ' Boucle SET : de iStart � iEnd (ici 1..23)
+    ' Boucle SET : de iStart a iEnd (ici 1..23)
     For i = iStart To iEnd
         colName = CStr(arr(i, 1))
         ctrlName = CStr(arr(i, 2))
 
-        ' Si le contr�le existe dans le UserForm, on r�cup�re sa valeur ; sinon on met Null
+        ' Si le controle existe dans le UserForm, on recupere sa valeur ; sinon on met Null
         If ControlExists(uf, ctrlName) Then
-            val = CallByName(uf, ctrlName, VbGet) ' uf.Gen_NomProjet -> renvoie l'objet contr�le
-            ' Si c'est un contr�le MSForms (TextBox/ComboBox), prendre .Value
+            val = CallByName(uf, ctrlName, VbGet) ' uf.Gen_NomProjet -> renvoie l'objet controle
+            ' Si c'est un controle MSForms (TextBox/ComboBox), prendre .Value
             On Error Resume Next
             val = val.Value
             On Error GoTo 0
@@ -702,22 +702,22 @@ Public Function BuildUpdateSqlFromArray( _
         setParts.Add "[" & colName & "] = " & ToAceSqlLiteral(val)
     Next i
 
-    ' Concat�ne les �l�ments du SET par ", "
+    ' Concatene les elements du SET par ", "
     setClause = JoinCollection(setParts, ", ")
 
-    ' WHERE sur la cl� "Nom projet_PROJET SLI"
+    ' WHERE sur la cle "Nom projet_PROJET SLI"
     sql = "UPDATE [Projet_SLI$] " & _
           "SET " & setClause & " " & _
           "WHERE [Nom projet_PROJET SLI] = " & ToAceSqlLiteral(projectValue)
 
     BuildUpdateSqlFromArray = sql
 End Function
-' Construit une requ�te INSERT INTO pour une feuille Excel (ACE/Jet SQL),
-' � partir d'un array (1..n,1..2) et des valeurs lues sur un UserForm.
-' - feuille      : nom de l�onglet cible (ex. "Projets_SLI")
-' - arr          : tableau (1..n,1..2) o� [i,1] = colonne, [i,2] = nom du contr�le du UserForm
+' Construit une requete INSERT INTO pour une feuille Excel (ACE/Jet SQL),
+' a partir d'un array (1..n,1..2) et des valeurs lues sur un UserForm.
+' - feuille      : nom de l'onglet cible (ex. "Projets_SLI")
+' - arr          : tableau (1..n,1..2) o [i,1] = colonne, [i,2] = nom du controle du UserForm
 ' - uf           : instance du UserForm (ex. Me)
-' - iStart,iEnd  : bornes de boucle pour l�INSERT (par d�faut 1..23)
+' - iStart,iEnd  : bornes de boucle pour l'INSERT (par defaut 1..23)
 ' - skipNulls    : si True, ignore les colonnes dont la valeur est Null => INSERT partiel
 Public Function BuildInsertSqlFromArray( _
     ByVal arr As Variant, _
@@ -734,7 +734,7 @@ Public Function BuildInsertSqlFromArray( _
     Dim cols As New Collection
     Dim vals As New Collection
     
-    ' V�rifs & bornes
+    ' Verifs & bornes
     If IsEmpty(arr) Then
         BuildInsertSqlFromArray = vbNullString
         Exit Function
@@ -754,7 +754,7 @@ Public Function BuildInsertSqlFromArray( _
         If ControlExists(uf, ctrlName) Then
             val = CallByName(uf, ctrlName, VbGet)
             On Error Resume Next
-            val = val.Value   ' r�cup�re .Value pour TextBox/ComboBox/etc.
+            val = val.Value   ' recupere .Value pour TextBox/ComboBox/etc.
             On Error GoTo 0
         Else
             val = Null
@@ -787,11 +787,11 @@ Public Function ControlExists(ByVal uf As Object, ByVal ctrlName As String) As B
     On Error GoTo 0
 End Function
 
-' Convertit une valeur VBA en litt�ral SQL ACE/Jet :
+' Convertit une valeur VBA en litteral SQL ACE/Jet :
 ' - Null -> NULL
 ' - Date -> #yyyy-mm-dd#
-' - Num�rique -> 123.45
-' - Texte -> 'texte' avec apostrophes �chapp�es
+' - Numerique -> 123.45
+' - Texte -> 'texte' avec apostrophes echappees
 Public Function ToAceSqlLiteral(ByVal v As Variant) As String
     If IsNull(v) Then
         ToAceSqlLiteral = "NULL"
@@ -804,7 +804,7 @@ Public Function ToAceSqlLiteral(ByVal v As Variant) As String
     End If
 End Function
 
-' Joint les items d'une Collection par un s�parateur (�quivalent � Join() pour Collections)
+' Joint les items d'une Collection par un separateur (equivalent a Join() pour Collections)
 Public Function JoinCollection(ByVal c As Collection, ByVal sep As String) As String
 
 Dim i As Long, s As String
@@ -815,8 +815,3 @@ Next i
 JoinCollection = s
 
 End Function
-
-
-
-
-
