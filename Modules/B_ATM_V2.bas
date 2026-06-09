@@ -1,15 +1,15 @@
 Attribute VB_Name = "B_ATM_V2"
 Public Sub ATM_V2()
-'Procédure de génération de fiches ATM 2.0
-'Méthode :
-' 1. Sélection d'un répertoire projet par l'utilisateur
-' 2. Pour chaque DTR Copie du template 2.0 dans le répertoire choisie
-' 3. Ouverture de ce template dans le répertoire
-' 4. Récupération des données Info et Taches ATM par la feuile complète
-' 5. Remplissage de chaque feuille avec données taches et infos
-' 6. Même opération pour chaque DTR de la PBS (x classeurs pour x DTR)
-'Procédure de génération de fiches ATM 2.0 (Version Refactorisée)
-'Génère 1 fichier Excel par DTR avec insertion dynamique par chapitres
+'Procï¿½dure de gï¿½nï¿½ration de fiches ATM 2.0
+'Mï¿½thode :
+' 1. Sï¿½lection d'un rï¿½pertoire projet par l'utilisateur
+' 2. Pour chaque DTR Copie du template 2.0 dans le rï¿½pertoire choisie
+' 3. Ouverture de ce template dans le rï¿½pertoire
+' 4. Rï¿½cupï¿½ration des donnï¿½es Info et Taches ATM par la feuile complï¿½te
+' 5. Remplissage de chaque feuille avec donnï¿½es taches et infos
+' 6. Mï¿½me opï¿½ration pour chaque DTR de la PBS (x classeurs pour x DTR)
+'Procï¿½dure de gï¿½nï¿½ration de fiches ATM 2.0 (Version Refactorisï¿½e)
+'Gï¿½nï¿½re 1 fichier Excel par DTR avec insertion dynamique par chapitres
     
     Dim Tbl() As String
     Dim bibli As String
@@ -20,57 +20,64 @@ Public Sub ATM_V2()
     Set fso = CreateObject("Scripting.FileSystemObject")
     Set REQSEL = CreateObject("ADODB.Recordset")
     
-    ' Sélection répertoire destination
+    ' Sï¿½lection rï¿½pertoire destination
     If Not SelectRepertoire(chemin) Then
         TurnOnFunctionality
         Exit Sub
     End If
     
-    ' Récupération données BDD
+    ' Rï¿½cupï¿½ration donnï¿½es BDD
     Call RecupererDonneesBDD_ATM(2)
     
     'Cadrage des deux onglets importants de la BDD
     Call Cadrage_Taches_ATM(Taches_tab)
     Call Cadrage_Infos_ATM(Infos_tab)
     
-    'Récupération de la PBS
+    'Rï¿½cupï¿½ration de la PBS
     Set DS1 = Generateur.Worksheets("DATA_ASL")
      
-    ' Énumération bibliothèque illustrée
+    ' ï¿½numï¿½ration bibliothï¿½que illustrï¿½e
     bibli = userpath & BIBLIO_PATH
     Tbl = EnumFichiers(bibli)
-    
+
+    ' UX : initialiser la barre de progression + StatusBar + curseur sablier.
+    Call Progress_Demarrer(UBound(tDTR), "ATM V2")
+
     ' Boucle sur chaque DTR
     For i = 1 To UBound(tDTR)
-        
-        ' Vérifier si fichier illustré existe
+
+        ' UX : mise a jour barre + StatusBar avant le traitement de ce DTR.
+        Call Progress_Etape(i, "", CStr(tDTR(i, 1)))
+
+        ' Vï¿½rifier si fichier illustrï¿½ existe
         If RechercherFichierIllustre(Tbl, tDTR(i, 1), bibli, chemin) Then
             GoTo NextDTR
         End If
-        
-        ' Vérifier présence BDD
+
+        ' Vï¿½rifier prï¿½sence BDD
         Presence_BDD = IsInArray(CStr(tDTR(i, 1)), Taches_tab)
-        
+
         If Presence_BDD = -1 Then
-            ' DTR connu dans BDD ? Génération avec données
+            ' DTR connu dans BDD ? Gï¿½nï¿½ration avec donnï¿½es
             Call GenererFicheATM(tDTR(i, 1), tDES_PBS(i, 1), chemin, i)
         Else
             ' DTR inconnu dans BDD ? Copie template vide
             Call CopierTemplateVide(tDTR(i, 1), tDES_PBS(i, 1), chemin)
         End If
-        
+
 NextDTR:
-        ' Barre de progression
-        Call barprogress(i, UBound(tDTR))
     Next i
-    
+
+    ' UX : restaurer curseur normal, StatusBar, masquer la barre.
+    Call Progress_Terminer
+
     ' Fermeture connexion
     Close_CONN (Replace(CONNEXION_EXCEL_BDD_PROD, "UserProfile", userpath))
-    
+
     ' Message final
     TurnOnFunctionality
     If langue = "FR" Then
-        MsgBox "ATM 2.0 créées. Veuillez fermer cette fenêtre pour consulter les fichiers générés.", vbInformation
+        MsgBox "ATM 2.0 crï¿½ï¿½es. Veuillez fermer cette fenï¿½tre pour consulter les fichiers gï¿½nï¿½rï¿½s.", vbInformation
     Else
         MsgBox "MTA 2.0 created. Please close this window to consult the new files generated.", vbInformation
     End If
@@ -80,7 +87,7 @@ End Sub
 
 
 ' =========================================================================
-' FONCTION: RECHERCHER FICHIER ILLUSTRÉ
+' FONCTION: RECHERCHER FICHIER ILLUSTRï¿½
 ' =========================================================================
 Private Function RechercherFichierIllustre(ByRef Tbl() As String, ByVal dtr As String, _
                                            ByVal bibli As String, ByVal chemin As String) As Boolean
@@ -88,7 +95,7 @@ Private Function RechercherFichierIllustre(ByRef Tbl() As String, ByVal dtr As S
     
     For j = 1 To UBound(Tbl)
         If Left(Tbl(j), 16) = dtr & "_" & langue Then
-            ' Fichier illustré trouvé ? Copie directe
+            ' Fichier illustrï¿½ trouvï¿½ ? Copie directe
             fso.CopyFile bibli & "\" & Tbl(j), chemin & "\" & Tbl(j)
             RechercherFichierIllustre = True
             Exit Function
@@ -98,7 +105,7 @@ Private Function RechercherFichierIllustre(ByRef Tbl() As String, ByVal dtr As S
     RechercherFichierIllustre = False
 End Function
 ' =========================================================================
-' PROCÉDURE: COPIER TEMPLATE VIDE
+' PROCï¿½DURE: COPIER TEMPLATE VIDE
 ' =========================================================================
 Private Sub CopierTemplateVide(ByVal dtr As String, ByVal Designation As String, ByVal chemin As String)
     Dim nomFichier As String
@@ -107,7 +114,7 @@ Private Sub CopierTemplateVide(ByVal dtr As String, ByVal Designation As String,
     ' Construire nom fichier
     nomFichier = "(vide)" & dtr & "_" & langue & "_" & Replace(Left(Designation, 10), "/", "_") & ".xlsx"
     
-    ' Sélectionner template
+    ' Sï¿½lectionner template
     If langue = "FR" Then
         templatePath = userpath & TEMPLATE_V2_FR_PATH
     Else
@@ -118,7 +125,7 @@ Private Sub CopierTemplateVide(ByVal dtr As String, ByVal Designation As String,
     fso.CopyFile templatePath, chemin & "\" & nomFichier
 End Sub
 ' =========================================================================
-' PROCÉDURE PRINCIPALE: GÉNÉRER FICHE ATM
+' PROCï¿½DURE PRINCIPALE: Gï¿½Nï¿½RER FICHE ATM
 ' =========================================================================
 Private Sub GenererFicheATM(ByVal dtr As String, ByVal Designation As String, _
                             ByVal chemin As String, ByVal indexDTR As Integer)
@@ -130,9 +137,9 @@ Private Sub GenererFicheATM(ByVal dtr As String, ByVal Designation As String, _
     Dim test_taches As Boolean, test_infos As Boolean
     
     ' Construire nom fichier
-    nomFichier = "(non illustré)" & dtr & "_" & langue & "_" & Replace(Left(Designation, 10), "/", "_") & ".xlsx"
+    nomFichier = "(non illustrï¿½)" & dtr & "_" & langue & "_" & Replace(Left(Designation, 10), "/", "_") & ".xlsx"
     
-    ' Sélectionner template
+    ' Sï¿½lectionner template
     If langue = "FR" Then
         templatePath = userpath & TEMPLATE_V2_FR_PATH
     Else
@@ -162,10 +169,10 @@ Private Sub GenererFicheATM(ByVal dtr As String, ByVal Designation As String, _
     ' Activer feuille destination
     dest.Activate
     
-    ' REMPLISSAGE PAR CHAPITRES (VERSION SIMPLIFIÉE)
+    ' REMPLISSAGE PAR CHAPITRES (VERSION SIMPLIFIï¿½E)
     Call RemplirTousChapitres(dest, PMB, PMH)
     
-    ' Ajouter Chapitre E (Notes intégrateur)
+    ' Ajouter Chapitre E (Notes intï¿½grateur)
     Call AjouterChapitreE(dest)
     
     ' Remplir page de couverture
@@ -190,7 +197,7 @@ Dim j As Integer, l As Integer
     ' =====================================================================
     ' RECHERCHE DANS TACHES_ATM
     ' =====================================================================
-    ' Rechercher première ligne tâches (PMB) avec DTR + Langue
+    ' Rechercher premiï¿½re ligne tï¿½ches (PMB) avec DTR + Langue
     For j = 2 To UBound(Taches_tab, 1)
         If Taches_tab(j, Taches_type.dtr) = dtr And _
            Taches_tab(j, Taches_type.langue) = langue Then
@@ -200,14 +207,14 @@ Dim j As Integer, l As Integer
         End If
     Next j
     
-    ' Si langue non trouvée, retourner False
+    ' Si langue non trouvï¿½e, retourner False
     If Not test_taches Then
         RechercherPlagesDTR_V2 = False
         Exit Function
     End If
     
-    ' Rechercher dernière ligne tâches (PMH)
-    ' V2 vérifie AUSSI la langue dans la continuation (plus strict que V1)
+    ' Rechercher derniï¿½re ligne tï¿½ches (PMH)
+    ' V2 vï¿½rifie AUSSI la langue dans la continuation (plus strict que V1)
     Do While j < UBound(Taches_tab, 1)
         If Taches_tab(j + 1, Taches_type.dtr) = Taches_tab(j, Taches_type.dtr) And _
            Taches_tab(j + 1, Taches_type.langue) = langue Then
@@ -221,7 +228,7 @@ Dim j As Integer, l As Integer
     ' =====================================================================
     ' RECHERCHE DANS INFOS_ATM
     ' =====================================================================
-    ' Important pour V2: PMJ utilisé dans RemplirCouverture (F30)
+    ' Important pour V2: PMJ utilisï¿½ dans RemplirCouverture (F30)
     For l = 2 To UBound(Infos_tab, 1)
         If Infos_tab(l, Info_type.dtr) = dtr Then
             PMJ = l
@@ -233,7 +240,7 @@ Dim j As Integer, l As Integer
     RechercherPlagesDTR_V2 = True
 End Function
 ' =========================================================================
-' PROCÉDURE PRINCIPALE: REMPLIR TOUS CHAPITRES (VERSION SIMPLIFIÉE)
+' PROCï¿½DURE PRINCIPALE: REMPLIR TOUS CHAPITRES (VERSION SIMPLIFIï¿½E)
 ' =========================================================================
 Private Sub RemplirTousChapitres(ByRef dest As Worksheet, ByVal PMB As Integer, ByVal PMH As Integer)
     Dim j As Integer
@@ -247,10 +254,10 @@ Private Sub RemplirTousChapitres(ByRef dest As Worksheet, ByVal PMB As Integer, 
     
     compteurSousChapitres = 1
     
-    ' Parcourir toutes les tâches du DTR
+    ' Parcourir toutes les tï¿½ches du DTR
     For j = PMB To PMH
         
-        ' Vérifier langue
+        ' Vï¿½rifier langue
         If Taches_tab(j, Taches_type.langue) <> langue Then
             GoTo NextTache
         End If
@@ -276,11 +283,11 @@ Private Sub RemplirTousChapitres(ByRef dest As Worksheet, ByVal PMB As Integer, 
 NextTache:
     Next j
     
-    ' Écrire les sommes de temps dans chaque chapitre
+    ' ï¿½crire les sommes de temps dans chaque chapitre
     Call EcrireSommesTemps(dest, chapitres)
 End Sub
 ' =========================================================================
-' PROCÉDURE: INITIALISER CHAPITRES
+' PROCï¿½DURE: INITIALISER CHAPITRES
 ' =========================================================================
 Private Sub InitialiserChapitres(ByRef dest As Worksheet, ByRef chapitres() As ChapitreInfo)
     
@@ -314,24 +321,24 @@ Private Sub InitialiserChapitres(ByRef dest As Worksheet, ByRef chapitres() As C
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: INSÉRER TÂCHE CHAPITRE (A, B, D)
+' PROCï¿½DURE: INSï¿½RER Tï¿½CHE CHAPITRE (A, B, D)
 ' =========================================================================
 Private Sub InsererTacheChapitre(ByRef dest As Worksheet, ByRef chapitres() As ChapitreInfo, _
                                  ByVal numChapitre As Integer, ByVal indexTache As Integer, _
                                  ByVal cumulerTemps As Boolean)
-    Dim ligvide As Long  ' IMPORTANT: Long au lieu de Integer pour éviter overflow
+    Dim ligvide As Long  ' IMPORTANT: Long au lieu de Integer pour ï¿½viter overflow
     Dim temps As Double
     Dim k As Integer
     
-    ' Déterminer ligne d'insertion
+    ' Dï¿½terminer ligne d'insertion
     If chapitres(numChapitre).LigneProchainChap > 0 Then
         ' Cas des Chapitres A, B, C (ont un chapitre suivant)
         If dest.Range("B" & (chapitres(numChapitre).LigneProchainChap - 1)).Value <> "" Then
-            ' Insérer ligne avant le prochain chapitre
+            ' Insï¿½rer ligne avant le prochain chapitre
             dest.Range("B" & chapitres(numChapitre).LigneProchainChap).EntireRow.Insert
             ligvide = chapitres(numChapitre).LigneProchainChap
             
-            ' Mettre à jour TOUS les chapitres suivants après insertion
+            ' Mettre ï¿½ jour TOUS les chapitres suivants aprï¿½s insertion
             For k = numChapitre To UBound(chapitres)
                 If chapitres(k).LigneProchainChap > 0 Then
                     chapitres(k).LigneProchainChap = chapitres(k).LigneProchainChap + 1
@@ -347,15 +354,15 @@ Private Sub InsererTacheChapitre(ByRef dest As Worksheet, ByRef chapitres() As C
         End If
     Else
         ' *** CORRECTION CHAPITRE D ***
-        ' Chapitre D (dernier chapitre): chercher la première ligne vide
-        ' Ne PAS utiliser End(xlDown) car il descend jusqu'à ligne 1048576 si pas de données
+        ' Chapitre D (dernier chapitre): chercher la premiï¿½re ligne vide
+        ' Ne PAS utiliser End(xlDown) car il descend jusqu'ï¿½ ligne 1048576 si pas de donnï¿½es
         
         ligvide = chapitres(numChapitre).ligneDebut + 1
         
-        ' Parcourir vers le bas pour trouver la première ligne vide
+        ' Parcourir vers le bas pour trouver la premiï¿½re ligne vide
         Do While dest.Range("B" & ligvide).Value <> ""
             ligvide = ligvide + 1
-            ' Sécurité: limite à 500 lignes après le début du chapitre
+            ' Sï¿½curitï¿½: limite ï¿½ 500 lignes aprï¿½s le dï¿½but du chapitre
             If ligvide > chapitres(numChapitre).ligneDebut + 500 Then
                 Exit Do
             End If
@@ -378,7 +385,7 @@ Private Sub InsererTacheChapitre(ByRef dest As Worksheet, ByRef chapitres() As C
         End If
     End With
     
-    ' Cumuler temps si demandé (Chapitres A et D) et si temps valide
+    ' Cumuler temps si demandï¿½ (Chapitres A et D) et si temps valide
     If cumulerTemps And temps > 0 Then
         chapitres(numChapitre).TotalTemps = chapitres(numChapitre).TotalTemps + temps
     End If
@@ -387,7 +394,7 @@ Private Sub InsererTacheChapitre(ByRef dest As Worksheet, ByRef chapitres() As C
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: INSÉRER TÂCHE CHAPITRE C (avec sous-chapitres)
+' PROCï¿½DURE: INSï¿½RER Tï¿½CHE CHAPITRE C (avec sous-chapitres)
 ' =========================================================================
 Private Sub InsererTacheChapitreC(ByRef dest As Worksheet, ByRef chapitres() As ChapitreInfo, _
                                   ByVal numChapitre As Integer, ByVal indexTache As Integer, _
@@ -403,13 +410,13 @@ Private Sub InsererTacheChapitreC(ByRef dest As Worksheet, ByRef chapitres() As 
     rang = Taches_tab(indexTache, Taches_type.rang)
     description = Taches_tab(indexTache, Taches_type.description)
     
-    ' Déterminer ligne d'insertion
+    ' Dï¿½terminer ligne d'insertion
     If dest.Range("B" & (chapitres(numChapitre).LigneProchainChap - 1)).Value <> "" Then
         dest.Range("B" & chapitres(numChapitre).LigneProchainChap).EntireRow.Insert
         ligvide = chapitres(numChapitre).LigneProchainChap
         
         ' *** CORRECTION CRITIQUE ***
-        ' Mettre à jour TOUS les chapitres suivants après insertion
+        ' Mettre ï¿½ jour TOUS les chapitres suivants aprï¿½s insertion
         For k = numChapitre To UBound(chapitres)
             If chapitres(k).LigneProchainChap > 0 Then
                 chapitres(k).LigneProchainChap = chapitres(k).LigneProchainChap + 1
@@ -423,7 +430,7 @@ Private Sub InsererTacheChapitreC(ByRef dest As Worksheet, ByRef chapitres() As 
         ligvide = chapitres(numChapitre).LigneProchainChap - 1
     End If
     
-    ' Si premier item d'un sous-chapitre (rang x.1), créer l'en-tête du sous-chapitre
+    ' Si premier item d'un sous-chapitre (rang x.1), crï¿½er l'en-tï¿½te du sous-chapitre
     If Right(rang, 1) = "1" Then
         ' Ligne sous-chapitre
         With dest
@@ -445,12 +452,12 @@ Private Sub InsererTacheChapitreC(ByRef dest As Worksheet, ByRef chapitres() As 
             End If
         End With
         
-        ' Insérer ligne suivante pour la tâche
+        ' Insï¿½rer ligne suivante pour la tï¿½che
         dest.Range("B" & (ligvide + 1)).EntireRow.Insert
         ligvide = ligvide + 1
         
         ' *** CORRECTION CRITIQUE ***
-        ' Mettre à jour chapitres suivants après 2ème insertion
+        ' Mettre ï¿½ jour chapitres suivants aprï¿½s 2ï¿½me insertion
         For k = numChapitre To UBound(chapitres)
             If chapitres(k).LigneProchainChap > 0 Then
                 chapitres(k).LigneProchainChap = chapitres(k).LigneProchainChap + 1
@@ -472,20 +479,20 @@ Private Sub InsererTacheChapitreC(ByRef dest As Worksheet, ByRef chapitres() As 
         premierMot = Left(description, posEspace - 1)
     End If
     
-    ' Remplir la ligne de tâche
+    ' Remplir la ligne de tï¿½che
     With dest
         .Range("B" & ligvide) = Right(rang, 1)
         .Range("C" & ligvide) = premierMot
         .Range("D" & ligvide) = description
         
-        ' Opérateurs
+        ' Opï¿½rateurs
         If langue = "FR" Then
             .Range("G" & ligvide) = "1 x ELECTRICIEN"
         Else
             .Range("G" & ligvide) = "1 x ELECTRICIAN"
         End If
         
-        ' Pièces de rechange
+        ' Piï¿½ces de rechange
         If Taches_tab(indexTache, Taches_type.PieceRechangeCons) <> "" Then
             .Range("I" & ligvide) = "1 x " & Taches_tab(indexTache, Taches_type.PieceRechangeCons)
         End If
@@ -509,12 +516,12 @@ Private Sub InsererTacheChapitreC(ByRef dest As Worksheet, ByRef chapitres() As 
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: ÉCRIRE SOMMES TEMPS
+' PROCï¿½DURE: ï¿½CRIRE SOMMES TEMPS
 ' =========================================================================
 Private Sub EcrireSommesTemps(ByRef dest As Worksheet, ByRef chapitres() As ChapitreInfo)
     Dim i As Integer
     
-    ' Écrire le total de temps dans la colonne L de chaque ligne de chapitre
+    ' ï¿½crire le total de temps dans la colonne L de chaque ligne de chapitre
     For i = 1 To 4
         If chapitres(i).TotalTemps > 0 Then
             dest.Range("L" & chapitres(i).ligneDebut) = chapitres(i).TotalTemps
@@ -524,12 +531,12 @@ Private Sub EcrireSommesTemps(ByRef dest As Worksheet, ByRef chapitres() As Chap
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: AJOUTER CHAPITRE E
+' PROCï¿½DURE: AJOUTER CHAPITRE E
 ' =========================================================================
 Private Sub AjouterChapitreE(ByRef dest As Worksheet)
     Dim ligvide As Integer
     
-    ' Trouver dernière ligne remplie
+    ' Trouver derniï¿½re ligne remplie
     ligvide = dest.Range("B10000").End(xlUp).Row + 1
     
     ' Copier format de la ligne des totaux (ligne 2)
@@ -551,7 +558,7 @@ Private Sub AjouterChapitreE(ByRef dest As Worksheet)
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR COUVERTURE
+' PROCï¿½DURE: REMPLIR COUVERTURE
 ' =========================================================================
 Private Sub RemplirCouverture(ByRef CoverPage As Worksheet, ByVal dtr As String, _
                               ByVal PMJ As Integer, ByVal test_infos As Boolean)

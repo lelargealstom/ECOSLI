@@ -1,17 +1,17 @@
 Attribute VB_Name = "B_ATM_V1"
 Public Sub ATM_V1()
-'Procédure de génération de fiches ATM V1
+'Procï¿½dure de gï¿½nï¿½ration de fiches ATM V1
 
-'Méthode :
-' 1. Sélection d'un répertoire projet par l'utilisateur
-' 2. Copie du template dans le répertoire choisie
-' 3. Ouverture de ce template dans le répertoire
-' 4. Récupération des données Info et Taches ATM par la feuile complète
+'Mï¿½thode :
+' 1. Sï¿½lection d'un rï¿½pertoire projet par l'utilisateur
+' 2. Copie du template dans le rï¿½pertoire choisie
+' 3. Ouverture de ce template dans le rï¿½pertoire
+' 4. Rï¿½cupï¿½ration des donnï¿½es Info et Taches ATM par la feuile complï¿½te
 ' 5. Copie feuille template de chaque DTR de la PBS : HARD / SOFT ou HARD & SOFT
-' 6. Remplissage de chaque feuille avec données taches et infos
+' 6. Remplissage de chaque feuille avec donnï¿½es taches et infos
 
-'Procédure de génération de fiches ATM V1.0 (Version Refactorisée)
-'Génère UN SEUL fichier Excel multi-feuilles avec Index + N fiches DTR
+'Procï¿½dure de gï¿½nï¿½ration de fiches ATM V1.0 (Version Refactorisï¿½e)
+'Gï¿½nï¿½re UN SEUL fichier Excel multi-feuilles avec Index + N fiches DTR
 
     Dim chemin As String
     Dim Template As Workbook
@@ -22,7 +22,7 @@ Public Sub ATM_V1()
     Set fso = CreateObject("Scripting.FileSystemObject")
     Set REQSEL = CreateObject("ADODB.Recordset")
     
-    ' Sélection répertoire destination
+    ' Sï¿½lection rï¿½pertoire destination
     If Not SelectRepertoire(chemin) Then
         Exit Sub
     End If
@@ -31,14 +31,14 @@ Public Sub ATM_V1()
     Set Template = CopierTemplateV1(chemin)
     If Template Is Nothing Then Exit Sub
     
-    ' Récupération données BDD (réutilise fonction ATM V2)
+    ' Rï¿½cupï¿½ration donnï¿½es BDD (rï¿½utilise fonction ATM V2)
     Call RecupererDonneesBDD_ATM(1)
     
     ' Cadrage tableaux
     Call Cadrage_Taches_ATM(Taches_tab)
     Call Cadrage_Infos_ATM(Infos_tab)
     
-    ' Récupération PBS
+    ' Rï¿½cupï¿½ration PBS
     Set DS1 = Generateur.Worksheets("DATA_ASL")
     
     ' Identifier feuilles template
@@ -59,30 +59,41 @@ Public Sub ATM_V1()
     
     ' Remplir Index
     Call RemplirIndexV1(index, Template)
-    
+
+    ' UX : initialiser la barre de progression + StatusBar + curseur sablier.
+    Call Progress_Demarrer(UBound(tDTR), "ATM V1")
+
     ' Boucle sur chaque DTR
     For i = 1 To UBound(tDTR)
-        
+
+        ' UX : mise a jour barre + StatusBar avant le traitement de ce DTR.
+        Call Progress_Etape(i, "", CStr(tDTR(i, 1)))
+
         ' Skip supports/frames
         If InStr(1, tSS(i, 1), "support") > 0 Or InStr(1, tSS(i, 1), "frame") > 0 Then
             index.Range("F" & i + 5) = "NA"
             GoTo NextDTR
         End If
-        
-        ' Générer fiche(s) ATM pour ce DTR
+
+        ' Gï¿½nï¿½rer fiche(s) ATM pour ce DTR
         Call GenererFicheATM_V1(Template, index, Template_HARD, Template_SOFT, i)
-        
+
 NextDTR:
-        ' Barre de progression
-        Call barprogress(i, UBound(tDTR))
     Next i
-    
+
+    ' UX : etape de finalisation (regroupements, mise en page) visible
+    ' dans la StatusBar avant que la barre disparaisse.
+    Call Progress_Etape(UBound(tDTR), "Finalisation...", "")
+
     ' Finalisation
     Call FinaliserFichierV1(Template, index, CoverPage, Template_HARD, Template_SOFT)
-    
+
+    ' UX : restaurer curseur normal, StatusBar, masquer la barre.
+    Call Progress_Terminer
+
     ' Message final
     If langue = "FR" Then
-        MsgBox "Fiches ATM créées. Veuillez fermer cette fenêtre pour consulter le fichier généré.", vbInformation
+        MsgBox "Fiches ATM crï¿½ï¿½es. Veuillez fermer cette fenï¿½tre pour consulter le fichier gï¿½nï¿½rï¿½.", vbInformation
     Else
         MsgBox "MTA created. Please close this window to consult the new file generated.", vbInformation
     End If
@@ -119,7 +130,7 @@ ErrHandler:
     Set CopierTemplateV1 = Nothing
 End Function
 ' =========================================================================
-' PROCÉDURE: REMPLIR INDEX V1
+' PROCï¿½DURE: REMPLIR INDEX V1
 ' =========================================================================
 Private Sub RemplirIndexV1(ByRef index As Worksheet, ByRef Template As Workbook)
     Dim TabIndex As ListObject
@@ -133,14 +144,14 @@ Private Sub RemplirIndexV1(ByRef index As Worksheet, ByRef Template As Workbook)
         For i = 1 To UBound(tDTR)
             TabIndex.ListColumns("DTR").DataBodyRange(i).Value = tDTR(i, 1)
             
-            ' Désignation (MEF prioritaire)
+            ' Dï¿½signation (MEF prioritaire)
             If tDES_MEF(i, 1) = "NA" Then
                 TabIndex.ListColumns("Designation").DataBodyRange(i).Value = tDES_PBS(i, 1)
             Else
                 TabIndex.ListColumns("Designation").DataBodyRange(i).Value = tDES_MEF(i, 1)
             End If
             
-            TabIndex.ListColumns("Sous système").DataBodyRange(i).Value = tSS(i, 1)
+            TabIndex.ListColumns("Sous systï¿½me").DataBodyRange(i).Value = tSS(i, 1)
         Next i
         
         ' Titre
@@ -163,7 +174,7 @@ Private Sub RemplirIndexV1(ByRef index As Worksheet, ByRef Template As Workbook)
     End If
 End Sub
 ' =========================================================================
-' PROCÉDURE: GÉNÉRER FICHE ATM V1 POUR UN DTR
+' PROCï¿½DURE: Gï¿½Nï¿½RER FICHE ATM V1 POUR UN DTR
 ' =========================================================================
 Private Sub GenererFicheATM_V1(ByRef Template As Workbook, ByRef index As Worksheet, _
                                ByRef Template_HARD As Worksheet, ByRef Template_SOFT As Worksheet, _
@@ -177,7 +188,7 @@ Private Sub GenererFicheATM_V1(ByRef Template As Workbook, ByRef index As Worksh
     system = tSS(indexDTR, 1)
     cpt = 0
     
-    ' Vérifier doublons noms feuilles
+    ' Vï¿½rifier doublons noms feuilles
     cpt = CompterDoublonsFeuilles(Template, index, indexDTR, system)
     
     ' Copier template selon type HARD/SOFT
@@ -189,7 +200,7 @@ Private Sub GenererFicheATM_V1(ByRef Template As Workbook, ByRef index As Worksh
             Template_SOFT.Copy After:=Template.Worksheets(Template.Worksheets.count)
             
         Case "BOTH"
-            ' Créer les deux feuilles
+            ' Crï¿½er les deux feuilles
             Template_SOFT.Copy After:=Template.Worksheets(Template.Worksheets.count)
             ActiveSheet.Name = index.Range("B" & indexDTR + 5) & "_" & Trim(Left(system, 4)) & "_SOFT"
             Template_HARD.Copy After:=Template.Worksheets(Template.Worksheets.count)
@@ -201,22 +212,22 @@ Private Sub GenererFicheATM_V1(ByRef Template As Workbook, ByRef index As Worksh
     
     ' Rechercher plages dans BDD
     If Not RechercherPlagesDTR_V1(tDTR(indexDTR, 1), PMB, PMH, test_taches, test_infos) Then
-        ' DTR non trouvé
+        ' DTR non trouvï¿½
         Call MarquerStatutIndex(index, indexDTR, "A faire")
         GoTo AjouterLien
     End If
     
-    ' Remplir tâches
+    ' Remplir tï¿½ches
     Call RemplirTachesV1(dest, PMB, PMH, tHARD_SOFT(indexDTR, 1))
     
     ' Remplir niveau qualif
     dest.Range("I7") = Taches_tab(PMB, Taches_type.Niveau_Qualif)
     
-    ' Remplir infos générales
+    ' Remplir infos gï¿½nï¿½rales
     Call RemplirInfosV1(dest, indexDTR, test_infos)
     
 AjouterLien:
-    ' Créer lien hypertexte
+    ' Crï¿½er lien hypertexte
     Call CreerLienHypertexte(index, indexDTR, dest)
 End Sub
 
@@ -243,7 +254,7 @@ Private Function CompterDoublonsFeuilles(ByRef Template As Workbook, ByRef index
 End Function
 
 ' =========================================================================
-' PROCÉDURE: NOMMER FEUILLE V1
+' PROCï¿½DURE: NOMMER FEUILLE V1
 ' =========================================================================
 Private Sub NommerFeuilleV1(ByRef dest As Worksheet, ByRef index As Worksheet, _
                             ByVal indexDTR As Integer, ByVal system As String, ByVal cpt As Integer)
@@ -289,7 +300,7 @@ Public Function RechercherPlagesDTR_V1(ByVal dtr As String, _
     test_taches = False
     test_infos = False
     
-    ' Rechercher première ligne tâches (PMB)
+    ' Rechercher premiï¿½re ligne tï¿½ches (PMB)
     For j = 2 To UBound(Taches_tab, 1)
         If Taches_tab(j, Taches_type.dtr) = dtr And Taches_tab(j, Taches_type.langue) = langue Then
             PMB = j
@@ -303,7 +314,7 @@ Public Function RechercherPlagesDTR_V1(ByVal dtr As String, _
         Exit Function
     End If
     
-    ' Rechercher dernière ligne tâches (PMH)
+    ' Rechercher derniï¿½re ligne tï¿½ches (PMH)
     Do While j < UBound(Taches_tab, 1) - 1 And Taches_tab(j + 1, Taches_type.dtr) = Taches_tab(j, Taches_type.dtr)
         j = j + 1
     Loop
@@ -320,7 +331,7 @@ Public Function RechercherPlagesDTR_V1(ByVal dtr As String, _
     RechercherPlagesDTR_V1 = True
 End Function
 ' =========================================================================
-' PROCÉDURE: REMPLIR TÂCHES V1 (VERSION SIMPLIFIÉE)
+' PROCï¿½DURE: REMPLIR Tï¿½CHES V1 (VERSION SIMPLIFIï¿½E)
 ' =========================================================================
 Private Sub RemplirTachesV1(ByRef dest As Worksheet, ByVal PMB As Integer, ByVal PMH As Integer, _
                             ByVal typeHARDSOFT As String)
@@ -329,23 +340,23 @@ Private Sub RemplirTachesV1(ByRef dest As Worksheet, ByVal PMB As Integer, ByVal
     Dim rang As String
     Dim rangChiffre As String
     
-    ' Parcourir tâches de la dernière à la première (insertion avant)
+    ' Parcourir tï¿½ches de la derniï¿½re ï¿½ la premiï¿½re (insertion avant)
     For j = PMH To PMB Step -1
         
-        ' Vérifier langue et type HARD
+        ' Vï¿½rifier langue et type HARD
         If Taches_tab(j, Taches_type.langue) <> langue Then GoTo NextTache
         If Taches_tab(j, Taches_type.HARD_SOFT) <> "HARD" Then GoTo NextTache
         
         rang = Taches_tab(j, Taches_type.rang)
         
-        ' Vérifier format rang (skip si >3 caractères)
+        ' Vï¿½rifier format rang (skip si >3 caractï¿½res)
         If Len(rang) > 3 Then GoTo NextTache
         
         ' Extraire niveau (ex: "5-2" ? 2)
         nvx = CInt(Right(rang, Len(rang) - InStr(1, rang, "-")))
         rangChiffre = Left(rang, 1)
         
-        ' Insérer tâche selon rang
+        ' Insï¿½rer tï¿½che selon rang
         Call InsererTacheV1(dest, j, rangChiffre, nvx)
         
 NextTache:
@@ -353,7 +364,7 @@ NextTache:
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: INSÉRER TÂCHE V1
+' PROCï¿½DURE: INSï¿½RER Tï¿½CHE V1
 ' =========================================================================
 Private Sub InsererTacheV1(ByRef dest As Worksheet, ByVal indexTache As Integer, _
                            ByVal rangChiffre As String, ByVal niveau As Integer)
@@ -361,7 +372,7 @@ Private Sub InsererTacheV1(ByRef dest As Worksheet, ByVal indexTache As Integer,
     Dim ligneInsert As Integer
     Dim temps As Double
     
-    ' Déterminer ligne de base selon rang
+    ' Dï¿½terminer ligne de base selon rang
     Select Case rangChiffre
         Case "1": ligneBase = LIGNE_RANG_1
         Case "2": ligneBase = LIGNE_RANG_2
@@ -372,18 +383,18 @@ Private Sub InsererTacheV1(ByRef dest As Worksheet, ByVal indexTache As Integer,
     End Select
     
     If niveau > 1 Then
-        ' Insérer nouvelle ligne
+        ' Insï¿½rer nouvelle ligne
         ligneInsert = ligneBase + 1
         dest.Range("B" & ligneInsert).EntireRow.Insert
         
         ' Copier format ligne au-dessus
         dest.Range("B" & ligneBase & ":J" & ligneBase).Copy dest.Range("B" & ligneInsert)
     Else
-        ' Première tâche du rang (x-1)
+        ' Premiï¿½re tï¿½che du rang (x-1)
         ligneInsert = ligneBase
     End If
     
-    ' Remplir données
+    ' Remplir donnï¿½es
     With dest
         .Range("B" & ligneInsert) = Taches_tab(indexTache, Taches_type.rang)
         .Range("C" & ligneInsert) = Taches_tab(indexTache, Taches_type.description)
@@ -405,18 +416,18 @@ Private Sub InsererTacheV1(ByRef dest As Worksheet, ByVal indexTache As Integer,
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR INFOS V1
+' PROCï¿½DURE: REMPLIR INFOS V1
 ' =========================================================================
 Private Sub RemplirInfosV1(ByRef dest As Worksheet, ByVal indexDTR As Integer, ByVal test_infos As Boolean)
     Dim j As Integer
     
-    ' Données toujours présentes
+    ' Donnï¿½es toujours prï¿½sentes
     dest.Range("D4") = tDES_MEF(indexDTR, 1)
     dest.Range("D6") = tDTR(indexDTR, 1)
     dest.Range("D7") = Code_Projet
     dest.Range("D8") = tSS(indexDTR, 1)
     
-    ' Remplir données RAM selon gate
+    ' Remplir donnï¿½es RAM selon gate
     Call RemplirDonneesRAM_V1(dest, indexDTR)
     
     ' Rechercher dans Infos_ATM
@@ -447,12 +458,12 @@ Private Sub RemplirInfosV1(ByRef dest As Worksheet, ByVal indexDTR As Integer, B
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR DONNÉES RAM V1
+' PROCï¿½DURE: REMPLIR DONNï¿½ES RAM V1
 ' =========================================================================
 Private Sub RemplirDonneesRAM_V1(ByRef dest As Worksheet, ByVal indexDTR As Integer)
     
     If AvantCGR Then
-        ' Avant CGR: données génériques uniquement
+        ' Avant CGR: donnï¿½es gï¿½nï¿½riques uniquement
         dest.Range("I4") = tMTBF_gen(indexDTR, 1)
         
         Select Case tHARD_SOFT(indexDTR, 1)
@@ -462,9 +473,9 @@ Private Sub RemplirDonneesRAM_V1(ByRef dest As Worksheet, ByVal indexDTR As Inte
                 dest.Range("I5") = tDureevie_Gen_SOFT(indexDTR, 1)
         End Select
     Else
-        ' Après CGR
+        ' Aprï¿½s CGR
         If RAMReportDATA Then
-            ' Toutes données RAM Report présentes
+            ' Toutes donnï¿½es RAM Report prï¿½sentes
             dest.Range("I4") = tMTBF_fct(indexDTR, 1)
             
             Select Case tHARD_SOFT(indexDTR, 1)
@@ -474,8 +485,8 @@ Private Sub RemplirDonneesRAM_V1(ByRef dest As Worksheet, ByVal indexDTR As Inte
                     dest.Range("I5") = tDureevie_Ana_SOFT(indexDTR, 1)
             End Select
         Else
-            ' Données RAM Report partielles: hiérarchie
-            ' MTBF: fonctionnel ? intrinsèque ? générique
+            ' Donnï¿½es RAM Report partielles: hiï¿½rarchie
+            ' MTBF: fonctionnel ? intrinsï¿½que ? gï¿½nï¿½rique
             If tMTBF_fct(indexDTR, 1) <> "" And IsNumeric(tMTBF_fct(indexDTR, 1)) Then
                 dest.Range("I4") = tMTBF_fct(indexDTR, 1)
             ElseIf tMTBF_Intr(indexDTR, 1) <> "" And IsNumeric(tMTBF_Intr(indexDTR, 1)) Then
@@ -484,7 +495,7 @@ Private Sub RemplirDonneesRAM_V1(ByRef dest As Worksheet, ByVal indexDTR As Inte
                 dest.Range("I4") = tMTBF_gen(indexDTR, 1)
             End If
             
-            ' Durée vie: analytique ? générique
+            ' Durï¿½e vie: analytique ? gï¿½nï¿½rique
             Select Case tHARD_SOFT(indexDTR, 1)
                 Case "HARD", "", "BOTH"
                     If tDureevie_Ana_HARD(indexDTR, 1) <> "" And IsNumeric(tDureevie_Ana_HARD(indexDTR, 1)) Then
@@ -504,7 +515,7 @@ Private Sub RemplirDonneesRAM_V1(ByRef dest As Worksheet, ByVal indexDTR As Inte
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: MARQUER STATUT INDEX
+' PROCï¿½DURE: MARQUER STATUT INDEX
 ' =========================================================================
 Private Sub MarquerStatutIndex(ByRef index As Worksheet, ByVal indexDTR As Integer, ByVal statut As String)
     If langue = "FR" Then
@@ -520,7 +531,7 @@ Private Sub MarquerStatutIndex(ByRef index As Worksheet, ByVal indexDTR As Integ
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: CRÉER LIEN HYPERTEXTE
+' PROCï¿½DURE: CRï¿½ER LIEN HYPERTEXTE
 ' =========================================================================
 Private Sub CreerLienHypertexte(ByRef index As Worksheet, ByVal indexDTR As Integer, ByRef dest As Worksheet)
     Dim colonneNom As String
@@ -541,7 +552,7 @@ Private Sub CreerLienHypertexte(ByRef index As Worksheet, ByVal indexDTR As Inte
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: FINALISER FICHIER V1
+' PROCï¿½DURE: FINALISER FICHIER V1
 ' =========================================================================
 Private Sub FinaliserFichierV1(ByRef Template As Workbook, ByRef index As Worksheet, _
                                 ByRef CoverPage As Worksheet, ByRef Template_HARD As Worksheet, _
