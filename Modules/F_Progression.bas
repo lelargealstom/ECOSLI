@@ -112,9 +112,11 @@ Public Sub Progress_Etape(ByVal lCourant As Long, _
         UserForm.barre.Width = lCourant / prog_total * UserForm.barreimage.Width
         UserForm.barretexte.Caption = taux & "%"
         UserForm.Repaint                       ' force le UserForm a se redessiner
-        UserForm.ZOrder 0                      ' fmTop : ramene le UserForm devant
         On Error GoTo 0
     End If
+    ' Note : pas de UserForm.ZOrder (n'existe pas comme methode UserForm).
+    ' Pour forcer le UserForm devant la fenetre Excel, il faudrait une API
+    ' Windows (SetWindowPos) - report en Phase B si necessaire.
 
     ' --- Liberer le presse-papier (anti-erreur Clipboard) -----------
     ' Les Range.Copy et Sheets.Copy dans la boucle remplissent le
