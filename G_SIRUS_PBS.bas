@@ -380,7 +380,10 @@ Public Sub SIRUS_RemplirListViewGeneration()
     ' Caches DTR BdD - charges seulement si le lookup est active.
     If SIRUS_LookupDTR_Active Then
         Debug.Print "  Chargement des 5 caches DTR BdD..."
-        Set dictProjetASL = ChargerSetDTR_BdD("Projet_ASL$", "DTR")
+        ' Colonne DTR : varie par table (cf. diag Thomas + Champs_BDD.xlsx).
+        ' Produit$ et tables sans suffixe table -> 'DTR'.
+        ' Projet_ASL$ -> 'DTR_PROJETASL' (NB : c'etait 'DTR' avant, bug fixe).
+        Set dictProjetASL = ChargerSetDTR_BdD("Projet_ASL$", "DTR_PROJETASL")
         Set dictInfoATM = ChargerSetDTR_BdD("Info_ATM$", "DTR_INFOATM")
         Set dictTachesATM = ChargerSetDTR_BdD("Taches_ATM$", "DTR_TACHEATM")
         Set dictEMMST = ChargerSetDTR_BdD("EMMST$", "DTR_EMMST")
