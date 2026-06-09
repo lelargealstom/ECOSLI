@@ -23,18 +23,15 @@ Alignement de `ColonneBdD` sur les vrais noms BdD (référentiel `Champs_BDD.xls
 
 Total après refactor : ~94 champs (vs 79 avant), majoritairement grâce à l'extension EMMST.
 
-### Ambiguïtés à valider par Thomas
-1. **TachesATM / Critère Nm** : mappé sur `CritèresDimensionnels_TACHEATM` (probable mais pas certain).
-2. **TachesATM / Banc test** : non trouvé dans Champs_BDD.xlsx. Champ BdD ?
-3. **EMMST** : `MoyenTransport_EMMST`, `OutillageSpecifiqueTransport_EMMST`, `Version_EMMST` apparaissent dans les SQL existants (`C_EMMST_Main.bas`) mais sont absents du fichier `Champs_BDD.xlsx`. À réintégrer ?
-4. **ProjetSLI** : Reference PBS/EAP, Reference RAM report, LCC scope total — pas trouvés dans Champs_BDD. Vrais noms BdD ?
-5. **ProjetASL / DVL** : le brief disait "DVL générique" (1 champ), la BdD a HARD et SOFT distincts. J'ai créé 2 champs (HARD, SOFT). Tu valides ?
-6. **Encodage** : les noms BdD contiennent des accents (`é`, `è`, `à`, `…`). Écrits en clair UTF-8. Si VBE casse les accents à l'import (`?` au lieu d'`é`), il faudra basculer en `ChrW(...)` — me le signaler si besoin.
+### Ambiguïtés résolues (validation Thomas)
+1. **TachesATM / Critère Nm** ✅ : confirmé `CritèresDimensionnels_TACHEATM`.
+2. **TachesATM / Banc test** ✅ : pas de champ Banc test — les BTE sont couverts par `OutillageStandard_TACHEATM` et `OutillageSpécifique_TACHEATM`. Mon "Banc test" remplacé par ces 2 outillages (rang 2.1/5.1 + NodeType >= SRU).
+3. **EMMST** ✅ : ajout de `MoyenTransport_EMMST`, `OutillageSpecifiqueTransport_EMMST`, `Version_EMMST` au peuplement (présents dans les SQL existants mais absents de Champs_BDD.xlsx).
+4. **ProjetSLI** ✅ : vrais noms BdD posés — `Réf PBS/EAP_PROJET SLI`, `Réf RAM report projet_PROJET SLI`, `LCC valeur scope total_PROJET SLI`.
+5. **ProjetASL / DVL** ✅ : les 2 champs (HARD et SOFT) confirmés — une ligne ProjetASL peut être Hard et Soft.
+6. **Encodage UTF-8 en clair** ✅ : Thomas confirme que les SQL ADODB en chaîne acceptent les accents directs (sans `ChrW`). Convention #6 mise à jour en mémoire pour acter l'exception ColonneBdD / chaînes SQL.
 
-### Reste à faire
-- Validation Thomas des 5+1 ambiguïtés ci-dessus.
-- Réimport `G_SIRUS_Config.bas` dans le `.xlam`, `Test_InitConfigSheet` + `Test_LireConfig_Toutes`.
-- **Phase 1** : `SIRUS_GenererFeuilleAnalyse(table, operation, dtrs)`.
+Total champs après corrections : **~98** (14 + 8 + 8 + 41 + 15 + 12).
 
 ---
 

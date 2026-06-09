@@ -292,10 +292,18 @@ Private Sub PeuplerTachesATM(lo As ListObject)
                       "Nombre", "", "Conditionnel", "Description contient 'Torque Tighten'", "Saisie", "", 1, "", _
                       "Couple de serrage en N.m, attendu si Description contient 'Torque Tighten'. (Champ BdD 'CritèresDimensionnels' a confirmer.)")
 
-    Call AjouterChamp(lo, "TachesATM", "Banc test", _
-                      "??_BancTest_a_definir", 70, _
+    ' "Banc test" du brief = en realite les outillages (BTE = Banc Test
+    ' Equipement). Pas de champ BancTest dedie : on utilise les colonnes
+    ' Outillage standard / specifique de la table Taches_ATM.
+    Call AjouterChamp(lo, "TachesATM", "Outillage standard", _
+                      "OutillageStandard_TACHEATM", 70, _
                       "Texte", "", "Conditionnel", "Rang 2.1/5.1 et NodeType >= SRU", "Saisie", "", 1, "", _
-                      "Reference banc test, attendue pour Rang 2.1/5.1 et NodeType >= SRU. (Champ BdD a confirmer : pas trouve dans Champs_BDD.xlsx.)")
+                      "Outillage standard utilise (couvre le besoin BTE du brief).")
+
+    Call AjouterChamp(lo, "TachesATM", "Outillage specifique", _
+                      "OutillageSpécifique_TACHEATM", 80, _
+                      "Texte", "", "Conditionnel", "Rang 2.1/5.1 et NodeType >= SRU", "Saisie", "", 1, "", _
+                      "Outillage specifique projet (couvre le besoin BTE du brief).")
 End Sub
 
 ' =========================================================================
@@ -423,6 +431,14 @@ Private Sub PeuplerEMMST(lo As ListObject)
                       "MaintenanceStockage_EMMST", 630, _
                       "Texte", "", "Non", "", "Saisie", "", 0, "", "")
 
+    ' --- Transport (presents dans les SQL existants, absents de Champs_BDD) ---
+    Call AjouterChamp(lo, "EMMST", "Moyen transport", _
+                      "MoyenTransport_EMMST", 660, _
+                      "Texte", "", "Non", "", "Saisie", "", 0, "", "")
+    Call AjouterChamp(lo, "EMMST", "Outillage specifique transport", _
+                      "OutillageSpecifiqueTransport_EMMST", 670, _
+                      "Texte", "", "Non", "", "Saisie", "", 0, "", "")
+
     ' --- Commentaires (par section) ---
     Call AjouterChamp(lo, "EMMST", "Commentaire emballage", _
                       "CommentaireEmballage_EMMST", 700, _
@@ -439,6 +455,12 @@ Private Sub PeuplerEMMST(lo As ListObject)
     Call AjouterChamp(lo, "EMMST", "Commentaire transport", _
                       "CommentaireTransport_EMMST", 740, _
                       "Texte", "", "Non", "", "Saisie", "", 0, "", "")
+
+    ' --- Versioning ---
+    Call AjouterChamp(lo, "EMMST", "Version", _
+                      "Version_EMMST", 900, _
+                      "Texte", "", "Non", "", "Auto", "", 0, "", _
+                      "Version de la fiche EMMST (geree en interne).")
 End Sub
 
 ' =========================================================================
@@ -505,19 +527,17 @@ Private Sub PeuplerProjetSLI(lo As ListObject)
                       "Liste", "NiveauMaintenance", "Oui", "", "Saisie", "", 1, "", "")
 
     Call AjouterChamp(lo, "ProjetSLI", "Reference PBS/EAP", _
-                      "??_RefPBS_EAP_a_definir", 130, _
-                      "Texte", "", "Oui", "", "Saisie", "", 1, "", _
-                      "Champ BdD a confirmer : pas trouve dans Champs_BDD.xlsx (Nombre de DTR EAP/PBS existe mais c'est une qte, pas une ref).")
+                      "Réf PBS/EAP_PROJET SLI", 130, _
+                      "Texte", "", "Oui", "", "Saisie", "", 1, "", "")
 
     Call AjouterChamp(lo, "ProjetSLI", "Reference RAM report", _
-                      "??_RefRAMReport_a_definir", 140, _
-                      "Texte", "", "Oui", "", "Saisie", "", 1, "", _
-                      "Champ BdD a confirmer : pas trouve dans Champs_BDD.xlsx.")
+                      "Réf RAM report projet_PROJET SLI", 140, _
+                      "Texte", "", "Oui", "", "Saisie", "", 1, "", "")
 
     Call AjouterChamp(lo, "ProjetSLI", "LCC scope total", _
-                      "??_LCCScopeTotal_a_definir", 150, _
+                      "LCC valeur scope total_PROJET SLI", 150, _
                       "Nombre", "", "Oui", "", "Saisie", "", 1, "", _
-                      "Perimetre LCC en cout total. Champ BdD a confirmer.")
+                      "Perimetre LCC en cout total.")
 End Sub
 
 ' =========================================================================
