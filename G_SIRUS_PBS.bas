@@ -341,22 +341,45 @@ Public Sub SIRUS_RemplirListViewGeneration()
     Dim vMan As Variant, vFrs As Variant, vCat As Variant
     Dim resSpare As Variant, resRepair As Variant
     Dim li As MSComctlLib.ListItem
+    Dim nbAjoutees As Long
 
     On Error GoTo Sortie
 
+    Debug.Print "=== SIRUS_RemplirListViewGeneration : DEBUT ==="
+    Debug.Print "  ActiveWorkbook = " & IIf(ActiveWorkbook Is Nothing, "<Nothing>", ActiveWorkbook.Name)
+    Debug.Print "  SIRUS_LookupDTR_Active = " & SIRUS_LookupDTR_Active
+
     Set wb = ActiveWorkbook
+    If wb Is Nothing Then
+        Debug.Print "  ABORT : ActiveWorkbook est Nothing."
+        GoTo Sortie
+    End If
+
     Set lv = UserForm.ListView_Generation
-    If lv Is Nothing Then GoTo Sortie
+    If lv Is Nothing Then
+        Debug.Print "  ABORT : UserForm.ListView_Generation est Nothing."
+        GoTo Sortie
+    End If
 
     ' Reset systematique pour tolerer DATA_ASL absent / vide sans ListView residuelle
     lv.ListItems.Clear
 
-    If Not VerifierFeuilleDATA_ASL(wb, wsPBS) Then GoTo Sortie
-    If Not MapColonnesDATA_ASL(wsPBS) Then GoTo Sortie
+    If Not VerifierFeuilleDATA_ASL(wb, wsPBS) Then
+        Debug.Print "  ABORT : VerifierFeuilleDATA_ASL = False (DATA_ASL absente ou vide dans '" & wb.Name & "')."
+        GoTo Sortie
+    End If
+    Debug.Print "  DATA_ASL OK : ws=" & wsPBS.Name & ", UsedRange.rows=" & wsPBS.UsedRange.rows.count
+
+    If Not MapColonnesDATA_ASL(wsPBS) Then
+        Debug.Print "  ABORT : MapColonnesDATA_ASL = False (colonne critique introuvable)."
+        GoTo Sortie
+    End If
+    Debug.Print "  Mapping DATA_ASL OK : DTR_PBS=col" & DATA_ASL_type.DTR_PBS & _
+                ", HeaderRow=" & DATA_ASL_HeaderRow
 
     ' Caches DTR BdD - charges seulement si le lookup est active.
-    ' Si False, les 5 colonnes Projet_ASL/ATM/EMMST/Produit restent vides.
     If SIRUS_LookupDTR_Active Then
+        Debug.Print "  Chargement des 5 caches DTR BdD..."
         Set dictProjetASL = ChargerSetDTR_BdD("Projet_ASL$", "DTR")
         Set dictInfoATM = ChargerSetDTR_BdD("Info_ATM$", "DTR_INFOATM")
         Set dictTachesATM = ChargerSetDTR_BdD("Taches_ATM$", "DTR_TACHEATM")
@@ -371,10 +394,19 @@ Public Sub SIRUS_RemplirListViewGeneration()
     End If
 
     ' Derniere ligne sur la colonne DTR
+    If DATA_ASL_type.DTR_PBS = 0 Then
+        Debug.Print "  ABORT : DATA_ASL_type.DTR_PBS = 0 (colonne DTR non mappee)."
+        GoTo Sortie
+    End If
     derniereLigne = wsPBS.Cells(wsPBS.rows.count, DATA_ASL_type.DTR_PBS).End(xlUp).Row
-    If derniereLigne <= DATA_ASL_HeaderRow Then GoTo Sortie
+    Debug.Print "  Derniere ligne DTR_PBS = " & derniereLigne & " (HeaderRow = " & DATA_ASL_HeaderRow & ")"
+    If derniereLigne <= DATA_ASL_HeaderRow Then
+        Debug.Print "  ABORT : aucune ligne de donnees sous l'entete."
+        GoTo Sortie
+    End If
 
     Application.ScreenUpdating = False
+    nbAjoutees = 0
 
     For ligne = DATA_ASL_HeaderRow + 1 To derniereLigne
 
@@ -382,6 +414,7 @@ Public Sub SIRUS_RemplirListViewGeneration()
         If Len(dtr) = 0 Then GoTo SuivanteLigne
 
         Set li = lv.ListItems.Add(, , dtr)
+        nbAjoutees = nbAjoutees + 1
         ' Col 2 : Projet_ASL utilise OUI/NON (presence binaire critique avant generation).
         ' Cols 3-6 : presence informative en OK / vide.
         If SIRUS_LookupDTR_Active Then
@@ -415,9 +448,18 @@ Public Sub SIRUS_RemplirListViewGeneration()
 SuivanteLigne:
     Next ligne
 
+    Debug.Print "  TERMINE : " & nbAjoutees & " ligne(s) ajoutee(s) dans la ListView_Generation."
+    Debug.Print "=== SIRUS_RemplirListViewGeneration : FIN ==="
+    Application.ScreenUpdating = True
+    Exit Sub
+
 Sortie:
     Application.ScreenUpdating = True
-
+    If Err.Number <> 0 Then
+        Debug.Print "  ERREUR " & Err.Number & " : " & Err.Description & _
+                    " (source : " & Err.Source & ")"
+    End If
+    Debug.Print "=== SIRUS_RemplirListViewGeneration : FIN (sortie anticipee) ==="
 End Sub
 
 
@@ -459,9 +501,18 @@ Private Function ChargerSetDTR_BdD(ByVal nomTable As String, ByVal colonneDTR As
     STRSEL = "SELECT [" & colonneDTR & "] FROM [" & nomTable & "]"
     Call open_REQSEL(STRSEL)
 
-    If REQSEL Is Nothing Then GoTo Sortie
-    If REQSEL.State <> 1 Then GoTo Sortie
-    If REQSEL.EOF And REQSEL.BOF Then GoTo Sortie
+    If REQSEL Is Nothing Then
+        Debug.Print "  [" & nomTable & "] ABORT : REQSEL = Nothing (Open_CONN appele ?)"
+        GoTo Sortie
+    End If
+    If REQSEL.State <> 1 Then
+        Debug.Print "  [" & nomTable & "] ABORT : REQSEL.State = " & REQSEL.State & " (attendu 1=adStateOpen)"
+        GoTo Sortie
+    End If
+    If REQSEL.EOF And REQSEL.BOF Then
+        Debug.Print "  [" & nomTable & "] table vide (EOF et BOF)"
+        GoTo Sortie
+    End If
 
     ' Extraction complete en une passe. arr est dimensionne (champs x lignes).
     arr = REQSEL.GetRows()
@@ -473,9 +524,12 @@ Private Function ChargerSetDTR_BdD(ByVal nomTable As String, ByVal colonneDTR As
         End If
     Next i
 
-    Debug.Print "[" & nomTable & "] DTR charges : " & dict.count
+    Debug.Print "  [" & nomTable & "] DTR charges : " & dict.count
 
 Sortie:
+    If Err.Number <> 0 Then
+        Debug.Print "  [" & nomTable & "] ERREUR " & Err.Number & " : " & Err.Description
+    End If
     On Error Resume Next
     If Not REQSEL Is Nothing Then
         If REQSEL.State = 1 Then REQSEL.Close
