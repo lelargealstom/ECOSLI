@@ -378,12 +378,19 @@ Public Sub SIRUS_RemplirListViewGeneration()
         nbAjoutees = nbAjoutees + 1
 
         ' Cols 2 a 6 : presence OUI/NON dans les 5 tables BdD si lookup actif.
+        ' Vert si OUI, rouge si NON.
         If SIRUS_LookupDTR_Active Then
-            li.SubItems(1) = IIf(SetContient(dictProjetASL, dtr), "OUI", "NON")
-            li.SubItems(2) = IIf(SetContient(dictInfoATM, dtr), "OUI", "NON")
-            li.SubItems(3) = IIf(SetContient(dictTachesATM, dtr), "OUI", "NON")
-            li.SubItems(4) = IIf(SetContient(dictEMMST, dtr), "OUI", "NON")
-            li.SubItems(5) = IIf(SetContient(dictProduit, dtr), "OUI", "NON")
+            Call AjouterSubItemColore(li, IIf(SetContient(dictProjetASL, dtr), "OUI", "NON"), True)
+            Call AjouterSubItemColore(li, IIf(SetContient(dictInfoATM, dtr), "OUI", "NON"), True)
+            Call AjouterSubItemColore(li, IIf(SetContient(dictTachesATM, dtr), "OUI", "NON"), True)
+            Call AjouterSubItemColore(li, IIf(SetContient(dictEMMST, dtr), "OUI", "NON"), True)
+            Call AjouterSubItemColore(li, IIf(SetContient(dictProduit, dtr), "OUI", "NON"), True)
+        Else
+            Call AjouterSubItemColore(li, "", False)
+            Call AjouterSubItemColore(li, "", False)
+            Call AjouterSubItemColore(li, "", False)
+            Call AjouterSubItemColore(li, "", False)
+            Call AjouterSubItemColore(li, "", False)
         End If
 
         ' Qualite SPARE (Manuel / Alstom FRS / ISP catalogue)
@@ -391,18 +398,18 @@ Public Sub SIRUS_RemplirListViewGeneration()
         vFrs = LireCellule(wsPBS, ligne, DATA_ASL_type.CoutSpare_AlstomFR_FRS)
         vCat = LireCellule(wsPBS, ligne, DATA_ASL_type.ISP_TIS_FCS)
         resSpare = EvaluerQualitePrix(vMan, vFrs, vCat)
-        li.SubItems(6) = resSpare(0)
-        li.SubItems(7) = resSpare(1)
-        li.SubItems(8) = resSpare(2)
+        Call AjouterSubItemColore(li, CStr(resSpare(0)), False, CouleurQualite(CStr(resSpare(0))))
+        Call AjouterSubItemColore(li, CStr(resSpare(1)), False)
+        Call AjouterSubItemColore(li, CStr(resSpare(2)), False)
 
         ' Qualite REPAIR (Manuel / Alstom FRS / ISP catalogue)
         vMan = LireCellule(wsPBS, ligne, DATA_ASL_type.PrixManuelRepair)
         vFrs = LireCellule(wsPBS, ligne, DATA_ASL_type.PrixRepair_Alstom_FRS)
         vCat = LireCellule(wsPBS, ligne, DATA_ASL_type.PrixRepa_ISP)
         resRepair = EvaluerQualitePrix(vMan, vFrs, vCat)
-        li.SubItems(9) = resRepair(0)
-        li.SubItems(10) = resRepair(1)
-        li.SubItems(11) = resRepair(2)
+        Call AjouterSubItemColore(li, CStr(resRepair(0)), False, CouleurQualite(CStr(resRepair(0))))
+        Call AjouterSubItemColore(li, CStr(resRepair(1)), False)
+        Call AjouterSubItemColore(li, CStr(resRepair(2)), False)
 
 SuivanteLigne:
     Next ligne
@@ -498,6 +505,47 @@ Private Function LireCellule(ByVal ws As Worksheet, ByVal ligne As Long, ByVal c
         Exit Function
     End If
     LireCellule = ws.Cells(ligne, colonne).Value
+End Function
+
+
+' =========================================================================
+' SUB: AjouterSubItemColore
+' Ajoute un ListSubItem au ListItem en parametre, avec coloration optionnelle.
+'   - bColoreOuiNon : si True, applique vert (OUI) / rouge (NON) automatiquement.
+'   - lColorOverride : si <> -1, force cette couleur (prioritaire sur bColoreOuiNon).
+' Necessite d'utiliser ListSubItems.Add partout dans une meme ligne (pas
+' melanger avec li.SubItems(n) =).
+' =========================================================================
+Private Sub AjouterSubItemColore(li As MSComctlLib.ListItem, _
+                                  ByVal sTexte As String, _
+                                  ByVal bColoreOuiNon As Boolean, _
+                                  Optional ByVal lColorOverride As Long = -1)
+    Dim lsi As MSComctlLib.ListSubItem
+    Set lsi = li.ListSubItems.Add(, , sTexte)
+    If lColorOverride <> -1 Then
+        lsi.ForeColor = lColorOverride
+    ElseIf bColoreOuiNon Then
+        Select Case sTexte
+            Case "OUI": lsi.ForeColor = RGB(0, 128, 0)        ' vert fonce
+            Case "NON": lsi.ForeColor = RGB(192, 0, 0)        ' rouge
+        End Select
+    End If
+End Sub
+
+
+' =========================================================================
+' FONCTION: CouleurQualite
+' Couleur associee a un statut qualite prix (OK / NOK *) pour la ListView.
+' Retourne -1 si pas de couleur particuliere (texte noir par defaut).
+' =========================================================================
+Private Function CouleurQualite(ByVal sQualite As String) As Long
+    Select Case sQualite
+        Case "OK":                    CouleurQualite = RGB(0, 128, 0)        ' vert
+        Case "NOK - Ecart":           CouleurQualite = RGB(255, 140, 0)      ' orange
+        Case "NOK - Manque":          CouleurQualite = RGB(255, 140, 0)      ' orange
+        Case "NOK - Manque & Ecart":  CouleurQualite = RGB(192, 0, 0)        ' rouge
+        Case Else:                    CouleurQualite = -1
+    End Select
 End Function
 
 

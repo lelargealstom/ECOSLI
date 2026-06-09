@@ -574,7 +574,7 @@ Dim ws_list As Worksheet
 
 Set wb = ThisWorkbook
 Set ws = wb.ActiveSheet
-Set ws_list = ThisWorkbook.Sheets("Liste")
+Set ws_list = ThisWorkbook.Sheets("LISTES_DATA_CHOIX")
 
 dlignefrs = ws_list.Cells(ws.rows.count, "C").End(xlUp).Row
 dlignenode = ws_list.Cells(ws.rows.count, "B").End(xlUp).Row
