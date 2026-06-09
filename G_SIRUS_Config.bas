@@ -779,14 +779,16 @@ Private Sub PeuplerProjetASL(lo As ListObject)
                       "MTBF fonctionnel (h) issu du RAM report projet_PROJETASL", 80, _
                       "Nombre", "", "Oui", "", "Saisie", "", 2, "", _
                       "MTBF fonctionnel projet (peut differer du MTBF intrinseque Produit).")
+    ' Note : suffixe '_PROJET ASL' avec espace, confirme Thomas 2026-06-09
+    ' (different des autres ProjetASL en '_PROJETASL' sans espace).
     Call AjouterChamp(lo, "ProjetASL", "DVL generique HARD", _
-                      "DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) HARDWARE_PROJETASL", 90, _
+                      "DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) HARDWARE_PROJET ASL", 90, _
                       "Nombre", "", "Non", "", "Saisie", "", 0, "", _
-                      "DVL Hardware specifique projet (RAM report).")
+                      "DVL Hardware specifique projet (RAM report). Suffixe BdD avec espace.")
     Call AjouterChamp(lo, "ProjetASL", "DVL generique SOFT", _
-                      "DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) SOFTWARE_PROJETASL", 100, _
+                      "DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) SOFTWARE_PROJET ASL", 100, _
                       "Nombre", "", "Non", "", "Saisie", "", 0, "", _
-                      "DVL Software specifique projet (RAM report).")
+                      "DVL Software specifique projet (RAM report). Suffixe BdD avec espace.")
     Call AjouterChamp(lo, "ProjetASL", "Testabilite", _
                       "Testabilité (DTR du BTE relatif à l'équipement sur le projet concerné)_PROJETASL", 110, _
                       "Texte", "", "Oui", "", "Saisie", "", 1, "", _

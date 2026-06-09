@@ -551,6 +551,205 @@ Sortie:
 End Sub
 
 ' =========================================================================
+' Test_DiagnostiquerEcartsAvecCandidats
+' =========================================================================
+' Pour chaque ColonneBdD du config absent en BdD, identifie le nom BdD
+' le plus proche (plus long prefixe commun) et localise la 1ere position
+' ou les caracteres different, avec leurs codes Unicode (AscW).
+'
+' Resultat dans une feuille "SIRUS_Diag_Diff" :
+'   A : Table
+'   B : Champ logique
+'   C : ColonneBdD du config
+'   D : Longueur cfg
+'   E : Candidat BdD le plus proche (vrai nom)
+'   F : Longueur candidat
+'   G : Position 1ere difference (1-based)
+'   H : Code Unicode caractere cfg (ex. 39 = ' ASCII, 8217 = ' typographique)
+'   I : Code Unicode caractere BdD a cette position
+'
+' Permet d'identifier les ecarts subtils (apostrophe typographique vs
+' ASCII, espace insecable U+00A0 vs espace, NBSP, etc.).
+Public Sub Test_DiagnostiquerEcartsAvecCandidats()
+
+    Const FEUILLE As String = "SIRUS_Diag_Diff"
+
+    Dim tables As Variant
+    Dim t As Variant
+    Dim wb As Workbook
+    Dim ws As Worksheet
+    Dim ligne As Long
+    Dim col As Collection
+    Dim def As SIRUS_Champ_Config
+    Dim noms As Object
+    Dim sSQL As String
+    Dim i As Long
+    Dim candidat As String
+    Dim posDiff As Long
+
+    On Error GoTo Sortie
+
+    Set wb = ActiveWorkbook
+    If wb Is Nothing Then
+        MsgBox "Aucun classeur actif.", vbExclamation
+        Exit Sub
+    End If
+
+    ' (Re)creer la feuille
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    wb.Worksheets(FEUILLE).Delete
+    Application.DisplayAlerts = True
+    On Error GoTo Sortie
+
+    Set ws = wb.Worksheets.Add(After:=wb.Worksheets(wb.Worksheets.Count))
+    ws.Name = FEUILLE
+
+    ' En-tetes
+    ws.Cells(1, 1).Value = "Table"
+    ws.Cells(1, 2).Value = "Champ logique"
+    ws.Cells(1, 3).Value = "ColonneBdD config"
+    ws.Cells(1, 4).Value = "Len cfg"
+    ws.Cells(1, 5).Value = "Candidat BdD"
+    ws.Cells(1, 6).Value = "Len BdD"
+    ws.Cells(1, 7).Value = "Pos diff"
+    ws.Cells(1, 8).Value = "Unicode cfg"
+    ws.Cells(1, 9).Value = "Unicode BdD"
+    With ws.Range("A1:I1")
+        .Font.Bold = True
+        .Interior.Color = COULEUR_ENTETE
+    End With
+
+    tables = Array(Array("Produit", "Produit$"), _
+                   Array("InfoATM", "Info_ATM$"), _
+                   Array("TachesATM", "Taches_ATM$"), _
+                   Array("EMMST", "EMMST$"), _
+                   Array("ProjetSLI", "Projet_SLI$"), _
+                   Array("ProjetASL", "Projet_ASL$"))
+
+    Call Open_CONN(ChaineConnexionSIRUS)
+    ligne = 2
+
+    For Each t In tables
+        Set noms = CreateObject("Scripting.Dictionary")
+        noms.CompareMode = 1  ' BinaryCompare (sensible casse)
+
+        sSQL = "SELECT * FROM [" & t(1) & "] WHERE 1=0"
+        Call open_REQSEL(sSQL)
+        If Not (REQSEL Is Nothing) Then
+            For i = 0 To REQSEL.Fields.Count - 1
+                noms(REQSEL.Fields(i).Name) = True
+            Next i
+        End If
+
+        Set col = SIRUS_LireConfig(CStr(t(0)))
+        For Each def In col
+            If LenB(def.ColonneBdD) > 0 And Not noms.Exists(def.ColonneBdD) Then
+                candidat = TrouverCandidatBdD(def.ColonneBdD, noms)
+                posDiff = PositionPremiereDifference(def.ColonneBdD, candidat)
+
+                ws.Cells(ligne, 1).Value = CStr(t(0))
+                ws.Cells(ligne, 2).Value = def.Champ
+                ws.Cells(ligne, 3).NumberFormat = "@"
+                ws.Cells(ligne, 3).Value = def.ColonneBdD
+                ws.Cells(ligne, 4).Value = Len(def.ColonneBdD)
+                ws.Cells(ligne, 5).NumberFormat = "@"
+                ws.Cells(ligne, 5).Value = candidat
+                ws.Cells(ligne, 6).Value = Len(candidat)
+
+                If posDiff > 0 Then
+                    ws.Cells(ligne, 7).Value = posDiff
+                    If posDiff <= Len(def.ColonneBdD) Then
+                        ws.Cells(ligne, 8).Value = AscW(Mid$(def.ColonneBdD, posDiff, 1))
+                    Else
+                        ws.Cells(ligne, 8).Value = "(absent cfg)"
+                    End If
+                    If posDiff <= Len(candidat) Then
+                        ws.Cells(ligne, 9).Value = AscW(Mid$(candidat, posDiff, 1))
+                    Else
+                        ws.Cells(ligne, 9).Value = "(absent BdD)"
+                    End If
+                Else
+                    ws.Cells(ligne, 7).Value = "= identique ?!"
+                End If
+                ligne = ligne + 1
+            End If
+        Next def
+    Next t
+
+    Call Close_CONN(ChaineConnexionSIRUS)
+
+    ws.Columns("A:I").AutoFit
+    ws.Columns("C").ColumnWidth = 60
+    ws.Columns("E").ColumnWidth = 60
+    ws.Range("A2").Select
+    ActiveWindow.FreezePanes = True
+
+    MsgBox "Feuille '" & FEUILLE & "' generee. " & (ligne - 2) & _
+           " ecart(s) identifie(s)." & vbCrLf & vbCrLf & _
+           "Codes Unicode courants a surveiller :" & vbCrLf & _
+           "  39  = ' apostrophe ASCII" & vbCrLf & _
+           "  8217 = ' apostrophe typographique" & vbCrLf & _
+           "  32  = espace normal" & vbCrLf & _
+           "  160 = espace insecable (NBSP)" & vbCrLf & _
+           "  233 = e accent aigu", vbInformation, "SIRUS Diag Diff"
+    Exit Sub
+
+Sortie:
+    On Error Resume Next
+    Call Close_CONN(ChaineConnexionSIRUS)
+    On Error GoTo 0
+    MsgBox "Erreur Test_DiagnostiquerEcartsAvecCandidats : " & Err.Description, vbCritical
+End Sub
+
+' Helpers (privates) pour la comparaison de chaines.
+Private Function TrouverCandidatBdD(ByVal sCfg As String, noms As Object) As String
+    ' Renvoie le nom BdD avec le plus long prefixe commun avec sCfg.
+    Dim k As Variant
+    Dim meilleur As String
+    Dim meilleurLen As Long
+    Dim n As Long
+    For Each k In noms.Keys
+        n = LongueurPrefixeCommun(sCfg, CStr(k))
+        If n > meilleurLen Then
+            meilleurLen = n
+            meilleur = CStr(k)
+        End If
+    Next k
+    TrouverCandidatBdD = meilleur
+End Function
+
+Private Function LongueurPrefixeCommun(ByVal a As String, ByVal b As String) As Long
+    Dim i As Long, n As Long
+    n = Len(a)
+    If Len(b) < n Then n = Len(b)
+    For i = 1 To n
+        If Mid$(a, i, 1) <> Mid$(b, i, 1) Then
+            LongueurPrefixeCommun = i - 1
+            Exit Function
+        End If
+    Next i
+    LongueurPrefixeCommun = n
+End Function
+
+Private Function PositionPremiereDifference(ByVal a As String, ByVal b As String) As Long
+    Dim i As Long, n As Long
+    n = Len(a)
+    If Len(b) < n Then n = Len(b)
+    For i = 1 To n
+        If Mid$(a, i, 1) <> Mid$(b, i, 1) Then
+            PositionPremiereDifference = i
+            Exit Function
+        End If
+    Next i
+    If Len(a) <> Len(b) Then
+        PositionPremiereDifference = n + 1
+    Else
+        PositionPremiereDifference = 0  ' identiques
+    End If
+End Function
+
+' =========================================================================
 ' Test_DiagnostiquerColonnesBdD
 ' =========================================================================
 ' Pour chaque table BdD, fait un SELECT * WHERE 1=0 (structure sans
