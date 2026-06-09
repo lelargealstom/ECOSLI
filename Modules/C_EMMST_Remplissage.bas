@@ -426,7 +426,7 @@ Public Sub FinaliserFichierEMMST(ByRef Template As Workbook)
     Application.DisplayAlerts = True
     
     ' Fermer connexion BDD
-    Close_CONN (Replace(CONNEXION_EXCEL_BDD_PROD, "UserProfile", userpath))
+    Close_CONN (Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", userpath))
     
 End Sub
 

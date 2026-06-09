@@ -451,7 +451,7 @@ End Function
 Public Sub SynchroBDD()
 'Proc�dure de synchronisation One Drive de la BDD
 
-cheminbase = Replace(CONNEXION_EXCEL_BDD_PROD, "UserProfile", Environ$("UserProfile"))
+cheminbase = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
 cheminbase = Split(cheminbase, "Data Source=")(1)
 cheminbase = Split(cheminbase, ";")(0)
 

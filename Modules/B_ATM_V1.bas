@@ -637,6 +637,6 @@ Private Sub FinaliserFichierV1(ByRef Template As Workbook, ByRef index As Worksh
     Application.DisplayAlerts = True
     
     ' Fermer connexion BDD
-    Close_CONN (Replace(CONNEXION_EXCEL_BDD_PROD, "UserProfile", userpath))
+    Close_CONN (Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", userpath))
 End Sub
 

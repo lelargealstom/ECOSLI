@@ -127,7 +127,7 @@ barreimage.Visible = True
 barrearriere.Visible = True
 
 'Ouverture de la connexion � la BDD
-Call Open_CONN(Replace(CONNEXION_EXCEL_BDD_PROD, "UserProfile", Environ("UserProfile")))
+Call Open_CONN(Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ("UserProfile")))
 
 'Il faut appeller la macro de g�n�ration ATM
 Call Main_ATM
@@ -213,7 +213,7 @@ barreimage.Visible = True
 barrearriere.Visible = True
 
 'Ouverture de la connexion � la BDD
-Call Open_CONN(Replace(CONNEXION_EXCEL_BDD_PROD, "UserProfile", Environ$("UserProfile")))
+Call Open_CONN(Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile")))
 
 'Il faut appeller la macro de g�n�ration EMMST
 Call Main_EMMST
@@ -235,7 +235,7 @@ barreimage.Visible = True
 barrearriere.Visible = True
 
 'Ouverture de la connexion � la BDD
-Call Open_CONN(Replace(CONNEXION_EXCEL_BDD_PROD, "UserProfile", Environ$("UserProfile")))
+Call Open_CONN(Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile")))
 
 'Il faut appeller la macro de g�n�ration Providor - Sans cas de test
 Call Main_Providor(False)
@@ -315,7 +315,7 @@ End If
 MsgBox "Le test de non r�gression n'est pas encore disponible"
 Exit Sub
 'Ouverture de la connexion � la BDD
-Call Open_CONN(Replace(CONNEXION_EXCEL_BDD_PROD, "UserProfile", Environ$("UserProfile")))
+Call Open_CONN(Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile")))
 
 'Il faut appeller la macro de g�n�ration Providor - Sans cas de test
 Call Main_Providor(True)
@@ -339,7 +339,7 @@ End Sub
 Private Sub Connexion_BDD_Button_Click()
     Dim result As Variant
     
-    result = Test_Connexion(CONNEXION_EXCEL_BDD_PROD)
+    result = Test_Connexion(CONNEXION_EXCEL_BDD_TRAVAIL)
     MsgBox result(0), result(1), "Test connexion BDD"
 End Sub
 Private Sub EMMST_Option_Click()
@@ -561,7 +561,7 @@ Public Sub UserForm_Initialize()
 'On force l'ouverture de la base de donn�es pour que la synchronisation soit optimale
 
 'On cr�e la connexion � la Base de donn�es en ouvrant la fen�tre
-Call Open_CONN(Replace(CONNEXION_EXCEL_BDD_PROD, "UserProfile", Environ$("UserProfile")))
+Call Open_CONN(Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile")))
 Dim wb As Workbook
 'Dim ws As Worksheet
 Dim ts As Object

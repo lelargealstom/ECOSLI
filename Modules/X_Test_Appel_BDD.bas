@@ -24,7 +24,7 @@ Public Sub recup_fields()
     Set REQSEL = CreateObject("ADODB.Recordset")
 
     'Ouverture de la connexion à la BDD
-    Call Open_CONN(Replace(CONNEXION_EXCEL_BDD_PROD, "UserProfile", Environ$("UserProfile")))
+    Call Open_CONN(Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile")))
     
     STRSEL = "SELECT * FROM [Info_ATM$]"
     

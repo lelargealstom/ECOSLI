@@ -94,7 +94,7 @@ NextDTR:
     Call Progress_Terminer
 
     ' Fermeture connexion
-    Close_CONN (Replace(CONNEXION_EXCEL_BDD_PROD, "UserProfile", userpath))
+    Close_CONN (Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", userpath))
 
     ' Message final
     TurnOnFunctionality
