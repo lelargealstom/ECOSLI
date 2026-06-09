@@ -132,55 +132,70 @@ End Sub
 ' Conditionnels : MTBF intrinseque / Motif NA (au moins un des deux),
 ' Prix/Date validite Spare et Repair selon Node Type et presence prix manuel.
 Private Sub PeuplerProduit(lo As ListObject)
+    ' ColonneBdD = vrais noms BdD (cf. Champs_BDD.xlsx, colonne Produit).
 
     Call AjouterChamp(lo, "Produit", "DTR", "DTR", 10, _
                       "Texte", "", "Oui", "", "Saisie", "", 3, "", _
                       "Identifiant unique du produit (cle).")
 
-    Call AjouterChamp(lo, "Produit", "Designation manuelle", "DesignationManuelle", 20, _
+    Call AjouterChamp(lo, "Produit", "Designation manuelle", _
+                      "Désignation manuelle_PRODUIT", 20, _
                       "Texte", "", "Oui", "", "Saisie", "", 2, "", "")
 
-    Call AjouterChamp(lo, "Produit", "Node Type", "NodeType", 30, _
+    Call AjouterChamp(lo, "Produit", "Node Type", _
+                      "Node type Produit (LRU/SRU…)_PRODUIT", 30, _
                       "Liste", "NodeType", "Oui", "", "Saisie", "", 2, "", "")
 
-    Call AjouterChamp(lo, "Produit", "Fournisseur", "Fournisseur", 40, _
+    Call AjouterChamp(lo, "Produit", "Fournisseur", _
+                      "Fournisseur_PRODUIT", 40, _
                       "Texte", "", "Oui", "", "Saisie", "", 1, "", "")
 
-    Call AjouterChamp(lo, "Produit", "Reference fournisseur", "ReferenceFournisseur", 50, _
+    Call AjouterChamp(lo, "Produit", "Reference fournisseur", _
+                      "Référence fournisseur_PRODUIT", 50, _
                       "Texte", "", "Oui", "", "Saisie", "", 1, "", "")
 
-    Call AjouterChamp(lo, "Produit", "Numero plan", "NumeroPlan", 60, _
-                      "Texte", "", "Oui", "", "Saisie", "", 1, "", "")
+    Call AjouterChamp(lo, "Produit", "Numero plan", _
+                      "Drawing number", 60, _
+                      "Texte", "", "Oui", "", "Saisie", "", 1, "", _
+                      "Note : nom BdD sans suffixe _PRODUIT.")
 
-    Call AjouterChamp(lo, "Produit", "MoQ Spare", "MoQSpare", 70, _
+    Call AjouterChamp(lo, "Produit", "MoQ Spare", _
+                      "MoQ spare catalogue_PRODUIT", 70, _
                       "Nombre", "", "Oui", "", "Saisie", "", 1, "", _
                       "Minimum Order Quantity Spare.")
 
-    Call AjouterChamp(lo, "Produit", "MTBF intrinseque", "MTBFIntrinseque", 80, _
-                      "Nombre", "", "Conditionnel", "MotifNA=""""", "Saisie", "", 2, "", _
-                      "Obligatoire sauf si Motif NA renseigne.")
+    Call AjouterChamp(lo, "Produit", "MTBF intrinseque", _
+                      "MTBF intrinsèque Produit (h) issu de la datasheet _PRODUIT", 80, _
+                      "Nombre", "", "Conditionnel", "Vide si Motif NA renseigne", "Saisie", "", 2, "", _
+                      "Obligatoire sauf si Motif NA renseigne. Note : espace avant _PRODUIT dans le nom BdD.")
 
-    Call AjouterChamp(lo, "Produit", "Motif NA", "MotifNA", 90, _
-                      "Texte", "", "Conditionnel", "MTBFIntrinseque=""""", "Saisie", "", 1, "", _
+    Call AjouterChamp(lo, "Produit", "Motif NA", _
+                      "MotifNonApplicabilité_PRODUIT", 90, _
+                      "Texte", "", "Conditionnel", "Vide si MTBF intrinseque renseigne", "Saisie", "", 1, "", _
                       "Obligatoire sauf si MTBF intrinseque renseigne.")
 
-    Call AjouterChamp(lo, "Produit", "Prix Spare manuel", "PrixSpareManuel", 100, _
-                      "Nombre", "", "Conditionnel", "NodeType IN (LRU,SRU)", "Saisie", "", 1, "", _
+    Call AjouterChamp(lo, "Produit", "Prix Spare manuel", _
+                      "Prix SPARE manuel_PRODUIT", 100, _
+                      "Nombre", "", "Conditionnel", "NodeType LRU/SRU obligatoire ; sinon 1 prix Spare sur 3", "Saisie", "", 1, "", _
                       "Obligatoire pour LRU/SRU ; au moins 1 prix Spare sur 3 pour LRUNR/SRUNR/KIT/VISSERIE/ASSEMBLY.")
 
-    Call AjouterChamp(lo, "Produit", "Prix Repair manuel", "PrixRepairManuel", 110, _
-                      "Nombre", "", "Conditionnel", "NodeType IN (LRU,SRU)", "Saisie", "", 1, "", _
+    Call AjouterChamp(lo, "Produit", "Prix Repair manuel", _
+                      "Prix REPAIR manuel_PRODUIT", 110, _
+                      "Nombre", "", "Conditionnel", "NodeType LRU/SRU", "Saisie", "", 1, "", _
                       "Obligatoire pour LRU/SRU.")
 
-    Call AjouterChamp(lo, "Produit", "Date validite Spare", "DateValiditeSpare", 120, _
-                      "Date", "", "Conditionnel", "PrixSpareManuel<>""""", "Saisie", "", 1, "", _
+    Call AjouterChamp(lo, "Produit", "Date validite Spare", _
+                      "Dates de validité des prix SPARE connus sur Projet (ASL)_PRODUIT", 120, _
+                      "Date", "", "Conditionnel", "Prix Spare manuel renseigne", "Saisie", "", 1, "", _
                       "Attendue des qu'un prix Spare manuel est saisi.")
 
-    Call AjouterChamp(lo, "Produit", "Date validite Repair", "DateValiditeRepair", 130, _
-                      "Date", "", "Conditionnel", "PrixRepairManuel<>""""", "Saisie", "", 1, "", _
+    Call AjouterChamp(lo, "Produit", "Date validite Repair", _
+                      "Dates de validité des prix REPAIR connus sur Projet (ASL)_PRODUIT", 130, _
+                      "Date", "", "Conditionnel", "Prix Repair manuel renseigne", "Saisie", "", 1, "", _
                       "Attendue des qu'un prix Repair manuel est saisi.")
 
-    Call AjouterChamp(lo, "Produit", "Designation BdD", "DesignationBdD", 200, _
+    Call AjouterChamp(lo, "Produit", "Designation BdD", _
+                      "Désignation_PRODUIT", 200, _
                       "Texte", "", "Non", "", "Auto", "", 0, "", _
                       "Lecture seule, recuperee de la BdD (affichage gris).")
 End Sub
@@ -194,38 +209,45 @@ End Sub
 ' Reparabilite, Poids (herite EMMST.Poids), Temps generique.
 ' Alerte : Poids absent ==> EMMST inconnu en base.
 Private Sub PeuplerInfoATM(lo As ListObject)
+    ' ColonneBdD = vrais noms BdD (cf. Champs_BDD.xlsx, colonne Info_ATM).
 
-    Call AjouterChamp(lo, "InfoATM", "DTR", "DTR", 10, _
+    Call AjouterChamp(lo, "InfoATM", "DTR", "DTR_INFOATM", 10, _
                       "Texte", "", "Oui", "", "Saisie", "", 3, "", _
                       "Identifiant unique ATM (cle).")
 
-    Call AjouterChamp(lo, "InfoATM", "HARD/SOFT", "HardSoft", 20, _
+    Call AjouterChamp(lo, "InfoATM", "HARD/SOFT", "HARD/SOFT", 20, _
                       "Liste", "HardSoft", "Oui", "", "Saisie", "", 2, _
-                      "HS_Info=HS_Tache", _
-                      "Doit correspondre au HARD/SOFT des Taches associees.")
+                      "HS_Info = HS_Tache", _
+                      "Doit correspondre au HARD/SOFT des Taches associees. Note : nom BdD sans suffixe table.")
 
-    Call AjouterChamp(lo, "InfoATM", "Descriptif FR", "DescriptifFR", 30, _
+    Call AjouterChamp(lo, "InfoATM", "Descriptif FR", _
+                      "DescriptifATMFR_INFOATM", 30, _
                       "Texte", "", "Non", "", "Auto", "", 0, "", _
                       "Lecture seule, recupere de la BdD (affichage gris).")
 
-    Call AjouterChamp(lo, "InfoATM", "Descriptif EN", "DescriptifEN", 40, _
+    Call AjouterChamp(lo, "InfoATM", "Descriptif EN", _
+                      "DescriptifATMEN_INFOATM", 40, _
                       "Texte", "", "Non", "", "Auto", "", 0, "", _
                       "Lecture seule, recupere de la BdD (affichage gris).")
 
-    Call AjouterChamp(lo, "InfoATM", "Plan", "Plan", 50, _
-                      "Texte", "", "Non", "", "Herite", "Produit.NumeroPlan", 0, "", _
-                      "Herite de Produit.NumeroPlan (affichage gris).")
+    Call AjouterChamp(lo, "InfoATM", "Plan", _
+                      "PLANATM_INFOATM", 50, _
+                      "Texte", "", "Non", "", "Herite", "Produit.Drawing number", 0, "", _
+                      "Herite de Produit (affichage gris).")
 
-    Call AjouterChamp(lo, "InfoATM", "Reparabilite", "Reparabilite", 60, _
+    Call AjouterChamp(lo, "InfoATM", "Reparabilite", _
+                      "Reparabilite_INFOATM", 60, _
                       "Texte", "", "Non", "", "Auto", "", 0, "", _
                       "Lecture seule (affichage gris).")
 
-    Call AjouterChamp(lo, "InfoATM", "Poids", "Poids", 70, _
-                      "Nombre", "", "Non", "", "Herite", "EMMST.Poids", 0, _
-                      "PoidsAbsent==>EMMSTInconnu", _
-                      "Herite de EMMST.Poids. Si absent en base ==> alerte EMMST inconnu.")
+    Call AjouterChamp(lo, "InfoATM", "Poids", _
+                      "Poids_INFOATM", 70, _
+                      "Nombre", "", "Non", "", "Herite", "EMMST.DimensionNuPoids", 0, _
+                      "Poids absent ==> EMMST inconnu", _
+                      "Herite de EMMST. Si absent en base ==> alerte EMMST inconnu.")
 
-    Call AjouterChamp(lo, "InfoATM", "Temps generique", "TempsGenerique", 80, _
+    Call AjouterChamp(lo, "InfoATM", "Temps generique", _
+                      "Temps générique de la tâche_INFOATM", 80, _
                       "Nombre", "", "Non", "", "Auto", "", 0, "", _
                       "Lecture seule, calcule (affichage gris).")
 End Sub
@@ -240,36 +262,40 @@ End Sub
 '   * Rang 2.1 / 5.1 ET NodeType >= SRU ==> Banc test attendu
 '   * Coherence HARD/SOFT InfoATM <==> TachesATM
 Private Sub PeuplerTachesATM(lo As ListObject)
+    ' ColonneBdD = vrais noms BdD (cf. Champs_BDD.xlsx, colonne Taches_ATM).
 
-    Call AjouterChamp(lo, "TachesATM", "DTR", "DTR", 10, _
+    Call AjouterChamp(lo, "TachesATM", "DTR", "DTR_TACHEATM", 10, _
                       "Texte", "", "Oui", "", "Saisie", "", 3, "", _
                       "Cle parent (ATM de rattachement).")
 
-    Call AjouterChamp(lo, "TachesATM", "Rang", "Rang", 20, _
+    Call AjouterChamp(lo, "TachesATM", "Rang", "Rang_TACHEATM", 20, _
                       "Texte", "", "Oui", "", "Saisie", "", 2, "", _
                       "Numerotation hierarchique (ex. 2.1, 5.1, 3.2.4).")
 
-    Call AjouterChamp(lo, "TachesATM", "Langue", "Langue", 30, _
+    Call AjouterChamp(lo, "TachesATM", "Langue", "Langue_TACHEATM", 30, _
                       "Liste", "Langue", "Oui", "", "Saisie", "", 1, "", _
                       "FR ou EN.")
 
-    Call AjouterChamp(lo, "TachesATM", "HARD/SOFT", "HardSoft", 40, _
+    Call AjouterChamp(lo, "TachesATM", "HARD/SOFT", "HARD/SOFT", 40, _
                       "Liste", "HardSoft", "Oui", "", "Saisie", "", 1, _
-                      "HS_Info=HS_Tache", _
-                      "Doit etre coherent avec InfoATM.HardSoft du meme DTR.")
+                      "HS_Info = HS_Tache", _
+                      "Doit etre coherent avec InfoATM.HARD/SOFT du meme DTR.")
 
-    Call AjouterChamp(lo, "TachesATM", "Description", "Description", 50, _
-                      "Texte", "", "Conditionnel", "Rang LIKE (3.*,4.*)", "Saisie", "", 2, _
-                      "TorqueTighten==>NmAttendu", _
+    Call AjouterChamp(lo, "TachesATM", "Description", _
+                      "Description_TACHEATM", 50, _
+                      "Texte", "", "Conditionnel", "Rang 3.* ou 4.*", "Saisie", "", 2, _
+                      "Torque Tighten ==> critere N.m attendu", _
                       "Obligatoire pour rang 3.* et 4.*. Si contient 'Torque Tighten' ==> critere N.m attendu.")
 
-    Call AjouterChamp(lo, "TachesATM", "Critere Nm", "CritereNm", 60, _
-                      "Nombre", "", "Conditionnel", "Description CONTAINS 'Torque Tighten'", "Saisie", "", 1, "", _
-                      "Couple de serrage en N.m, attendu si Description contient 'Torque Tighten'.")
+    Call AjouterChamp(lo, "TachesATM", "Critere Nm", _
+                      "CritèresDimensionnels_TACHEATM", 60, _
+                      "Nombre", "", "Conditionnel", "Description contient 'Torque Tighten'", "Saisie", "", 1, "", _
+                      "Couple de serrage en N.m, attendu si Description contient 'Torque Tighten'. (Champ BdD 'CritèresDimensionnels' a confirmer.)")
 
-    Call AjouterChamp(lo, "TachesATM", "Banc test", "BancTest", 70, _
-                      "Texte", "", "Conditionnel", "Rang IN (2.1,5.1) AND NodeType>=SRU", "Saisie", "", 1, "", _
-                      "Reference banc test, attendue pour Rang 2.1/5.1 et NodeType >= SRU.")
+    Call AjouterChamp(lo, "TachesATM", "Banc test", _
+                      "??_BancTest_a_definir", 70, _
+                      "Texte", "", "Conditionnel", "Rang 2.1/5.1 et NodeType >= SRU", "Saisie", "", 1, "", _
+                      "Reference banc test, attendue pour Rang 2.1/5.1 et NodeType >= SRU. (Champ BdD a confirmer : pas trouve dans Champs_BDD.xlsx.)")
 End Sub
 
 ' =========================================================================
@@ -281,75 +307,138 @@ End Sub
 ' Peuplement Phase 0 : champs principaux derives du Type EMMST_Col existant
 ' (Z_Variables.bas). A completer Phase 1+ avec la grille complete EMMST.
 Private Sub PeuplerEMMST(lo As ListObject)
+    ' ColonneBdD = vrais noms BdD (cf. Champs_BDD.xlsx, colonne EMMST).
+    ' 38 champs alignes sur Champs_BDD.xlsx. Brief 6.3 : feuille longue
+    ' sectionnee, "tous champs attendus" (la plupart Non bloquants).
 
-    Call AjouterChamp(lo, "EMMST", "DTR", "DTR", 10, _
+    ' --- Identification ---
+    Call AjouterChamp(lo, "EMMST", "DTR", "DTR_EMMST", 10, _
                       "Texte", "", "Oui", "", "Saisie", "", 3, "", _
                       "Identifiant unique EMMST (cle).")
 
-    Call AjouterChamp(lo, "EMMST", "Designation", "Designation", 20, _
-                      "Texte", "", "Oui", "", "Saisie", "", 2, "", "")
-
-    Call AjouterChamp(lo, "EMMST", "Fournisseur", "Fournisseur", 30, _
-                      "Texte", "", "Non", "", "Herite", "Produit.Fournisseur", 0, "", _
-                      "Herite de Produit (affichage gris).")
-
-    ' --- Dimensions nu (Bare) ---
-    Call AjouterChamp(lo, "EMMST", "Longueur nu", "BareLength", 100, _
+    ' --- Dimensions nu ---
+    Call AjouterChamp(lo, "EMMST", "Longueur nu", _
+                      "DimensionNuLongueur_EMMST", 100, _
                       "Nombre", "", "Oui", "", "Saisie", "", 1, "", "mm")
-    Call AjouterChamp(lo, "EMMST", "Largeur nu", "BareWidth", 110, _
+    Call AjouterChamp(lo, "EMMST", "Largeur nu", _
+                      "DimensionNuLargeur_EMMST", 110, _
                       "Nombre", "", "Oui", "", "Saisie", "", 1, "", "mm")
-    Call AjouterChamp(lo, "EMMST", "Hauteur nu", "BareHeight", 120, _
+    Call AjouterChamp(lo, "EMMST", "Hauteur nu", _
+                      "DimensionNuHauteur_EMMST", 120, _
                       "Nombre", "", "Oui", "", "Saisie", "", 1, "", "mm")
-    Call AjouterChamp(lo, "EMMST", "Poids nu", "BareMass", 130, _
+    Call AjouterChamp(lo, "EMMST", "Poids nu", _
+                      "DimensionNuPoids", 130, _
                       "Nombre", "", "Oui", "", "Saisie", "", 2, "", _
-                      "kg. Reutilise par InfoATM.Poids (heritage).")
+                      "kg. Reutilise par InfoATM.Poids (heritage). Note : nom BdD sans suffixe _EMMST.")
 
-    ' --- Dimensions conditionne (Packaged) ---
-    Call AjouterChamp(lo, "EMMST", "Longueur conditionne", "PackagedLength", 200, _
+    ' --- Dimensions conditionne ---
+    Call AjouterChamp(lo, "EMMST", "Longueur conditionne", _
+                      "DimensionConditionnéLongueur_EMMST", 200, _
                       "Nombre", "", "Oui", "", "Saisie", "", 1, "", "mm")
-    Call AjouterChamp(lo, "EMMST", "Largeur conditionne", "PackagedWidth", 210, _
+    Call AjouterChamp(lo, "EMMST", "Largeur conditionne", _
+                      "DimensionConditionnéLargeur_EMMST", 210, _
                       "Nombre", "", "Oui", "", "Saisie", "", 1, "", "mm")
-    Call AjouterChamp(lo, "EMMST", "Hauteur conditionne", "PackagedHeight", 220, _
+    Call AjouterChamp(lo, "EMMST", "Hauteur conditionne", _
+                      "DimensionConditionnéHauteur_EMMST", 220, _
                       "Nombre", "", "Oui", "", "Saisie", "", 1, "", "mm")
-    Call AjouterChamp(lo, "EMMST", "Poids conditionne", "PackagedMass", 230, _
+    Call AjouterChamp(lo, "EMMST", "Poids conditionne", _
+                      "DimensionConditionnéPoids_EMMST", 230, _
                       "Nombre", "", "Oui", "", "Saisie", "", 1, "", "kg")
 
     ' --- Conditionnement ---
-    Call AjouterChamp(lo, "EMMST", "Peremption", "Lapsing", 300, _
-                      "Booleen", "Booleen", "Oui", "", "Saisie", "", 1, "", _
-                      "Produit perissable (Oui/Non).")
-    Call AjouterChamp(lo, "EMMST", "Date peremption", "ExpiryDate", 310, _
-                      "Date", "", "Conditionnel", "Lapsing=Oui", "Saisie", "", 1, "", _
-                      "Attendue si Peremption = Oui.")
-    Call AjouterChamp(lo, "EMMST", "Conditionnement multiple", "MultiplePackaging", 320, _
-                      "Booleen", "Booleen", "Oui", "", "Saisie", "", 1, "", "")
+    Call AjouterChamp(lo, "EMMST", "Unite conditionnement", _
+                      "UnitéConditionnement_EMMST", 300, _
+                      "Texte", "", "Non", "", "Saisie", "", 0, "", "")
+    Call AjouterChamp(lo, "EMMST", "Date peremption", _
+                      "DatePeremption_EMMST", 310, _
+                      "Date", "", "Non", "", "Saisie", "", 0, "", "")
+    Call AjouterChamp(lo, "EMMST", "Duree peremption", _
+                      "DuréePéremption_EMMST", 320, _
+                      "Texte", "", "Non", "", "Saisie", "", 0, "", "")
+    Call AjouterChamp(lo, "EMMST", "Reutilisable", _
+                      "Réutilisable_EMMST", 330, _
+                      "Booleen", "Booleen", "Non", "", "Saisie", "", 0, "", "")
 
-    ' --- Stockage ---
-    Call AjouterChamp(lo, "EMMST", "Stockage interieur", "StorageIndoor", 400, _
-                      "Booleen", "Booleen", "Oui", "", "Saisie", "", 1, "", "")
-    Call AjouterChamp(lo, "EMMST", "Stockage exterieur", "StorageOutdoor", 410, _
-                      "Booleen", "Booleen", "Oui", "", "Saisie", "", 1, "", "")
-    Call AjouterChamp(lo, "EMMST", "Stockage hors poussiere", "StorageNoDust", 420, _
-                      "Booleen", "Booleen", "Oui", "", "Saisie", "", 1, "", "")
-    Call AjouterChamp(lo, "EMMST", "Commentaire stockage", "StorageComment", 490, _
+    ' --- Marquage / Manutention ---
+    Call AjouterChamp(lo, "EMMST", "Etiquette emballage", _
+                      "EtiquetteEmballage_EMMST", 400, _
+                      "Texte", "", "Non", "", "Saisie", "", 0, "", "")
+    Call AjouterChamp(lo, "EMMST", "Marquage equipement", _
+                      "MarquageEquipement_EMMST", 410, _
+                      "Texte", "", "Non", "", "Saisie", "", 0, "", "")
+    Call AjouterChamp(lo, "EMMST", "Manutention equipement", _
+                      "ManutentionEquipement_EMMST", 420, _
+                      "Texte", "", "Non", "", "Saisie", "", 0, "", "")
+    Call AjouterChamp(lo, "EMMST", "Outillage specifique manutention", _
+                      "OutillageSpécifiqueManutention_EMMST", 430, _
+                      "Texte", "", "Non", "", "Saisie", "", 0, "", "")
+    Call AjouterChamp(lo, "EMMST", "Precaution manutention", _
+                      "PrécautionManutention_EMMST", 440, _
+                      "Texte", "", "Non", "", "Saisie", "", 0, "", "")
+    Call AjouterChamp(lo, "EMMST", "Type outil", _
+                      "TypeOutil_EMMST", 450, _
                       "Texte", "", "Non", "", "Saisie", "", 0, "", "")
 
-    ' --- Transport ---
-    Call AjouterChamp(lo, "EMMST", "Moyen transport", "TransportMean", 500, _
-                      "Texte", "", "Oui", "", "Saisie", "", 1, "", "")
-    Call AjouterChamp(lo, "EMMST", "Outillage transport", "TransportTool", 510, _
+    ' --- Stockage (booleens + commentaires) ---
+    Call AjouterChamp(lo, "EMMST", "Position stockage", _
+                      "PositionStockage_EMMST", 500, _
                       "Texte", "", "Non", "", "Saisie", "", 0, "", "")
-    Call AjouterChamp(lo, "EMMST", "Commentaire transport", "TransportComment", 590, _
+    Call AjouterChamp(lo, "EMMST", "Stockage exterieur", _
+                      "StockageExtérieur_EMMST", 510, _
+                      "Booleen", "Booleen", "Non", "", "Saisie", "", 0, "", "")
+    Call AjouterChamp(lo, "EMMST", "Stockage sous abri", _
+                      "StockageSousAbri_EMMST", 520, _
+                      "Booleen", "Booleen", "Non", "", "Saisie", "", 0, "", "")
+    Call AjouterChamp(lo, "EMMST", "Stockage air libre", _
+                      "StockageAirLibre_EMMST", 530, _
+                      "Booleen", "Booleen", "Non", "", "Saisie", "", 0, "", "")
+    Call AjouterChamp(lo, "EMMST", "Stockage hors poussiere", _
+                      "StockageHorsPoussière_EMMST", 540, _
+                      "Booleen", "Booleen", "Non", "", "Saisie", "", 0, "", "")
+    Call AjouterChamp(lo, "EMMST", "Stockage hors eau", _
+                      "StockageHorsEau_EMMST", 550, _
+                      "Booleen", "Booleen", "Non", "", "Saisie", "", 0, "", "")
+    Call AjouterChamp(lo, "EMMST", "Stockage interieur", _
+                      "StockageIntérieur_EMMST", 560, _
+                      "Booleen", "Booleen", "Non", "", "Saisie", "", 0, "", "")
+    Call AjouterChamp(lo, "EMMST", "Stockage chaud", _
+                      "StockageChaud_EMMST", 570, _
+                      "Booleen", "Booleen", "Non", "", "Saisie", "", 0, "", "")
+    Call AjouterChamp(lo, "EMMST", "Stockage froid", _
+                      "StockageFroid_EMMST", 580, _
+                      "Booleen", "Booleen", "Non", "", "Saisie", "", 0, "", "")
+    Call AjouterChamp(lo, "EMMST", "Stockage hors lumiere", _
+                      "StockageHorsLumière_EMMST", 590, _
+                      "Booleen", "Booleen", "Non", "", "Saisie", "", 0, "", "")
+    Call AjouterChamp(lo, "EMMST", "Gerbable", _
+                      "Gerbable_EMMST", 600, _
+                      "Booleen", "Booleen", "Non", "", "Saisie", "", 0, "", "")
+    Call AjouterChamp(lo, "EMMST", "Moyen stockage", _
+                      "MoyenStockage_EMMST", 610, _
+                      "Texte", "", "Non", "", "Saisie", "", 0, "", "")
+    Call AjouterChamp(lo, "EMMST", "Precaution stockage", _
+                      "PrécautionStockage_EMMST", 620, _
+                      "Texte", "", "Non", "", "Saisie", "", 0, "", "")
+    Call AjouterChamp(lo, "EMMST", "Maintenance stockage", _
+                      "MaintenanceStockage_EMMST", 630, _
                       "Texte", "", "Non", "", "Saisie", "", 0, "", "")
 
-    ' --- Marquage / Manutention / EN ---
-    Call AjouterChamp(lo, "EMMST", "Marquage equipement", "EquipmentMarking", 600, _
+    ' --- Commentaires (par section) ---
+    Call AjouterChamp(lo, "EMMST", "Commentaire emballage", _
+                      "CommentaireEmballage_EMMST", 700, _
                       "Texte", "", "Non", "", "Saisie", "", 0, "", "")
-    Call AjouterChamp(lo, "EMMST", "Manutention equipement", "EquipmentHandling", 610, _
+    Call AjouterChamp(lo, "EMMST", "Commentaire marquage", _
+                      "CommentaireMarquage_EMMST", 710, _
                       "Texte", "", "Non", "", "Saisie", "", 0, "", "")
-    Call AjouterChamp(lo, "EMMST", "Commentaire EN", "CommentEN", 700, _
-                      "Texte", "", "Non", "", "Saisie", "", 0, "", _
-                      "Traduction EN des commentaires (export client international).")
+    Call AjouterChamp(lo, "EMMST", "Commentaire manutention", _
+                      "CommentaireManutention_EMMST", 720, _
+                      "Texte", "", "Non", "", "Saisie", "", 0, "", "")
+    Call AjouterChamp(lo, "EMMST", "Commentaire stockage", _
+                      "CommentaireStockage_EMMST", 730, _
+                      "Texte", "", "Non", "", "Saisie", "", 0, "", "")
+    Call AjouterChamp(lo, "EMMST", "Commentaire transport", _
+                      "CommentaireTransport_EMMST", 740, _
+                      "Texte", "", "Non", "", "Saisie", "", 0, "", "")
 End Sub
 
 ' =========================================================================
@@ -358,58 +447,77 @@ End Sub
 ' Brief v0.2 section 6.4. Champs utiles au PROVIDOR.
 ' Briques Formation / BTE / MCO / OBSO exclues (perimetre PATH).
 Private Sub PeuplerProjetSLI(lo As ListObject)
+    ' ColonneBdD = vrais noms BdD (cf. Champs_BDD.xlsx, colonne Projet_SLI).
 
-    Call AjouterChamp(lo, "ProjetSLI", "Nom projet", "NomProjet", 10, _
+    Call AjouterChamp(lo, "ProjetSLI", "Nom projet", _
+                      "Nom projet_PROJET SLI", 10, _
                       "Texte", "", "Oui", "", "Saisie", "", 3, "", _
-                      "Identifiant unique projet SLI.")
+                      "Identifiant unique projet SLI (cle).")
 
-    Call AjouterChamp(lo, "ProjetSLI", "Type de train", "TypeTrain", 20, _
+    Call AjouterChamp(lo, "ProjetSLI", "Type de train", _
+                      "Type de train_PROJET SLI", 20, _
                       "Liste", "TypeTrain", "Oui", "", "Saisie", "", 2, "", "")
 
-    Call AjouterChamp(lo, "ProjetSLI", "Duree de circulation", "DureeCirculation", 30, _
+    Call AjouterChamp(lo, "ProjetSLI", "Duree de circulation", _
+                      "Durée de circulation_PROJET SLI", 30, _
                       "Nombre", "", "Oui", "", "Saisie", "", 2, "", _
                       "En annees.")
 
-    Call AjouterChamp(lo, "ProjetSLI", "Nombre de trains", "NombreTrains", 40, _
-                      "Nombre", "", "Oui", "", "Saisie", "", 2, "", "")
+    Call AjouterChamp(lo, "ProjetSLI", "Nombre de trains", _
+                      "Nombre de train_PROJET SLI", 40, _
+                      "Nombre", "", "Oui", "", "Saisie", "", 2, "", _
+                      "Note : nom BdD 'train' au singulier.")
 
     ' --- Profil de mission ---
-    Call AjouterChamp(lo, "ProjetSLI", "Servicing/day", "ServicingPerDay", 50, _
+    Call AjouterChamp(lo, "ProjetSLI", "Servicing/day", _
+                      "Servicing day by year_PROJET SLI", 50, _
                       "Nombre", "", "Oui", "", "Saisie", "", 1, "", _
                       "Profil de mission.")
-    Call AjouterChamp(lo, "ProjetSLI", "PH/year", "PHPerYear", 60, _
+    Call AjouterChamp(lo, "ProjetSLI", "PH/year", _
+                      "PH by year_PROJET SLI", 60, _
                       "Nombre", "", "Oui", "", "Saisie", "", 1, "", _
                       "Power Hours par an.")
-    Call AjouterChamp(lo, "ProjetSLI", "RH/year", "RHPerYear", 70, _
+    Call AjouterChamp(lo, "ProjetSLI", "RH/year", _
+                      "RH by year_PROJET SLI", 70, _
                       "Nombre", "", "Oui", "", "Saisie", "", 1, "", _
                       "Running Hours par an.")
-    Call AjouterChamp(lo, "ProjetSLI", "Km/year", "KmPerYear", 80, _
+    Call AjouterChamp(lo, "ProjetSLI", "Km/year", _
+                      "Km by year_PROJET SLI", 80, _
                       "Nombre", "", "Oui", "", "Saisie", "", 1, "", _
                       "Kilometres par an.")
 
-    Call AjouterChamp(lo, "ProjetSLI", "Duree garantie", "DureeGarantie", 90, _
+    Call AjouterChamp(lo, "ProjetSLI", "Duree garantie", _
+                      "Durée de garantie_PROJET SLI", 90, _
                       "Nombre", "", "Oui", "", "Saisie", "", 1, "", _
                       "En annees.")
 
-    Call AjouterChamp(lo, "ProjetSLI", "Devise", "Devise", 100, _
+    Call AjouterChamp(lo, "ProjetSLI", "Devise", _
+                      "Devise_PROJET SLI", 100, _
                       "Liste", "Devise", "Oui", "", "Saisie", "", 1, "", "")
 
-    Call AjouterChamp(lo, "ProjetSLI", "Man hour cost", "ManHourCost", 110, _
+    Call AjouterChamp(lo, "ProjetSLI", "Man hour cost", _
+                      "MAN hour cost_PROJET SLI", 110, _
                       "Nombre", "", "Oui", "", "Saisie", "", 1, "", _
                       "Cout horaire main d'oeuvre dans la devise du projet.")
 
-    Call AjouterChamp(lo, "ProjetSLI", "Niveau de maintenance", "NiveauMaintenance", 120, _
+    Call AjouterChamp(lo, "ProjetSLI", "Niveau de maintenance", _
+                      "Niv de maintenance_PROJET SLI", 120, _
                       "Liste", "NiveauMaintenance", "Oui", "", "Saisie", "", 1, "", "")
 
-    Call AjouterChamp(lo, "ProjetSLI", "Reference PBS/EAP", "RefPBS_EAP", 130, _
-                      "Texte", "", "Oui", "", "Saisie", "", 1, "", "")
+    Call AjouterChamp(lo, "ProjetSLI", "Reference PBS/EAP", _
+                      "??_RefPBS_EAP_a_definir", 130, _
+                      "Texte", "", "Oui", "", "Saisie", "", 1, "", _
+                      "Champ BdD a confirmer : pas trouve dans Champs_BDD.xlsx (Nombre de DTR EAP/PBS existe mais c'est une qte, pas une ref).")
 
-    Call AjouterChamp(lo, "ProjetSLI", "Reference RAM report", "RefRAMReport", 140, _
-                      "Texte", "", "Oui", "", "Saisie", "", 1, "", "")
+    Call AjouterChamp(lo, "ProjetSLI", "Reference RAM report", _
+                      "??_RefRAMReport_a_definir", 140, _
+                      "Texte", "", "Oui", "", "Saisie", "", 1, "", _
+                      "Champ BdD a confirmer : pas trouve dans Champs_BDD.xlsx.")
 
-    Call AjouterChamp(lo, "ProjetSLI", "LCC scope total", "LCCScopeTotal", 150, _
+    Call AjouterChamp(lo, "ProjetSLI", "LCC scope total", _
+                      "??_LCCScopeTotal_a_definir", 150, _
                       "Nombre", "", "Oui", "", "Saisie", "", 1, "", _
-                      "Perimetre LCC en cout total.")
+                      "Perimetre LCC en cout total. Champ BdD a confirmer.")
 End Sub
 
 ' =========================================================================
@@ -422,51 +530,74 @@ End Sub
 ' DVL generique.
 ' Coherence forte : Nom projet ==> doit correspondre a un Projet SLI existant.
 Private Sub PeuplerProjetASL(lo As ListObject)
+    ' ColonneBdD = vrais noms BdD (cf. Champs_BDD.xlsx, colonne Projet_ASL).
+    ' Note : le brief dit "Node Type / MTBF intrinseque / DVL generique
+    ' herites Produit (grises)". Les champs Node typed PROJET / DVL Projet
+    ' Hard / DVL Projet Soft existent dans ProjetASL : ce sont des saisies
+    ' projet, pre-remplies depuis Produit en lecture seule par defaut.
+    ' Seul MTBF intrinseque n'a pas de champ ProjetASL (lecture pure depuis Produit).
 
-    Call AjouterChamp(lo, "ProjetASL", "Nom projet", "NomProjet", 10, _
+    Call AjouterChamp(lo, "ProjetASL", "Nom projet", _
+                      "PROJET_PROJETASL", 10, _
                       "Texte", "", "Oui", "", "Saisie", "", 3, _
-                      "NomProjet IN ProjetSLI.NomProjet", _
-                      "Doit correspondre a un Projet SLI existant.")
+                      "Doit correspondre a un Projet SLI existant", _
+                      "Coherence forte : doit exister dans ProjetSLI.[Nom projet_PROJET SLI].")
 
-    Call AjouterChamp(lo, "ProjetASL", "DTR", "DTR", 20, _
+    Call AjouterChamp(lo, "ProjetASL", "DTR", "DTR_PROJETASL", 20, _
                       "Texte", "", "Oui", "", "Saisie", "", 3, "", _
                       "Identifiant unique du DTR de la PBS.")
 
-    Call AjouterChamp(lo, "ProjetASL", "Designation PBS", "DesignationPBS", 30, _
+    Call AjouterChamp(lo, "ProjetASL", "Designation PBS", _
+                      "Désignation_PROJETASL", 30, _
                       "Texte", "", "Oui", "", "Saisie", "", 2, "", _
                       "Designation issue de la PBS du projet.")
 
-    Call AjouterChamp(lo, "ProjetASL", "Qte", "Qte", 40, _
+    Call AjouterChamp(lo, "ProjetASL", "Qte", _
+                      "Q PBS_PROJETASL", 40, _
                       "Nombre", "", "Oui", "", "Saisie", "", 1, "", _
                       "Quantite par train.")
 
-    ' --- Herites Produit (lecture seule) ---
-    Call AjouterChamp(lo, "ProjetASL", "Node Type", "NodeType", 50, _
-                      "Liste", "NodeType", "Non", "", "Herite", "Produit.NodeType", 0, "", _
-                      "Herite de Produit (affichage gris). Valeur Produit pour ce DTR.")
+    ' --- Pre-remplis depuis Produit (saisissables avec valeur par defaut) ---
+    Call AjouterChamp(lo, "ProjetASL", "Node Type", _
+                      "Node typed PROJET_PROJETASL", 50, _
+                      "Liste", "NodeType", "Non", "", "Herite", _
+                      "Produit.Node type Produit (LRU/SRU…)_PRODUIT", 0, "", _
+                      "Pre-rempli depuis Produit, lecture seule (affichage gris) sauf demande explicite.")
 
-    Call AjouterChamp(lo, "ProjetASL", "MTBF intrinseque", "MTBFIntrinseque", 60, _
-                      "Nombre", "", "Non", "", "Herite", "Produit.MTBFIntrinseque", 0, "", _
-                      "Herite de Produit (affichage gris).")
+    Call AjouterChamp(lo, "ProjetASL", "MTBF intrinseque (info Produit)", _
+                      "", 60, _
+                      "Nombre", "", "Non", "", "Herite", _
+                      "Produit.MTBF intrinsèque Produit (h) issu de la datasheet _PRODUIT", 0, "", _
+                      "Lecture seule, affichage info depuis Produit (pas de stockage cote ProjetASL).")
 
-    Call AjouterChamp(lo, "ProjetASL", "DVL generique", "DVLGenerique", 70, _
-                      "Nombre", "", "Non", "", "Herite", "Produit.DVLGenerique", 0, "", _
-                      "Herite de Produit (affichage gris).")
+    ' --- Saisies projet (RAM report specifique) ---
+    Call AjouterChamp(lo, "ProjetASL", "DVL generique HARD", _
+                      "DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) HARDWARE_PROJET ASL", 70, _
+                      "Nombre", "", "Non", "", "Saisie", "", 0, "", _
+                      "DVL Hardware specifique projet (RAM report). Pre-rempli depuis Produit.DVL HARD si dispo.")
 
-    ' --- Saisies projet ---
-    Call AjouterChamp(lo, "ProjetASL", "MTBF fonctionnel", "MTBFFonctionnel", 80, _
+    Call AjouterChamp(lo, "ProjetASL", "DVL generique SOFT", _
+                      "DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) SOFTWARE_PROJET ASL", 75, _
+                      "Nombre", "", "Non", "", "Saisie", "", 0, "", _
+                      "DVL Software specifique projet (RAM report). Pre-rempli depuis Produit.DVL SOFT si dispo.")
+
+    Call AjouterChamp(lo, "ProjetASL", "MTBF fonctionnel", _
+                      "MTBF fonctionnel (h) issu du RAM report projet_PROJETASL", 80, _
                       "Nombre", "", "Oui", "", "Saisie", "", 2, "", _
                       "MTBF fonctionnel projet (peut differer du MTBF intrinseque Produit).")
 
-    Call AjouterChamp(lo, "ProjetASL", "Lead time Spare", "LeadTimeSpare", 90, _
+    Call AjouterChamp(lo, "ProjetASL", "Lead time Spare", _
+                      "Lead time SPARE (jours)_PROJETASL", 90, _
                       "Nombre", "", "Oui", "", "Saisie", "", 1, "", _
-                      "En semaines (a confirmer).")
+                      "En jours (cf. nom BdD).")
 
-    Call AjouterChamp(lo, "ProjetASL", "Lead time Repair", "LeadTimeRepair", 100, _
+    Call AjouterChamp(lo, "ProjetASL", "Lead time Repair", _
+                      "Lead time REPAIR (jours)_PROJETASL", 100, _
                       "Nombre", "", "Oui", "", "Saisie", "", 1, "", _
-                      "En semaines (a confirmer).")
+                      "En jours (cf. nom BdD).")
 
-    Call AjouterChamp(lo, "ProjetASL", "Testabilite", "Testabilite", 110, _
+    Call AjouterChamp(lo, "ProjetASL", "Testabilite", _
+                      "Testabilité (DTR du BTE relatif à l'équipement sur le projet concerné)_PROJETASL", 110, _
                       "Texte", "", "Oui", "", "Saisie", "", 1, "", _
                       "Champ libre (n'est pas une liste).")
 End Sub

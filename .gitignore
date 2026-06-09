@@ -1,6 +1,12 @@
 # Template projet (lourd, binaire, mal géré par git)
 ECOSLI.xlsm
 
+# Référentiel BdD (binaire, mal géré par git)
+Champs_BDD.xlsx
+
+# Exports temporaires
+_tmp_*.csv
+
 # Fichiers temporaires Office
 ~$*
 *.tmp

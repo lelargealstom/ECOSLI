@@ -6,6 +6,38 @@ Format : `[Date] — Auteur — Périmètre`, puis liste des changements par mod
 
 ---
 
+## 2026-06-09 (suite) — Session Claude Code (avec Thomas LE LARGE)
+
+### Périmètre
+Alignement de `ColonneBdD` sur les vrais noms BdD (référentiel `Champs_BDD.xlsx` fourni par Thomas). Refactor complet des 6 `Peupler*`.
+
+### Changements
+- `.gitignore` : exclusion d'`Champs_BDD.xlsx` (2.2 MB binaire) et des CSV temporaires `_tmp_*.csv`.
+- `G_SIRUS_Config.bas` — tous les `Peupler*` mis à jour avec les vrais noms BdD :
+  - Produit (14 champs) : `Désignation manuelle_PRODUIT`, `Node type Produit (LRU/SRU…)_PRODUIT`, `Référence fournisseur_PRODUIT`, `Drawing number` (sans suffixe table), `MoQ spare catalogue_PRODUIT`, `MTBF intrinsèque Produit (h) issu de la datasheet _PRODUIT` (avec espace avant `_PRODUIT`), `MotifNonApplicabilité_PRODUIT`, `Prix SPARE/REPAIR manuel_PRODUIT`, `Dates de validité des prix SPARE/REPAIR connus sur Projet (ASL)_PRODUIT`, `Désignation_PRODUIT` (champ BdD lu en Auto).
+  - InfoATM (8 champs) : `DTR_INFOATM`, `HARD/SOFT` (sans suffixe), `DescriptifATMFR/EN_INFOATM`, `PLANATM_INFOATM`, `Reparabilite_INFOATM`, `Poids_INFOATM`, `Temps générique de la tâche_INFOATM`.
+  - TachesATM (7 champs) : `DTR_TACHEATM`, `Rang_TACHEATM`, `Langue_TACHEATM`, `HARD/SOFT`, `Description_TACHEATM`, `CritèresDimensionnels_TACHEATM` (pour Critère Nm — **à confirmer**), Banc test marqué `??_BancTest_a_definir` (pas trouvé dans Champs_BDD).
+  - EMMST (38 champs au lieu de 24) : DTR + dimensions nu/conditionné (Longueur/Largeur/Hauteur/Poids) + conditionnement (Unité, Date péremption, Durée péremption, Réutilisable) + marquage/manutention (Étiquette, Marquage, Manutention, Outillage spécifique, Précaution, Type outil) + stockage (14 champs booléens et textes : Position, Extérieur, Sous abri, Air libre, Hors poussière, Hors eau, Intérieur, Chaud, Froid, Hors lumière, Gerbable, Moyen, Précaution, Maintenance) + commentaires (Emballage, Marquage, Manutention, Stockage, Transport).
+  - ProjetSLI (15 champs) : `Nom projet_PROJET SLI` (cle), `Type de train_PROJET SLI`, `Durée de circulation_PROJET SLI`, `Nombre de train_PROJET SLI` (singulier), `Servicing day by year_PROJET SLI`, `PH/RH/Km by year_PROJET SLI`, `Durée de garantie_PROJET SLI`, `Devise_PROJET SLI`, `MAN hour cost_PROJET SLI`, `Niv de maintenance_PROJET SLI`. **3 champs sans correspondance Champs_BDD** marqués `??_*_a_definir` : Reference PBS/EAP, Reference RAM report, LCC scope total.
+  - ProjetASL (12 champs au lieu de 11) : `PROJET_PROJETASL` (cle), `DTR_PROJETASL`, `Désignation_PROJETASL`, `Q PBS_PROJETASL`, `Node typed PROJET_PROJETASL` (pré-rempli depuis Produit), MTBF intrinsèque en lecture pure (ColonneBdD vide, `SourceHeritage=Produit.MTBF intrinsèque...`), DVL séparé en **HARD** et **SOFT** (au lieu d'un seul "DVL générique" du brief — à confirmer), `MTBF fonctionnel (h) issu du RAM report projet_PROJETASL`, `Lead time SPARE/REPAIR (jours)_PROJETASL`, `Testabilité (DTR du BTE...)_PROJETASL`.
+
+Total après refactor : ~94 champs (vs 79 avant), majoritairement grâce à l'extension EMMST.
+
+### Ambiguïtés à valider par Thomas
+1. **TachesATM / Critère Nm** : mappé sur `CritèresDimensionnels_TACHEATM` (probable mais pas certain).
+2. **TachesATM / Banc test** : non trouvé dans Champs_BDD.xlsx. Champ BdD ?
+3. **EMMST** : `MoyenTransport_EMMST`, `OutillageSpecifiqueTransport_EMMST`, `Version_EMMST` apparaissent dans les SQL existants (`C_EMMST_Main.bas`) mais sont absents du fichier `Champs_BDD.xlsx`. À réintégrer ?
+4. **ProjetSLI** : Reference PBS/EAP, Reference RAM report, LCC scope total — pas trouvés dans Champs_BDD. Vrais noms BdD ?
+5. **ProjetASL / DVL** : le brief disait "DVL générique" (1 champ), la BdD a HARD et SOFT distincts. J'ai créé 2 champs (HARD, SOFT). Tu valides ?
+6. **Encodage** : les noms BdD contiennent des accents (`é`, `è`, `à`, `…`). Écrits en clair UTF-8. Si VBE casse les accents à l'import (`?` au lieu d'`é`), il faudra basculer en `ChrW(...)` — me le signaler si besoin.
+
+### Reste à faire
+- Validation Thomas des 5+1 ambiguïtés ci-dessus.
+- Réimport `G_SIRUS_Config.bas` dans le `.xlam`, `Test_InitConfigSheet` + `Test_LireConfig_Toutes`.
+- **Phase 1** : `SIRUS_GenererFeuilleAnalyse(table, operation, dtrs)`.
+
+---
+
 ## 2026-06-09 — Session Claude Code (avec Thomas LE LARGE)
 
 ### Périmètre
