@@ -186,13 +186,22 @@ Public Sub SIRUS_GenererFeuilleAnalyse(ByVal sTable As String, _
     '          et activer la protection feuille (Phase 3.1).
     Call VerrouillerEtProteger(wsCible, col)
 
-    ' -- 10. Aller a la 1re cellule de saisie (col 2, ligne 3) ----
-    '    Col 1 = Statut (verrouille). 1er champ saisissable = col 2.
+    ' -- 10. Freeze panes selon la table + activation cellule -----
+    '    Fige lignes 1-2 (entetes) + colonnes a gauche selon la table :
+    '       ProjetASL : Statut + Projet + DTR  (col 1-3, freeze a D3)
+    '       autres    : Statut + DTR/Cle        (col 1-2, freeze a C3)
+    Dim colFreeze As Long
+    If sTable = "ProjetASL" Then
+        colFreeze = 4   ' fige col 1-3
+    Else
+        colFreeze = 3   ' fige col 1-2
+    End If
     wsCible.Activate
-    wsCible.Cells(SIRUS_LIGNE_DONNEES_DEBUT, 2).Select
     ActiveWindow.FreezePanes = False
-    wsCible.Cells(SIRUS_LIGNE_DONNEES_DEBUT, 2).Select
+    wsCible.Cells(SIRUS_LIGNE_DONNEES_DEBUT, colFreeze).Select
     ActiveWindow.FreezePanes = True
+    ' Curseur sur 1re cellule de saisie (col 2, juste apres Statut)
+    wsCible.Cells(SIRUS_LIGNE_DONNEES_DEBUT, 2).Select
 
     MsgBox "Feuille '" & nomFeuille & "' generee avec succes." & vbCrLf & _
            "Statut (col 1) + " & col.Count & " champs + Commentaires (col " & _

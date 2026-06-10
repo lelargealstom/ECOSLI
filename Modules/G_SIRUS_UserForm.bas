@@ -595,6 +595,35 @@ Public Sub SIRUS_PhaseInit_v2()
     UserForm.Cmb_SIRUS_Projet.Visible = False
     On Error GoTo 0
 
+    ' Affichage progressif : Frame Analyse + Frame Envoi caches tant que
+    ' l etape precedente n est pas faite.
+    On Error Resume Next
+    UserForm.Frame_SIRUS_Analyse.Visible = False
+    UserForm.Frame_SIRUS_Envoi.Visible = False
+    On Error GoTo 0
+
+    ' Peupler la ComboBox Priorite (3 valeurs fixes) + style liste fermee
+    ' (Style = 2 = fmStyleDropDownList : empeche la saisie libre, force
+    ' la selection dans la liste).
+    On Error Resume Next
+    With UserForm.Cmb_SIRUS_Priorite
+        .Clear
+        .Style = 2   ' fmStyleDropDownList
+        .AddItem "High"
+        .AddItem "Medium"
+        .AddItem "Low"
+    End With
+    On Error GoTo 0
+
+    ' Scanner le classeur actif pour alimenter le combo des feuilles SIRUS
+    ' (utile si feuilles deja generees dans la session). Si au moins une
+    ' feuille trouvee, afficher la Frame Analyse pour permettre d analyser
+    ' tout de suite sans regenerer.
+    Call SIRUS_RafraichirComboFeuilles
+    On Error Resume Next
+    UserForm.Frame_SIRUS_Analyse.Visible = (UserForm.Cmb_SIRUS_FeuilleAnalyse.ListCount > 0)
+    On Error GoTo 0
+
     ' ListView Resultats
     Call SIRUS_ConfigListViewResultats
 
@@ -817,6 +846,59 @@ Public Sub SIRUS_UI_BtnGenererClick()
             '    colonnes brutes -> SIRUS via la ligne 2 (ColonneBdD).
             Call SIRUS_DeverserExtractionDansSIRUS(sTable, sFichier, sLangue, sVersion)
     End Select
+
+    ' Affichage progressif : Frame Analyse devient visible (1 feuille
+    ' a ete generee). Frame Envoi reste cache tant que l analyse n a
+    ' pas atteint le seuil MeQ.
+    On Error Resume Next
+    UserForm.Frame_SIRUS_Analyse.Visible = True
+    UserForm.Frame_SIRUS_Envoi.Visible = False
+    On Error GoTo 0
+End Sub
+
+' -------------------------------------------------------------------------
+' SIRUS_RafraichirComboFeuilles : scanne ActiveWorkbook et alimente
+' Cmb_SIRUS_FeuilleAnalyse avec TOUTES les feuilles SIRUS_<Table>_<Op>
+' presentes (utile si l utilisateur a deja genere des feuilles dans une
+' session precedente, ou si le UserForm vient d etre rouvert).
+' Exclut les feuilles internes : SIRUS_Config, SIRUS_Diag_*, SIRUS_Historique.
+' -------------------------------------------------------------------------
+Public Sub SIRUS_RafraichirComboFeuilles()
+    Dim ws As Worksheet
+    Dim selActuelle As String
+    Dim i As Long
+    Dim bExiste As Boolean
+
+    On Error Resume Next
+    If ActiveWorkbook Is Nothing Then Exit Sub
+    selActuelle = CStr(UserForm.Cmb_SIRUS_FeuilleAnalyse.Value)
+
+    With UserForm.Cmb_SIRUS_FeuilleAnalyse
+        .Clear
+        For Each ws In ActiveWorkbook.Worksheets
+            If Left$(ws.Name, 6) = "SIRUS_" Then
+                ' Exclure feuilles internes (Config, Diag, Historique)
+                If InStr(1, ws.Name, "SIRUS_Config", vbTextCompare) = 0 _
+                   And InStr(1, ws.Name, "SIRUS_Diag", vbTextCompare) = 0 _
+                   And InStr(1, ws.Name, "SIRUS_Historique", vbTextCompare) = 0 _
+                   And InStr(1, ws.Name, "_Snap", vbTextCompare) = 0 Then
+                    .AddItem ws.Name
+                End If
+            End If
+        Next ws
+
+        ' Restaurer la selection precedente si encore presente, sinon 1re
+        bExiste = False
+        For i = 0 To .ListCount - 1
+            If .List(i) = selActuelle Then
+                .ListIndex = i
+                bExiste = True
+                Exit For
+            End If
+        Next i
+        If Not bExiste And .ListCount > 0 Then .ListIndex = 0
+    End With
+    On Error GoTo 0
 End Sub
 
 ' -------------------------------------------------------------------------
@@ -872,9 +954,13 @@ Public Sub SIRUS_UI_BtnAnalyserClick()
     ' Remplir la ListView des NOK
     Call SIRUS_RemplirListViewResultats(sFeuille)
 
+    ' Affichage progressif : Frame Envoi visible si analyse OK pour
+    ' envoi (taux MeQ >= seuil).
+    On Error Resume Next
+    UserForm.Frame_SIRUS_Envoi.Visible = (taux >= 0.7)
+    On Error GoTo 0
+
     ' Pre-remplir la Zone 3 (envoi ATMAP) si l analyse est OK pour envoyer.
-    ' Sujet (IMP-YYYY-00X), Description, Priorite et Attentes auto-remplis.
-    ' L utilisateur peut ensuite editer librement.
     If taux >= 0.7 Then Call SIRUS_UI_PreRemplirEnvoi
 End Sub
 
@@ -1102,6 +1188,91 @@ Public Sub SIRUS_UI_PrioriteChange()
 End Sub
 
 ' =========================================================================
+' SIRUS_UI_ProjetListChange
+' =========================================================================
+' Handler du Change event de Project_List (combobox principale du UserForm).
+' Met a jour le texte de Description si la Zone Envoi est visible (= apres
+' analyse OK). Permet a l ingenieur ASL de voir immediatement le projet
+' dans la description sans re-cliquer sur Analyser.
+Public Sub SIRUS_UI_ProjetListChange()
+    Dim sOp As String, sTable As String
+
+    On Error Resume Next
+    ' Si Zone Envoi pas encore visible, rien a faire
+    If Not UserForm.Frame_SIRUS_Envoi.Visible Then Exit Sub
+
+    ' Pour ProjetSLI / ProjetASL, le projet de la description NE vient PAS
+    ' de Project_List (liste du haut) mais du projet de la feuille SIRUS
+    ' en cours (cf. SIRUS_ProjetPourDescription). Donc on ne reagit au
+    ' changement de Project_List que pour les autres tables.
+    sTable = CStr(UserForm.Cmb_SIRUS_Table.Value)
+    If sTable = "ProjetSLI" Or sTable = "ProjetASL" Then Exit Sub
+
+    ' Re-construire la description (logique unifiee dans un helper)
+    Call SIRUS_MajDescriptionEnvoi
+    On Error GoTo 0
+End Sub
+
+' =========================================================================
+' SIRUS_ProjetPourDescription
+' =========================================================================
+' Renvoie le nom de projet a utiliser dans la description ATMAP :
+'   - Produit/InfoATM/TachesATM/EMMST : Project_List (liste du haut)
+'   - ProjetSLI / ProjetASL : col 2 ligne 3 de la feuille active
+'     (= 1ere valeur "Nom projet" saisie dans la feuille). Fallback :
+'     Project_List si feuille vide.
+Private Function SIRUS_ProjetPourDescription() As String
+    Dim sTable As String, sFeuille As String, sProjet As String
+    Dim ws As Worksheet
+
+    sTable = CStr(UserForm.Cmb_SIRUS_Table.Value)
+    sFeuille = CStr(UserForm.Cmb_SIRUS_FeuilleAnalyse.Value)
+
+    If sTable = "ProjetSLI" Or sTable = "ProjetASL" Then
+        ' Lire la valeur projet dans la feuille SIRUS
+        On Error Resume Next
+        Set ws = ActiveWorkbook.Worksheets(sFeuille)
+        On Error GoTo 0
+        If Not ws Is Nothing Then
+            sProjet = Trim$(SafeCStr(ws.Cells(3, 2).Value))
+        End If
+        If LenB(sProjet) = 0 Then
+            ' Fallback Project_List (cas Creer avec feuille vide)
+            sProjet = CStr(UserForm.Project_List.Value)
+        End If
+    Else
+        sProjet = CStr(UserForm.Project_List.Value)
+    End If
+
+    SIRUS_ProjetPourDescription = sProjet
+End Function
+
+' Helper unifie : reconstruit la description avec la bonne logique projet
+Private Sub SIRUS_MajDescriptionEnvoi()
+    Dim sOp As String, sTable As String, sProjet As String
+    Dim sFeuilleActive As String
+    Dim nbLignes As Long
+    Dim sProjetAff As String
+
+    sOp = SIRUS_GetOpActive()
+    sTable = CStr(UserForm.Cmb_SIRUS_Table.Value)
+    sProjet = SIRUS_ProjetPourDescription()
+    sFeuilleActive = CStr(UserForm.Cmb_SIRUS_FeuilleAnalyse.Value)
+    nbLignes = SIRUS_CompterLignesFeuille(sFeuilleActive)
+
+    If LenB(sProjet) > 0 Then
+        sProjetAff = sProjet
+    Else
+        sProjetAff = "<projet non selectionne>"
+    End If
+
+    On Error Resume Next
+    UserForm.Txt_SIRUS_Description.Value = sOp & " de " & nbLignes & _
+        " reference(s) en " & sTable & " pour le projet " & sProjetAff
+    On Error GoTo 0
+End Sub
+
+' =========================================================================
 ' SIRUS_UI_PreRemplirEnvoi
 ' =========================================================================
 ' Pre-remplit la Zone 3 apres une analyse reussie. A appeler depuis
@@ -1138,16 +1309,8 @@ Public Sub SIRUS_UI_PreRemplirEnvoi()
     numTicket = SIRUS_NumeroTicketSuivant()
     UserForm.Txt_SIRUS_Sujet.Value = numTicket & " - Import " & sOp & " " & sTable
 
-    ' Description auto
-    nbLignes = SIRUS_CompterLignesFeuille(sFeuilleActive)
-    Dim sProjetAff As String
-    If LenB(sProjet) > 0 Then
-        sProjetAff = sProjet
-    Else
-        sProjetAff = "<projet non selectionne>"
-    End If
-    UserForm.Txt_SIRUS_Description.Value = sOp & " de " & nbLignes & _
-        " reference(s) en " & sTable & " pour le projet " & sProjetAff
+    ' Description auto via helper (logique projet selon table)
+    Call SIRUS_MajDescriptionEnvoi
 
     ' Priorite defaut Medium + pre-remplir Attentes
     If LenB(CStr(UserForm.Cmb_SIRUS_Priorite.Value)) = 0 Then
@@ -1293,14 +1456,19 @@ End Sub
 
 Private Sub SIRUS_RemplirListViewResultats(ByVal sFeuille As String)
     ' Lit la colonne Statut (col 1) de la feuille active et liste les NOK
-    ' dans la ListView. Cle = col 2 (1er champ saisie). Detail = commentaire
-    ' de cellule.
+    ' dans la ListView avec coloration rouge.
+    ' Cle affichee :
+    '   - Produit/InfoATM/TachesATM/EMMST/ProjetSLI : col 2 (DTR ou Nom projet)
+    '   - ProjetASL : col 3 (DTR, car col 2 = Projet)
+    ' Detail des alertes = commentaire de cellule du Statut.
     Dim lv As MSComctlLib.ListView
     Dim ws As Worksheet
     Dim li As MSComctlLib.ListItem
     Dim ligne As Long, ligneMax As Long
     Dim statut As String, cle As String, detail As String
     Dim cellStatut As Range
+    Dim sTable As String, sOp As String
+    Dim colCle As Long
 
     ' Re-configurer la ListView (idempotent : recree les ColumnHeaders).
     ' Critique : sans ColumnHeaders, SubItems(1) leve "Invalid property value".
@@ -1314,12 +1482,20 @@ Private Sub SIRUS_RemplirListViewResultats(ByVal sFeuille As String)
     On Error GoTo 0
     If ws Is Nothing Then Exit Sub
 
+    ' Determiner la colonne contenant la cle affichee selon la table
+    Call SIRUS_ParserNomFeuille(sFeuille, sTable, sOp)
+    If sTable = "ProjetASL" Then
+        colCle = 3   ' col 2 = Projet, col 3 = DTR
+    Else
+        colCle = 2   ' col 2 = DTR (ou Nom projet pour ProjetSLI)
+    End If
+
     ligneMax = ws.Cells(ws.rows.count, 2).End(xlUp).Row
     For ligne = 3 To ligneMax
         statut = SafeCStr(ws.Cells(ligne, 1).Value)
         If InStr(1, statut, "NOK", vbTextCompare) > 0 _
            Or InStr(1, statut, "non trouv", vbTextCompare) > 0 Then
-            cle = SafeCStr(ws.Cells(ligne, 2).Value)
+            cle = SafeCStr(ws.Cells(ligne, colCle).Value)
             detail = ""
             Set cellStatut = ws.Cells(ligne, 1)
             If Not cellStatut.Comment Is Nothing Then
@@ -1330,6 +1506,12 @@ Private Sub SIRUS_RemplirListViewResultats(ByVal sFeuille As String)
             Set li = lv.ListItems.Add(, , CStr(ligne))
             li.SubItems(1) = cle
             li.SubItems(2) = detail
+            ' Coloration rouge des lignes NOK (texte rouge gras)
+            li.ForeColor = RGB(163, 45, 45)
+            li.Bold = True
+            li.ListSubItems(1).ForeColor = RGB(163, 45, 45)
+            li.ListSubItems(1).Bold = True
+            li.ListSubItems(2).ForeColor = RGB(163, 45, 45)
             On Error GoTo 0
         End If
     Next ligne

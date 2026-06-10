@@ -222,7 +222,47 @@ End Sub
 Private Sub Btn_SIRUS_Envoyer_Click()
     Call SIRUS_UI_BtnEnvoyerClick
 End Sub
+
+' Met a jour automatiquement la Description ATMAP quand le user change
+' de projet dans la liste principale (apres une analyse OK).
+Private Sub Project_List_Change()
+    Call SIRUS_UI_ProjetListChange
+End Sub
 ```
+
+## Affichage progressif des frames
+
+Au démarrage du UserForm (`SIRUS_PhaseInit_v2`) :
+- `Frame_SIRUS_Modifier.Visible = False`
+- `Frame_SIRUS_Extraction.Visible = False`
+- **`Frame_SIRUS_Analyse.Visible = False`** ← caché tant qu'aucune feuille n'a été générée
+- **`Frame_SIRUS_Envoi.Visible = False`** ← caché tant que l'analyse n'a pas atteint le seuil MeQ
+
+Progression :
+- **Après Génération** → `Frame_SIRUS_Analyse` devient visible (Zone 2)
+- **Après Analyse avec MeQ ≥ 70%** → `Frame_SIRUS_Envoi` devient visible (Zone 3) + pré-remplissage auto
+
+## ComboBox Priorité
+
+Au démarrage du UserForm (`SIRUS_PhaseInit_v2`), la ComboBox est peuplée auto :
+- `Style = fmStyleDropDownList` (= 2) → force la sélection dans la liste, pas de saisie libre
+- Items : `High`, `Medium`, `Low`
+
+Le changement de valeur déclenche `SIRUS_UI_PrioriteChange` qui met à jour `Txt_SIRUS_Attentes` (1/3/5 jours).
+
+## Freeze panes sur les feuilles SIRUS_*
+
+`SIRUS_GenererFeuilleAnalyse` fige automatiquement les colonnes selon la table :
+
+| Table | Colonnes figées | Détail |
+|---|---|---|
+| Produit, InfoATM, TachesATM, EMMST | 1-2 | Statut + DTR |
+| ProjetSLI | 1-2 | Statut + Nom projet |
+| ProjetASL | 1-3 | Statut + Projet + DTR |
+
+## Coloration ListView_SIRUS_Resultats
+
+Les lignes NOK sont affichées en **rouge gras** (RGB(163, 45, 45)). Permet à l'ingé ASL de voir immédiatement les lignes à corriger.
 
 **Note de nommage** : les handlers UI portent désormais le préfixe `SIRUS_UI_*` pour les distinguer clairement de l'API métier `SIRUS_GenererFeuilleAnalyse`, `SIRUS_AnalyserFeuille` (qui peuvent être appelées depuis du code, hors UserForm).
 
