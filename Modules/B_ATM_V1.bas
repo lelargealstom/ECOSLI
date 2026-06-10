@@ -385,9 +385,38 @@ Private Sub RemplirTachesV1(ByRef dest As Worksheet, ByRef arrTaches As Variant,
     Dim rang As String
     Dim rangChiffre As String
     Dim filtre As String
+    Dim rangAffiche As String
+    Dim maxRang3 As Integer
 
     ' Filtre effectif : "SOFT" pour la feuille SOFT, "HARD" sinon.
     If typeHARDSOFT = "SOFT" Then filtre = "SOFT" Else filtre = "HARD"
+
+    ' --- Mode SOFT : template n'a que 4 marqueurs (chapitres 1..4) ---
+    ' Mapping rang BdD -> chapitre + renumeration (validation Thomas 2026-06-10) :
+    '   1-x BdD -> chapitre 1 SOFT (rang inchange)
+    '   2-x BdD -> chapitre 2 SOFT (rang inchange)
+    '   3-x BdD -> chapitre 3 SOFT (rang inchange)
+    '   4-x BdD -> chapitre 3 SOFT, renumerote en "3-(maxRang3 + x)"
+    '   5-x BdD -> chapitre 4 SOFT, renumerote en "4-x"
+    '
+    ' Pre-passe pour calculer maxRang3 = plus grand x dans les rangs 3-x
+    ' des taches SOFT du DTR. Necessaire avant la passe d'insertion pour
+    ' connaitre l'offset a appliquer aux rangs 4-x.
+    maxRang3 = 0
+    If typeHARDSOFT = "SOFT" Then
+        For j = LBound(arrTaches, 2) To UBound(arrTaches, 2)
+            If CStr(arrTaches(RC_TACHES_HARD_SOFT, j)) = "SOFT" Then
+                rang = CStr(arrTaches(RC_TACHES_RANG, j))
+                If Len(rang) >= 3 And Left(rang, 2) = "3-" Then
+                    On Error Resume Next
+                    nvx = CInt(Mid$(rang, 3))
+                    If Err.Number = 0 And nvx > maxRang3 Then maxRang3 = nvx
+                    Err.Clear
+                    On Error GoTo 0
+                End If
+            End If
+        Next j
+    End If
 
     ' Parcourir taches de la derniere a la premiere (insertion avant)
     For j = UBound(arrTaches, 2) To LBound(arrTaches, 2) Step -1
@@ -403,9 +432,26 @@ Private Sub RemplirTachesV1(ByRef dest As Worksheet, ByRef arrTaches As Variant,
         ' Extraire niveau (ex: "5-2" -> 2)
         nvx = CInt(Right(rang, Len(rang) - InStr(1, rang, "-")))
         rangChiffre = Left(rang, 1)
+        rangAffiche = rang   ' par defaut : rang BdD tel quel
+
+        ' --- Mode SOFT : remapping chapitre + renumeration -----
+        If typeHARDSOFT = "SOFT" Then
+            Select Case rangChiffre
+                Case "4"
+                    ' Tache rang 4-x BdD -> chapitre 3 SOFT, renumerotee
+                    rangChiffre = "3"
+                    nvx = maxRang3 + nvx
+                    rangAffiche = "3-" & nvx
+                Case "5"
+                    ' Tache rang 5-x BdD -> chapitre 4 SOFT (template SOFT
+                    ' n'a pas de 5e chapitre), renumerotee en "4-x".
+                    rangChiffre = "4"
+                    rangAffiche = "4-" & nvx
+            End Select
+        End If
 
         ' Inserer tache selon rang
-        Call InsererTacheV1(dest, arrTaches, j, rangChiffre, nvx)
+        Call InsererTacheV1(dest, arrTaches, j, rangChiffre, nvx, rangAffiche)
 
 NextTache:
     Next j
@@ -416,7 +462,8 @@ End Sub
 ' =========================================================================
 Private Sub InsererTacheV1(ByRef dest As Worksheet, ByRef arrTaches As Variant, _
                            ByVal indexTache As Long, _
-                           ByVal rangChiffre As String, ByVal niveau As Integer)
+                           ByVal rangChiffre As String, ByVal niveau As Integer, _
+                           Optional ByVal rangAffiche As String = "")
     Dim ligneBase As Integer
     Dim ligneInsert As Integer
     Dim temps As Double
@@ -444,9 +491,20 @@ Private Sub InsererTacheV1(ByRef dest As Worksheet, ByRef arrTaches As Variant, 
         ligneInsert = ligneBase
     End If
 
+    ' Forcer format texte sur col B (rang) pour eviter conversion "3-6"
+    ' -> date par Excel. NumberFormat=@ sur la cellule cible avant ecriture.
+    dest.Range("B" & ligneInsert).NumberFormat = "@"
+
     ' Remplir donnees depuis le tableau local
     With dest
-        .Range("B" & ligneInsert) = arrTaches(RC_TACHES_RANG, indexTache)
+        ' Rang : si rangAffiche fourni (mode SOFT renumere), il prime.
+        ' Sinon valeur brute BdD.
+        If LenB(rangAffiche) > 0 Then
+            .Range("B" & ligneInsert) = rangAffiche
+        Else
+            .Range("B" & ligneInsert) = arrTaches(RC_TACHES_RANG, indexTache)
+        End If
+
         .Range("C" & ligneInsert) = arrTaches(RC_TACHES_DESCRIPTION, indexTache)
         .Range("E" & ligneInsert) = arrTaches(RC_TACHES_CRITERES_DIM, indexTache)
         .Range("F" & ligneInsert) = arrTaches(RC_TACHES_OUTILLAGE_SPE, indexTache)
