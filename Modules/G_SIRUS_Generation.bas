@@ -15,8 +15,9 @@ Option Compare Text
 ' =========================================================================
 ' CONSTANTES
 ' =========================================================================
-Public Const SIRUS_OP_CREER    As String = "Creer"
-Public Const SIRUS_OP_MODIFIER As String = "Modifier"
+Public Const SIRUS_OP_CREER      As String = "Creer"
+Public Const SIRUS_OP_MODIFIER   As String = "Modifier"
+Public Const SIRUS_OP_EXTRACTION As String = "Extraction"
 
 Private Const SIRUS_LIGNE_ENTETE_HUMAIN  As Long = 1
 Private Const SIRUS_LIGNE_ENTETE_BDD     As Long = 2
@@ -106,9 +107,11 @@ Public Sub SIRUS_GenererFeuilleAnalyse(ByVal sTable As String, _
         MsgBox "SIRUS : nom de table manquant.", vbCritical
         Exit Sub
     End If
-    If sOperation <> SIRUS_OP_CREER And sOperation <> SIRUS_OP_MODIFIER Then
+    If sOperation <> SIRUS_OP_CREER _
+       And sOperation <> SIRUS_OP_MODIFIER _
+       And sOperation <> SIRUS_OP_EXTRACTION Then
         MsgBox "SIRUS : operation invalide ('" & sOperation & "'). " & _
-               "Doit etre 'Creer' ou 'Modifier'.", vbCritical
+               "Doit etre 'Creer', 'Modifier' ou 'Extraction'.", vbCritical
         Exit Sub
     End If
 

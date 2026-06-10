@@ -633,27 +633,10 @@ Private Sub PeuplerProjetSLI(lo As ListObject)
                       "% de GDP fournisseur consommée_PROJET SLI", 270, _
                       "Nombre", "", "Non", "", "Saisie", "", 0, "", "")
 
-    ' --- Requis client / fournisseur (Ordre 280-310) ---------
-    Call AjouterChamp(lo, "ProjetSLI", "Requis client Acceptance", _
-                      "Requis client : Acceptance_PROJET SLI", 280, _
-                      "Texte", "", "Non", "", "Saisie", "", 0, "", "")
-    Call AjouterChamp(lo, "ProjetSLI", "Requis client Clausing", _
-                      "Requis client : Clausing_PROJET SLI", 290, _
-                      "Texte", "", "Non", "", "Saisie", "", 0, "", "")
-    Call AjouterChamp(lo, "ProjetSLI", "Requis client MoP", _
-                      "Requis client : MoP_PROJET SLI", 300, _
-                      "Texte", "", "Non", "", "Saisie", "", 0, "", "")
-    Call AjouterChamp(lo, "ProjetSLI", "Requis fournisseur Clausing", _
-                      "Requis fournisseur : Clausing_PROJET SLI", 310, _
-                      "Texte", "", "Non", "", "Saisie", "", 0, "", "")
-
-    ' --- Documents PSLI (Ordre 320-330) ----------------------
-    Call AjouterChamp(lo, "ProjetSLI", "PSLI preliminaire", _
-                      "PSLI préliminaire_PROJET SLI", 320, _
-                      "Texte", "", "Non", "", "Saisie", "", 0, "", "")
-    Call AjouterChamp(lo, "ProjetSLI", "PSLI final", _
-                      "PSLI final_PROJET SLI", 330, _
-                      "Texte", "", "Non", "", "Saisie", "", 0, "", "")
+    ' --- Requis client / fournisseur + PSLI (Ordre 280-330) ---
+    ' Retires 2026-06-10 (decision Thomas) : Requis client Acceptance/
+    ' Clausing/MoP, Requis fournisseur Clausing, PSLI preliminaire/final.
+    ' Hors scope de SIRUS, geres autrement cote process.
 
     ' --- References (Ordre 340-360) --------------------------
     Call AjouterChamp(lo, "ProjetSLI", "Reference PBS/EAP", _

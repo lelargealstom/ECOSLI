@@ -548,3 +548,454 @@ Private Function SIRUS_GetTypeActif() As String
 
 End Function
 
+' =========================================================================
+' =========================================================================
+' UI SIRUS v2 (Phase 2/3.2/5) - cablage des nouveaux controles
+' =========================================================================
+' Cf. Docs/UI_SIRUS_CONTROLES.md pour la liste des controles a creer dans
+' le UserForm. Les noms utilises ici doivent matcher ceux du Designer.
+'
+' Workflow utilisateur :
+'   1. Choisir Op (Creer/Modifier/Extraction) + Table (+ fichier si Extraction)
+'   2. Bouton Generer -> feuille SIRUS_<Table>_<Op> creee
+'   3. Bouton Analyser -> Statut OK/NOK ecrit + ListView remplie des NOK
+'   4. Bouton Envoyer -> ticket ATMAP (Phase 5, TODO)
+' =========================================================================
+
+' Note : la liste des feuilles generees est ecrite directement dans
+' Cmb_SIRUS_FeuilleAnalyse a la generation (pas de variable d'etat
+' module pour eviter les ennuis avec les variables Object/Collection
+' privees qui peuvent etre dans un etat instable apres recompilation
+' du projet VBA).
+
+' -------------------------------------------------------------------------
+' SIRUS_PhaseInit_v2 : a appeler dans UserForm_Initialize
+' -------------------------------------------------------------------------
+Public Sub SIRUS_PhaseInit_v2()
+    On Error Resume Next
+
+    ' Op par defaut : Creer
+    UserForm.Opt_SIRUS_Creer.Value = True
+
+    ' Combo Langue / Version par defaut
+    UserForm.Opt_SIRUS_V2.Value = True
+    UserForm.Opt_SIRUS_FR.Value = True
+
+    ' Init combo Table (depend de l'Op)
+    Call SIRUS_Op_Click("Creer")
+
+    ' Sous-zones cachees au depart
+    UserForm.Frame_SIRUS_Modifier.Visible = False
+    UserForm.Frame_SIRUS_Extraction.Visible = False
+
+    ' Combo Projet / TextBox DTR : etat par defaut (caches, basculement
+    ' gere par SIRUS_MajZoneModifier lors du choix Modifier + Table).
+    On Error Resume Next
+    UserForm.Lbl_SIRUS_Projet.Visible = False
+    UserForm.Cmb_SIRUS_Projet.Visible = False
+    On Error GoTo 0
+
+    ' ListView Resultats
+    Call SIRUS_ConfigListViewResultats
+
+    ' Bouton Envoyer desactive tant qu'il n'y a pas d'analyse OK
+    UserForm.Btn_SIRUS_Envoyer.Enabled = False
+
+    ' Vider le combo des feuilles d'analyse
+    UserForm.Cmb_SIRUS_FeuilleAnalyse.Clear
+
+    On Error GoTo 0
+End Sub
+
+' -------------------------------------------------------------------------
+' SIRUS_Op_Click : appele par Opt_SIRUS_Creer/Modifier/Extraction_Click
+' Met a jour la liste Table et la visibilite des sous-zones.
+' -------------------------------------------------------------------------
+Public Sub SIRUS_Op_Click(ByVal sOp As String)
+
+    With UserForm.Cmb_SIRUS_Table
+        .Clear
+        Select Case sOp
+            Case "Creer", "Modifier"
+                .AddItem "Produit"
+                .AddItem "InfoATM"
+                .AddItem "TachesATM"
+                .AddItem "EMMST"
+                .AddItem "ProjetSLI"
+                .AddItem "ProjetASL"
+            Case "Extraction"
+                .AddItem "ATM"
+                .AddItem "EMMST"
+        End Select
+        If .ListCount > 0 Then .ListIndex = 0
+    End With
+
+    UserForm.Frame_SIRUS_Modifier.Visible = (sOp = "Modifier")
+    UserForm.Frame_SIRUS_Extraction.Visible = (sOp = "Extraction")
+
+    ' Adapter Modifier : Combo Projet vs TextBox DTR multiligne
+    Call SIRUS_MajZoneModifier
+End Sub
+
+' -------------------------------------------------------------------------
+' SIRUS_Table_Change : declenche la mise a jour des sous-zones :
+'   - Version V1/V2 visible si Op=Extraction ET Table=ATM
+'   - Combo Projet visible si Op=Modifier ET Table=ProjetSLI/ProjetASL
+' -------------------------------------------------------------------------
+Public Sub SIRUS_Table_Change()
+    Dim bExtraction As Boolean
+    Dim sTable As String
+
+    bExtraction = UserForm.Opt_SIRUS_Extraction.Value
+    sTable = CStr(UserForm.Cmb_SIRUS_Table.Value)
+
+    On Error Resume Next
+    UserForm.Opt_SIRUS_V1.Visible = (bExtraction And sTable = "ATM")
+    UserForm.Opt_SIRUS_V2.Visible = (bExtraction And sTable = "ATM")
+    On Error GoTo 0
+
+    Call SIRUS_MajZoneModifier
+End Sub
+
+' -------------------------------------------------------------------------
+' SIRUS_MajZoneModifier : selon Op = Modifier ET Table choisie, bascule
+' entre la TextBox DTR multiligne et le Combo Projet (alimente depuis BdD).
+'   - ProjetSLI / ProjetASL -> Combo Projet visible, TextBox cachee
+'   - autres tables          -> TextBox visible, Combo Projet cache
+' -------------------------------------------------------------------------
+Private Sub SIRUS_MajZoneModifier()
+    Dim bModifier As Boolean
+    Dim sTable As String
+    Dim bEstProjet As Boolean
+
+    bModifier = UserForm.Opt_SIRUS_Modifier.Value
+    sTable = CStr(UserForm.Cmb_SIRUS_Table.Value)
+    bEstProjet = (sTable = "ProjetSLI" Or sTable = "ProjetASL")
+
+    On Error Resume Next
+    ' Combo Projet visible si Modifier + table Projet*
+    UserForm.Lbl_SIRUS_Projet.Visible = (bModifier And bEstProjet)
+    UserForm.Cmb_SIRUS_Projet.Visible = (bModifier And bEstProjet)
+    ' TextBox DTR : visible si Modifier ET table NON Projet*
+    UserForm.Lbl_SIRUS_Cles.Visible = (bModifier And Not bEstProjet)
+    UserForm.Txt_SIRUS_Cles.Visible = (bModifier And Not bEstProjet)
+    On Error GoTo 0
+
+    ' Alimenter le combo Projet a la 1re utilisation
+    If bModifier And bEstProjet Then
+        Call SIRUS_AlimenterComboProjets
+    End If
+End Sub
+
+' -------------------------------------------------------------------------
+' SIRUS_AlimenterComboProjets : peuple Cmb_SIRUS_Projet depuis la BdD.
+' Idempotent : ne recharge pas si deja peuple. Utilise RecupProjetsList
+' (existant dans F_FonctionsGlobales).
+' -------------------------------------------------------------------------
+Private Sub SIRUS_AlimenterComboProjets()
+    Dim arr As Variant
+    Dim i As Long
+
+    On Error Resume Next
+    If UserForm.Cmb_SIRUS_Projet.ListCount > 0 Then Exit Sub
+    On Error GoTo 0
+
+    arr = RecupProjetsList()
+    If IsEmpty(arr) Then Exit Sub
+
+    With UserForm.Cmb_SIRUS_Projet
+        .Clear
+        For i = LBound(arr) To UBound(arr)
+            If LenB(CStr(arr(i))) > 0 Then .AddItem CStr(arr(i))
+        Next i
+        If .ListCount > 0 Then .ListIndex = 0
+    End With
+End Sub
+
+' -------------------------------------------------------------------------
+' SIRUS_Parcourir_Fichier : FileDialog -> Txt_SIRUS_Fichier
+' -------------------------------------------------------------------------
+Public Sub SIRUS_Parcourir_Fichier()
+    Dim fd As FileDialog
+    Set fd = Application.FileDialog(msoFileDialogFilePicker)
+    With fd
+        .Title = "SIRUS - Selectionner le livrable ATM ou EMMST"
+        .AllowMultiSelect = False
+        .Filters.Clear
+        .Filters.Add "Fichiers Excel", "*.xlsx; *.xlsm; *.xlsb"
+        If .Show = -1 Then
+            UserForm.Txt_SIRUS_Fichier.Value = .SelectedItems(1)
+            UserForm.Lbl_SIRUS_NbFiches.Caption = "Fichier selectionne. Le decompte se fera a la generation."
+        End If
+    End With
+End Sub
+
+' -------------------------------------------------------------------------
+' SIRUS_Generer_FeuilleAnalyse : dispatch Creer/Modifier/Extraction
+' -------------------------------------------------------------------------
+Public Sub SIRUS_Generer_FeuilleAnalyse()
+    Dim sOp As String, sTable As String
+
+    sOp = SIRUS_GetOpActive()
+    sTable = CStr(UserForm.Cmb_SIRUS_Table.Value)
+
+    If LenB(sTable) = 0 Then
+        MsgBox "Selectionner une table.", vbExclamation, "SIRUS"
+        Exit Sub
+    End If
+
+    ' Reset du combo Feuille d'analyse (Zone 2)
+    UserForm.Cmb_SIRUS_FeuilleAnalyse.Clear
+
+    Select Case sOp
+        Case "Creer"
+            Call SIRUS_GenererFeuilleAnalyse(sTable, SIRUS_OP_CREER)
+            Call SIRUS_AjouterFeuilleAuCombo("SIRUS_" & sTable & "_Creer")
+
+        Case "Modifier"
+            Dim cles As Variant
+            ' Source des cles : Combo Projet pour ProjetSLI/ProjetASL,
+            ' TextBox DTR multiligne pour les autres tables.
+            If sTable = "ProjetSLI" Or sTable = "ProjetASL" Then
+                Dim sProjet As String
+                sProjet = CStr(UserForm.Cmb_SIRUS_Projet.Value)
+                If LenB(sProjet) = 0 Then
+                    MsgBox "Selectionner un projet dans la liste.", vbExclamation, "SIRUS"
+                    Exit Sub
+                End If
+                cles = Array(sProjet)
+            Else
+                cles = SIRUS_ParserCles(UserForm.Txt_SIRUS_Cles.Value)
+                If UBound(cles) < LBound(cles) Then
+                    MsgBox "Saisir au moins une cle DTR.", vbExclamation, "SIRUS"
+                    Exit Sub
+                End If
+            End If
+            Call SIRUS_GenererFeuilleAnalyse(sTable, SIRUS_OP_MODIFIER, cles)
+            Call SIRUS_AjouterFeuilleAuCombo("SIRUS_" & sTable & "_Modifier")
+
+        Case "Extraction"
+            Dim sFichier As String
+            sFichier = CStr(UserForm.Txt_SIRUS_Fichier.Value)
+            If LenB(sFichier) = 0 Then
+                MsgBox "Selectionner un fichier livrable.", vbExclamation, "SIRUS"
+                Exit Sub
+            End If
+            ' Etape D a venir : appel a SIRUS_DeverserExtractionDansSIRUS.
+            ' Pour l'instant on cree la feuille vierge SIRUS_<Table>_Extraction
+            ' pour valider le squelette UI/dispatch.
+            Select Case sTable
+                Case "ATM"
+                    Call SIRUS_GenererFeuilleAnalyse("InfoATM", SIRUS_OP_EXTRACTION)
+                    Call SIRUS_GenererFeuilleAnalyse("TachesATM", SIRUS_OP_EXTRACTION)
+                    Call SIRUS_AjouterFeuilleAuCombo("SIRUS_InfoATM_Extraction")
+                    Call SIRUS_AjouterFeuilleAuCombo("SIRUS_TachesATM_Extraction")
+                Case "EMMST"
+                    Call SIRUS_GenererFeuilleAnalyse("EMMST", SIRUS_OP_EXTRACTION)
+                    Call SIRUS_AjouterFeuilleAuCombo("SIRUS_EMMST_Extraction")
+            End Select
+            MsgBox "Extraction : feuilles SIRUS creees vierges. Le deversement " & _
+                   "des donnees du fichier sera branche a la prochaine etape (D).", _
+                   vbInformation, "SIRUS - Extraction"
+    End Select
+End Sub
+
+' -------------------------------------------------------------------------
+' SIRUS_AjouterFeuilleAuCombo : ajoute un nom de feuille dans le combo
+' Cmb_SIRUS_FeuilleAnalyse et selectionne la 1ere si c'est la 1re ajoutee.
+' Pas de doublon : verifie l'existence avant ajout.
+' -------------------------------------------------------------------------
+Private Sub SIRUS_AjouterFeuilleAuCombo(ByVal sNomFeuille As String)
+    Dim i As Long
+    Dim bExiste As Boolean
+
+    With UserForm.Cmb_SIRUS_FeuilleAnalyse
+        ' Eviter les doublons (cas relance generation)
+        bExiste = False
+        For i = 0 To .ListCount - 1
+            If .List(i) = sNomFeuille Then
+                bExiste = True
+                Exit For
+            End If
+        Next i
+        If Not bExiste Then .AddItem sNomFeuille
+        If .ListIndex < 0 And .ListCount > 0 Then .ListIndex = 0
+    End With
+End Sub
+
+' -------------------------------------------------------------------------
+' SIRUS_Analyser_Feuille : appelle SIRUS_AnalyserFeuille + remplit ListView
+' -------------------------------------------------------------------------
+Public Sub SIRUS_Analyser_Feuille()
+    Dim sFeuille As String
+    Dim sTable As String
+    Dim sOp As String
+    Dim taux As Double
+
+    sFeuille = CStr(UserForm.Cmb_SIRUS_FeuilleAnalyse.Value)
+    If LenB(sFeuille) = 0 Then
+        MsgBox "Aucune feuille a analyser. Generer d'abord une feuille.", _
+               vbExclamation, "SIRUS"
+        Exit Sub
+    End If
+
+    ' Parser "SIRUS_<Table>_<Op>" -> sTable, sOp
+    Call SIRUS_ParserNomFeuille(sFeuille, sTable, sOp)
+
+    taux = SIRUS_AnalyserFeuille(sTable, sOp)
+
+    ' Resume statut + activer envoi si taux OK
+    UserForm.Lbl_SIRUS_StatutAnalyse.Caption = _
+        "Taux de completude (MeQ) : " & Format(taux * 100, "0.0") & "%"
+
+    UserForm.Btn_SIRUS_Envoyer.Enabled = (taux >= 0.7)
+
+    ' Remplir la ListView des NOK
+    Call SIRUS_RemplirListViewResultats(sFeuille)
+End Sub
+
+' -------------------------------------------------------------------------
+' SIRUS_GotoLigneFautive : double-clic ListView -> Activer la cellule cle
+' -------------------------------------------------------------------------
+Public Sub SIRUS_GotoLigneFautive()
+    Dim lv As MSComctlLib.ListView
+    Dim li As MSComctlLib.ListItem
+    Dim ligne As Long
+    Dim sFeuille As String
+    Dim ws As Worksheet
+
+    Set lv = UserForm.ListView_SIRUS_Resultats
+    Set li = lv.SelectedItem
+    If li Is Nothing Then Exit Sub
+
+    ligne = CLng(li.Text)
+    sFeuille = CStr(UserForm.Cmb_SIRUS_FeuilleAnalyse.Value)
+    On Error Resume Next
+    Set ws = ActiveWorkbook.Worksheets(sFeuille)
+    On Error GoTo 0
+    If ws Is Nothing Then Exit Sub
+
+    Application.Goto ws.Cells(ligne, 2), Scroll:=True
+End Sub
+
+' -------------------------------------------------------------------------
+' SIRUS_Envoyer_Demande : Phase 5, TODO
+' -------------------------------------------------------------------------
+Public Sub SIRUS_Envoyer_Demande()
+    MsgBox "Envoi ATMAP : a brancher Phase 5 (etape G).", vbInformation, "SIRUS"
+End Sub
+
+' =========================================================================
+' Helpers UI SIRUS v2
+' =========================================================================
+
+Private Function SIRUS_GetOpActive() As String
+    If UserForm.Opt_SIRUS_Creer.Value Then
+        SIRUS_GetOpActive = "Creer"
+    ElseIf UserForm.Opt_SIRUS_Modifier.Value Then
+        SIRUS_GetOpActive = "Modifier"
+    ElseIf UserForm.Opt_SIRUS_Extraction.Value Then
+        SIRUS_GetOpActive = "Extraction"
+    Else
+        SIRUS_GetOpActive = ""
+    End If
+End Function
+
+Private Function SIRUS_ParserCles(ByVal sTexte As String) As Variant
+    ' Split sur newline + filtre lignes vides + trim. Renvoie tableau 0-based.
+    Dim arr As Variant
+    Dim i As Long, k As Long
+    Dim s As String
+    Dim resultat() As String
+
+    sTexte = Replace(sTexte, vbCrLf, vbLf)
+    sTexte = Replace(sTexte, vbCr, vbLf)
+    arr = Split(sTexte, vbLf)
+
+    ReDim resultat(0 To UBound(arr))
+    k = 0
+    For i = LBound(arr) To UBound(arr)
+        s = Trim$(CStr(arr(i)))
+        If LenB(s) > 0 Then
+            resultat(k) = s
+            k = k + 1
+        End If
+    Next i
+
+    If k = 0 Then
+        SIRUS_ParserCles = Array()
+    Else
+        ReDim Preserve resultat(0 To k - 1)
+        SIRUS_ParserCles = resultat
+    End If
+End Function
+
+Private Sub SIRUS_ParserNomFeuille(ByVal sNom As String, _
+                                    ByRef sTable As String, _
+                                    ByRef sOp As String)
+    ' "SIRUS_Produit_Creer" -> sTable="Produit", sOp="Creer"
+    Dim parts() As String
+    parts = Split(sNom, "_")
+    If UBound(parts) >= 2 Then
+        sTable = parts(1)
+        sOp = parts(2)
+    End If
+End Sub
+
+Public Sub SIRUS_ConfigListViewResultats()
+    Dim lv As MSComctlLib.ListView
+    On Error Resume Next
+    Set lv = UserForm.ListView_SIRUS_Resultats
+    If lv Is Nothing Then Exit Sub
+    On Error GoTo 0
+
+    With lv
+        .View = lvwReport
+        .FullRowSelect = True
+        .Gridlines = True
+        .LabelEdit = lvwManual
+        .ColumnHeaders.Clear
+        .ColumnHeaders.Add , , "Ligne", 50, lvwColumnLeft
+        .ColumnHeaders.Add , , "Cle", 120, lvwColumnLeft
+        .ColumnHeaders.Add , , "Alertes", 350, lvwColumnLeft
+        .ListItems.Clear
+    End With
+End Sub
+
+Private Sub SIRUS_RemplirListViewResultats(ByVal sFeuille As String)
+    ' Lit la colonne Statut (col 1) de la feuille active et liste les NOK
+    ' dans la ListView. Cle = col 2 (1er champ saisie). Detail = commentaire
+    ' de cellule.
+    Dim lv As MSComctlLib.ListView
+    Dim ws As Worksheet
+    Dim li As MSComctlLib.ListItem
+    Dim ligne As Long, ligneMax As Long
+    Dim statut As String, cle As String, detail As String
+    Dim cellStatut As Range
+
+    Set lv = UserForm.ListView_SIRUS_Resultats
+    lv.ListItems.Clear
+
+    On Error Resume Next
+    Set ws = ActiveWorkbook.Worksheets(sFeuille)
+    On Error GoTo 0
+    If ws Is Nothing Then Exit Sub
+
+    ligneMax = ws.Cells(ws.rows.count, 2).End(xlUp).Row
+    For ligne = 3 To ligneMax
+        statut = CStr(ws.Cells(ligne, 1).Value)
+        If InStr(1, statut, "NOK", vbTextCompare) > 0 _
+           Or InStr(1, statut, "non trouv", vbTextCompare) > 0 Then
+            cle = CStr(ws.Cells(ligne, 2).Value)
+            detail = ""
+            Set cellStatut = ws.Cells(ligne, 1)
+            If Not cellStatut.Comment Is Nothing Then
+                detail = cellStatut.Comment.Text
+                detail = Replace(detail, vbLf, " | ")
+            End If
+            Set li = lv.ListItems.Add(, , CStr(ligne))
+            li.SubItems(1) = cle
+            li.SubItems(2) = detail
+        End If
+    Next ligne
+End Sub
