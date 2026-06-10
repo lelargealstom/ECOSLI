@@ -122,25 +122,27 @@ Private Sub Cmb_SIRUS_Table_Change()
 End Sub
 
 Private Sub Btn_SIRUS_Parcourir_Click()
-    Call SIRUS_Parcourir_Fichier
+    Call SIRUS_UI_BtnParcourirClick
 End Sub
 
 Private Sub Btn_SIRUS_Generer_Click()
-    Call SIRUS_Generer_FeuilleAnalyse
+    Call SIRUS_UI_BtnGenererClick
 End Sub
 
 Private Sub Btn_SIRUS_Analyser_Click()
-    Call SIRUS_Analyser_Feuille
+    Call SIRUS_UI_BtnAnalyserClick
 End Sub
 
 Private Sub ListView_SIRUS_Resultats_DblClick()
-    Call SIRUS_GotoLigneFautive
+    Call SIRUS_UI_LvResultatsDblClick
 End Sub
 
 Private Sub Btn_SIRUS_Envoyer_Click()
-    Call SIRUS_Envoyer_Demande
+    Call SIRUS_UI_BtnEnvoyerClick
 End Sub
 ```
+
+**Note de nommage** : les handlers UI portent désormais le préfixe `SIRUS_UI_*` pour les distinguer clairement de l'API métier `SIRUS_GenererFeuilleAnalyse`, `SIRUS_AnalyserFeuille` (qui peuvent être appelées depuis du code, hors UserForm).
 
 Et dans `UserForm_Initialize`, ajouter à la fin :
 

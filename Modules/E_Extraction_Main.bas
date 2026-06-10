@@ -2,7 +2,7 @@ Attribute VB_Name = "E_Extraction_Main"
 '--------------------------------------------------------------------------------------------------------
 '
 '                                       Generateur Livrables SLI
-'                                       Module L_Extraction_Main (Version Refactorisée)
+'                                       Module L_Extraction_Main (Version Refactorisï¿½e)
 '                                       Developpement : LE LARGE Thomas (LGM/Alstom)
 '                                       Module principal d'extraction ATM et EMMST
 '
@@ -11,88 +11,115 @@ Option Compare Text
 Option Explicit
 
 ' =========================================================================
-' PROCÉDURE PRINCIPALE: MAIN EXTRACTION
+' PROCï¿½DURE PRINCIPALE: MAIN EXTRACTION (wrapper retrocompat)
 ' =========================================================================
+' Conserve l'interface historique pilote par le UserForm (controles legacy
+' lb_nomfichier_extr / Extr_Livrables_List / Langue_*_Extr). Delegue le
+' travail a Main_Extraction_Params qui peut etre appele directement avec
+' des parametres (notamment depuis SIRUS).
 Public Sub Main_Extraction()
-' Procédure principale qui se lance après validation par le UserForm
-' Orchestre l'extraction selon le livrable sélectionné (ATM ou EMMST)
-    
-    Dim fichier As String
+    Dim fichier As String, livrable As String, lang As String
+
+    fichier = UserForm.lb_nomfichier_extr.Value
+    livrable = UserForm.Extr_Livrables_List.Value
+    If UserForm.Langue_EN_Extr.Value = True Then
+        lang = "EN"
+    Else
+        lang = "FR"
+    End If
+
+    Call Main_Extraction_Params(fichier, livrable, lang, True)
+End Sub
+
+' =========================================================================
+' Main_Extraction_Params : version parametree (decouplee du UserForm)
+' =========================================================================
+' Lance l'extraction ATM ou EMMST depuis un fichier livrable, sans
+' dependance aux controles UserForm legacy. Utilisee par SIRUS (etape D).
+'
+' Parametres :
+'   sFichier            : chemin complet du fichier livrable
+'   sLivrable           : "ATM" ou "EMMST"
+'   sLangue             : "FR" ou "EN"
+'   bAfficherMsgFin     : True pour afficher le MsgBox de confirmation
+'                         (False pour usage SIRUS qui poursuit avec deversement)
+'
+' Retour : reference vers le Workbook livrable ouvert avec les feuilles
+'          "Info_ATM" / "Taches_ATM" / "EMMST" creees. Nothing si erreur.
+'          Le caller est responsable de fermer le classeur.
+Public Function Main_Extraction_Params(ByVal sFichier As String, _
+                                        ByVal sLivrable As String, _
+                                        ByVal sLangue As String, _
+                                        Optional ByVal bAfficherMsgFin As Boolean = True) As Workbook
     Dim nbFiches As Integer
     Dim validationOK As Boolean
-    Dim Livrable As String
-    
+
     On Error GoTo ErrorHandler
-    
+
     TurnOffFunctionality
-    
-    ' ======================================================================
-    ' ÉTAPE 1 : Récupération paramètres UserForm
-    ' ======================================================================
-    fichier = UserForm.lb_nomfichier_extr.Value
-    Livrable = UserForm.Extr_Livrables_List.Value
-    
-    If UserForm.Langue_EN_Extr.Value = True Then
-        langue = "EN"
-    Else
-        langue = "FR"
-    End If
-    
-    ' ======================================================================
-    ' ÉTAPE 2 : Ouverture fichier livrable
-    ' ======================================================================
-    Set wb = Workbooks.Open(fichier, UpdateLinks:=False, ReadOnly:=False)
-    
-    ' ======================================================================
-    ' ÉTAPE 3 : Validation fichier
-    ' ======================================================================
+
+    ' Propager la langue au global (utilisee dans les SQL ADODB)
+    langue = sLangue
+
+    ' ETAPE 1 : Ouverture fichier livrable
+    Set wb = Workbooks.Open(sFichier, UpdateLinks:=False, ReadOnly:=False)
+
+    ' ETAPE 2 : Validation fichier
     nbFiches = CompterFichesDTR(wb)
-    
     If nbFiches = 0 Then
-        MsgBox "Aucune fiche " & Livrable & " n'est reconnue dans le fichier.", vbExclamation, "Extraction"
-        GoTo CleanExit
+        MsgBox "Aucune fiche " & sLivrable & " n'est reconnue dans le fichier.", _
+               vbExclamation, "Extraction"
+        wb.Close SaveChanges:=False
+        Set wb = Nothing
+        Set Main_Extraction_Params = Nothing
+        TurnOnFunctionality
+        Exit Function
     End If
-    
-    validationOK = ValiderFormatLivrable(wb, Livrable, langue)
-    
+
+    validationOK = ValiderFormatLivrable(wb, sLivrable, sLangue)
     If Not validationOK Then
-        MsgBox "Les fiches " & Livrable & " ne sont pas au format VBN, extraction impossible.", _
+        MsgBox "Les fiches " & sLivrable & " ne sont pas au format VBN, extraction impossible.", _
                vbCritical, "Erreur Format"
-        GoTo CleanExit
+        wb.Close SaveChanges:=False
+        Set wb = Nothing
+        Set Main_Extraction_Params = Nothing
+        TurnOnFunctionality
+        Exit Function
     End If
-    
-    ' ======================================================================
-    ' ÉTAPE 4 : Extraction selon livrable
-    ' ======================================================================
-    UserForm.Lb_Nb_Ref.Caption = "Il existe " & nbFiches & " références 'DTR' possédant une fiche " & _
-                                  Livrable & " dans le document."
-    
-    Select Case Livrable
+
+    ' ETAPE 3 : Extraction selon livrable
+    On Error Resume Next
+    UserForm.Lb_Nb_Ref.Caption = "Il existe " & nbFiches & " references 'DTR' possedant une fiche " & _
+                                  sLivrable & " dans le document."
+    On Error GoTo ErrorHandler
+
+    Select Case sLivrable
         Case "ATM"
-            Call Extraction_Fiches_ATM(wb, langue, nbFiches)
-        
+            Call Extraction_Fiches_ATM(wb, sLangue, nbFiches)
         Case "EMMST"
-            Call Extraction_Fiches_EMMST(wb, langue, nbFiches)
-        
+            Call Extraction_Fiches_EMMST(wb, sLangue, nbFiches)
         Case Else
-            MsgBox "Livrable non reconnu : " & Livrable, vbCritical
-            GoTo CleanExit
+            MsgBox "Livrable non reconnu : " & sLivrable, vbCritical
+            Set Main_Extraction_Params = Nothing
+            TurnOnFunctionality
+            Exit Function
     End Select
-    
-    ' ======================================================================
-    ' ÉTAPE 5 : Confirmation
-    ' ======================================================================
-    MsgBox "Les données ont été extraites avec succès !" & vbCrLf & _
-           "Format BDD prêt pour import.", vbInformation, "Extraction Terminée"
-    
-CleanExit:
+
+    ' ETAPE 4 : Confirmation (optionnelle)
+    If bAfficherMsgFin Then
+        MsgBox "Les donnees ont ete extraites avec succes !" & vbCrLf & _
+               "Format BDD pret pour import.", vbInformation, "Extraction Terminee"
+    End If
+
     TurnOnFunctionality
-    Exit Sub
-    
+    Set Main_Extraction_Params = wb
+    Exit Function
+
 ErrorHandler:
-    MsgBox "Erreur lors de l'extraction : " & Err.description, vbCritical
+    MsgBox "Erreur lors de l'extraction : " & Err.Description, vbCritical
+    Set Main_Extraction_Params = Nothing
     TurnOnFunctionality
-End Sub
+End Function
 
 ' =========================================================================
 ' FONCTION: COMPTER FICHES DTR
@@ -121,7 +148,7 @@ End Function
 Private Function ValiderFormatLivrable(ByRef wb As Workbook, _
                                        ByVal typeLivrable As String, _
                                        ByVal langue As String) As Boolean
-' Vérifie que les fiches DTR sont bien au format VBN attendu
+' Vï¿½rifie que les fiches DTR sont bien au format VBN attendu
 ' Retourne True si format OK, False sinon
     
     Dim ws As Worksheet
@@ -130,11 +157,11 @@ Private Function ValiderFormatLivrable(ByRef wb As Workbook, _
     
     On Error GoTo ValidationFailed
     
-    ' Déterminer titre attendu selon livrable et langue
+    ' Dï¿½terminer titre attendu selon livrable et langue
     Select Case typeLivrable
         Case "ATM"
             If langue = "FR" Then
-                titreAttendu = "Analyse de Tâches de Maintenance"
+                titreAttendu = "Analyse de Tï¿½ches de Maintenance"
             Else
                 titreAttendu = "Maintenance Tasks Analysis"
             End If
@@ -151,7 +178,7 @@ Private Function ValiderFormatLivrable(ByRef wb As Workbook, _
             Exit Function
     End Select
     
-    ' Vérifier chaque feuille DTR
+    ' Vï¿½rifier chaque feuille DTR
     For Each ws In wb.Worksheets
         If ws.Name Like "*DTR*" Then
             Set celluleTitre = ws.Cells(2, 2)

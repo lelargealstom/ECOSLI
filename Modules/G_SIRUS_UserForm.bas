@@ -715,7 +715,13 @@ End Sub
 ' -------------------------------------------------------------------------
 ' SIRUS_Parcourir_Fichier : FileDialog -> Txt_SIRUS_Fichier
 ' -------------------------------------------------------------------------
-Public Sub SIRUS_Parcourir_Fichier()
+' Note de nommage 2026-06-10 (clarification) :
+'   - SIRUS_GenererFeuilleAnalyse (G_SIRUS_Generation) = API du generateur
+'     de feuille (cree SIRUS_<Table>_<Op>). Reste le point d'entree metier.
+'   - SIRUS_UI_* (G_SIRUS_UserForm)                    = handlers de clic
+'     UI qui lisent les controles UserForm et appellent l'API metier.
+' Le prefixe SIRUS_UI_ evite la confusion entre les deux niveaux.
+Public Sub SIRUS_UI_BtnParcourirClick()
     Dim fd As FileDialog
     Set fd = Application.FileDialog(msoFileDialogFilePicker)
     With fd
@@ -733,7 +739,7 @@ End Sub
 ' -------------------------------------------------------------------------
 ' SIRUS_Generer_FeuilleAnalyse : dispatch Creer/Modifier/Extraction
 ' -------------------------------------------------------------------------
-Public Sub SIRUS_Generer_FeuilleAnalyse()
+Public Sub SIRUS_UI_BtnGenererClick()
     Dim sOp As String, sTable As String
 
     sOp = SIRUS_GetOpActive()
@@ -775,15 +781,26 @@ Public Sub SIRUS_Generer_FeuilleAnalyse()
             Call SIRUS_AjouterFeuilleAuCombo("SIRUS_" & sTable & "_Modifier")
 
         Case "Extraction"
-            Dim sFichier As String
+            Dim sFichier As String, sLangue As String, sVersion As String
             sFichier = CStr(UserForm.Txt_SIRUS_Fichier.Value)
             If LenB(sFichier) = 0 Then
                 MsgBox "Selectionner un fichier livrable.", vbExclamation, "SIRUS"
                 Exit Sub
             End If
-            ' Etape D a venir : appel a SIRUS_DeverserExtractionDansSIRUS.
-            ' Pour l'instant on cree la feuille vierge SIRUS_<Table>_Extraction
-            ' pour valider le squelette UI/dispatch.
+
+            ' Langue + Version depuis les radio buttons SIRUS
+            If UserForm.Opt_SIRUS_FR.Value Then
+                sLangue = "FR"
+            Else
+                sLangue = "EN"
+            End If
+            If UserForm.Opt_SIRUS_V1.Value Then
+                sVersion = "V1"
+            Else
+                sVersion = "V2"
+            End If
+
+            ' 1. Creer les feuilles SIRUS_*_Extraction vierges (layout standard)
             Select Case sTable
                 Case "ATM"
                     Call SIRUS_GenererFeuilleAnalyse("InfoATM", SIRUS_OP_EXTRACTION)
@@ -794,9 +811,11 @@ Public Sub SIRUS_Generer_FeuilleAnalyse()
                     Call SIRUS_GenererFeuilleAnalyse("EMMST", SIRUS_OP_EXTRACTION)
                     Call SIRUS_AjouterFeuilleAuCombo("SIRUS_EMMST_Extraction")
             End Select
-            MsgBox "Extraction : feuilles SIRUS creees vierges. Le deversement " & _
-                   "des donnees du fichier sera branche a la prochaine etape (D).", _
-                   vbInformation, "SIRUS - Extraction"
+
+            ' 2. Deverser les donnees du fichier livrable dans les feuilles SIRUS
+            '    (G_SIRUS_Extraction). Lance Main_Extraction_Params + mapping
+            '    colonnes brutes -> SIRUS via la ligne 2 (ColonneBdD).
+            Call SIRUS_DeverserExtractionDansSIRUS(sTable, sFichier, sLangue, sVersion)
     End Select
 End Sub
 
@@ -826,7 +845,7 @@ End Sub
 ' -------------------------------------------------------------------------
 ' SIRUS_Analyser_Feuille : appelle SIRUS_AnalyserFeuille + remplit ListView
 ' -------------------------------------------------------------------------
-Public Sub SIRUS_Analyser_Feuille()
+Public Sub SIRUS_UI_BtnAnalyserClick()
     Dim sFeuille As String
     Dim sTable As String
     Dim sOp As String
@@ -857,7 +876,7 @@ End Sub
 ' -------------------------------------------------------------------------
 ' SIRUS_GotoLigneFautive : double-clic ListView -> Activer la cellule cle
 ' -------------------------------------------------------------------------
-Public Sub SIRUS_GotoLigneFautive()
+Public Sub SIRUS_UI_LvResultatsDblClick()
     Dim lv As MSComctlLib.ListView
     Dim li As MSComctlLib.ListItem
     Dim ligne As Long
@@ -881,7 +900,7 @@ End Sub
 ' -------------------------------------------------------------------------
 ' SIRUS_Envoyer_Demande : Phase 5, TODO
 ' -------------------------------------------------------------------------
-Public Sub SIRUS_Envoyer_Demande()
+Public Sub SIRUS_UI_BtnEnvoyerClick()
     MsgBox "Envoi ATMAP : a brancher Phase 5 (etape G).", vbInformation, "SIRUS"
 End Sub
 
