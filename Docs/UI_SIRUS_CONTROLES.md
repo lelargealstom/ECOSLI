@@ -77,9 +77,13 @@ Justification : pour ProjetSLI/ProjetASL, la clé BdD est un **nom de projet** (
 | Frame | `Frame_SIRUS_Analyse` | "2. Analyser" |
 | Label | `Lbl_SIRUS_FeuilleActive` | "Feuille active :" |
 | ComboBox | `Cmb_SIRUS_FeuilleAnalyse` | (rempli par le code après génération) |
+| CommandButton | `Btn_SIRUS_EditerFeuille` | "Éditer cette feuille" (active la feuille + masque le UserForm) |
 | CommandButton | `Btn_SIRUS_Analyser` | "Analyser la feuille" |
 | Label | `Lbl_SIRUS_StatutAnalyse` | "" (résumé OK/NOK/MeQ) |
 | ListView | `ListView_SIRUS_Resultats` | ActiveX MSComctlLib, `View = lvwReport`, `FullRowSelect = True`, `Gridlines = True`, `LabelEdit = lvwManual` |
+
+> ⚠️ **Important** : la propriété `ShowModal` du UserForm doit être à **`False`** (VBE → UserForm → F4 Properties → ShowModal = False) pour permettre l'interaction libre avec Excel pendant que le UserForm est ouvert. Le `.Show vbModeless` au lancement (W_AppelUsf) ne suffit pas si la propriété designer est restée à True.
+> Le bouton `Btn_SIRUS_EditerFeuille` est une porte de sortie pragmatique : il masque le UserForm + active la feuille. Retour via `Ctrl+W`.
 
 Colonnes attendues sur `ListView_SIRUS_Resultats` (configurées par `SIRUS_ConfigListViewResultats`) :
 1. Ligne (40)
@@ -201,6 +205,10 @@ End Sub
 
 Private Sub Btn_SIRUS_Generer_Click()
     Call SIRUS_UI_BtnGenererClick
+End Sub
+
+Private Sub Btn_SIRUS_EditerFeuille_Click()
+    Call SIRUS_UI_BtnEditerFeuilleClick
 End Sub
 
 Private Sub Btn_SIRUS_Analyser_Click()

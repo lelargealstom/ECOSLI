@@ -30,9 +30,9 @@ Public Function MsgValidation(Livrable As String) As String
     
 Dim missingFields As String
 
-' V�rification feuille
+' Verification feuille
 If Test_feuille("DATA_ASL") = False Then
-    MsgBox "Veuillez s�lectionner la feuille correspondante � votre PBS."
+    MsgBox "Veuillez selectionner la feuille correspondante a votre PBS."
     Unload UserForm
     Exit Function
 End If
@@ -77,7 +77,7 @@ End Select
 End Function
 
 Private Sub AddLigne_Produit_Click()
-Call G_SIRUS_UserForm.SIRUS_AjouterLigneProduit("Cr�ation")
+Call G_SIRUS_UserForm.SIRUS_AjouterLigneProduit("Creation")
 End Sub
 
 Private Sub AddTache_ATM_Click()
@@ -112,7 +112,7 @@ End If
 End Sub
 
 Private Sub Btn_ATM_Click()
-'On v�rifie les donn�es renseign�es par l'utilisateur
+'On verifie les donnees renseignees par l'utilisateur
 msg = MsgValidation("ATM")
 
 If msg <> "" Then
@@ -120,43 +120,43 @@ If msg <> "" Then
     Exit Sub
 End If
 
-'Si tout est ok on passe � la suite
+'Si tout est ok on passe a la suite
 barre.Visible = True
 barretexte.Visible = True
 barreimage.Visible = True
 barrearriere.Visible = True
 
-'Ouverture de la connexion � la BDD
+'Ouverture de la connexion a la BDD
 Call Open_CONN(Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ("UserProfile")))
 
-'Il faut appeller la macro de g�n�ration ATM
+'Il faut appeller la macro de generation ATM
 Call Main_ATM
 
 End Sub
 
 Private Sub Btn_ChoixFichier_Extr_Click()
-'Ouverture du r�pertoire pour s�lectionner un fichier ATM
-'1. V�rification si les options d'extraction sont effectu�es
+'Ouverture du repertoire pour selectionner un fichier ATM
+'1. Verification si les options d'extraction sont effectuees
 '  a. Choix d'un livrable type
 '  b. Choix d'une langue
 '  c. Choix d'une version si ATM
-'2. V�rification des feuilles existantes
-'  a. Pr�sence d'un Index
-'  b. Pr�sence d'un template selon la langue
+'2. Verification des feuilles existantes
+'  a. Presence d'un Index
+'  b. Presence d'un template selon la langue
 
-' 1. V�rification Options Extraction
+' 1. Verification Options Extraction
 If UserForm.Extr_Livrables_List.Value = "" Then
-    MsgBox "Veuillez s�lectionner un livrable avant de choisir un fichier."
+    MsgBox "Veuillez selectionner un livrable avant de choisir un fichier."
     Exit Sub
 Else
     Select Case UserForm.Extr_Livrables_List.Value
         Case "ATM"    'Langue et Version
             If UserForm.Langue_EN_Extr.Value = False And UserForm.Langue_FR_Extr.Value = False Then
-                MsgBox "Veuillez s�lectionner la langue relative aux fiches ATM."
+                MsgBox "Veuillez selectionner la langue relative aux fiches ATM."
                 Exit Sub
             End If
             If UserForm.ATMV1Extr.Value = False And UserForm.ATMV2Extr.Value = False Then
-                MsgBox "Veuillez s�lectionner la version des fiches ATM."
+                MsgBox "Veuillez selectionner la version des fiches ATM."
                 Exit Sub
             ElseIf UserForm.ATMV2Extr.Value = True Then
                 MsgBox "Extraction des ATM 2.0 indisponible pour le moment"
@@ -164,13 +164,13 @@ Else
             End If
         Case "EMMST"   'Langue
             If UserForm.Langue_EN_Extr.Value = False And UserForm.Langue_FR_Extr.Value = False Then
-                MsgBox "Veuillez s�lectionner la langue relative aux fiches EMMST."
+                MsgBox "Veuillez selectionner la langue relative aux fiches EMMST."
                 Exit Sub
             End If
     End Select
 End If
 
-'2. R�cup�ration des param�tres
+'2. Recuperation des parametres
 Select Case UserForm.Langue_EN_Extr.Value
     Case True
         langue = "EN"
@@ -179,13 +179,13 @@ Select Case UserForm.Langue_EN_Extr.Value
 End Select
 
 '3. Choix du fichier par l'utilisateur
-fichier = Application.GetOpenFilename("Fichier Excel, *.xlsx; *.xlsm; *.xlsb", , "S�lection de vos fiches " & UserForm.Extr_Livrables_List.Value)
+fichier = Application.GetOpenFilename("Fichier Excel, *.xlsx; *.xlsm; *.xlsb", , "Selection de vos fiches " & UserForm.Extr_Livrables_List.Value)
 If Not InStr(1, fichier, ".xlsx") >= 1 Or InStr(1, fichier, ".xlsm") >= 1 Then
     MsgBox "Votre fichier n'est pas compatible aux fiches "
     Exit Sub
 End If
 
-'4. R�cup�ration du fichier dans le textbox
+'4. Recuperation du fichier dans le textbox
 lb_nomfichier_extr.Value = fichier
 
 Debug.Print fichier
@@ -198,7 +198,7 @@ lb_nomfichier_extr.Value = ""
 
 End Sub
 Private Sub Btn_EMMST_Click()
-'On v�rifie les donn�es renseign�es par l'utilisateur
+'On verifie les donnees renseignees par l'utilisateur
 msg = MsgValidation("EMMST")
 
 If msg <> "" Then
@@ -206,21 +206,21 @@ If msg <> "" Then
     Exit Sub
 End If
 
-'Si tout est ok on passe � la suite
+'Si tout est ok on passe a la suite
 barre.Visible = True
 barretexte.Visible = True
 barreimage.Visible = True
 barrearriere.Visible = True
 
-'Ouverture de la connexion � la BDD
+'Ouverture de la connexion a la BDD
 Call Open_CONN(Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile")))
 
-'Il faut appeller la macro de g�n�ration EMMST
+'Il faut appeller la macro de generation EMMST
 Call Main_EMMST
 
 End Sub
 Private Sub Btn_Providor_Click()
-'On v�rifie les donn�es renseign�es par l'utilisateur
+'On verifie les donnees renseignees par l'utilisateur
 msg = MsgValidation("Providor")
 
 If msg <> "" Then
@@ -228,20 +228,20 @@ If msg <> "" Then
     Exit Sub
 End If
 
-'Si tout est ok on passe � la suite
+'Si tout est ok on passe a la suite
 barre.Visible = True
 barretexte.Visible = True
 barreimage.Visible = True
 barrearriere.Visible = True
 
-'Ouverture de la connexion � la BDD
+'Ouverture de la connexion a la BDD
 Call Open_CONN(Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile")))
 
-'Il faut appeller la macro de g�n�ration Providor - Sans cas de test
+'Il faut appeller la macro de generation Providor - Sans cas de test
 Call Main_Providor(False)
 
 End Sub
-' Recherche des informations ATM � partir d'un DTR
+' Recherche des informations ATM a partir d'un DTR
 Private Sub Btn_SearchDTR_ATM_Click()
 
     Dim dtr As String
@@ -249,11 +249,11 @@ Private Sub Btn_SearchDTR_ATM_Click()
 
     If dtr = "" Then
         MsgBox "Veuillez renseigner un DTR avant de lancer la recherche.", _
-               vbExclamation, "SIRUS � Recherche DTR"
+               vbExclamation, "SIRUS a Recherche DTR"
         Exit Sub
     End If
 
-    ' -- Requ�te sur la table Produit ----------------------
+    ' -- Requete sur la table Produit ----------------------
     Set REQSEL = CreateObject("ADODB.Recordset")
 
     STRSEL = "SELECT * FROM [Produit$] WHERE [DTR] = '" & _
@@ -262,8 +262,8 @@ Private Sub Btn_SearchDTR_ATM_Click()
     Call open_REQSEL(STRSEL)
 
     If REQSEL.EOF Then
-        MsgBox "DTR '" & dtr & "' introuvable dans la table Produit. Veuillez cr�er le DTR avant de cr�er les informations relatives aux fiches ATM", _
-               vbExclamation, "SIRUS � Recherche DTR"
+        MsgBox "DTR '" & dtr & "' introuvable dans la table Produit. Veuillez creer le DTR avant de creer les informations relatives aux fiches ATM", _
+               vbExclamation, "SIRUS a Recherche DTR"
         Exit Sub
     End If
 
@@ -272,12 +272,12 @@ Private Sub Btn_SearchDTR_ATM_Click()
     NodeType = ""
 
     ' Node Type
-    If Not IsNull(REQSEL.Fields("Node type Produit (LRU/SRU�)_PRODUIT").Value) Then
-        NodeType = Trim(REQSEL.Fields("Node type Produit (LRU/SRU�)_PRODUIT").Value)
+    If Not IsNull(REQSEL.Fields("Node type Produit (LRU/SRUe)_PRODUIT").Value) Then
+        NodeType = Trim(REQSEL.Fields("Node type Produit (LRU/SRUe)_PRODUIT").Value)
     End If
     UserForm.NodeTypeATM_txt.Value = NodeType
 
-    ' Niveau Qualif � 3 si LRU ou LRUNR, sinon 3+
+    ' Niveau Qualif a 3 si LRU ou LRUNR, sinon 3+
     Select Case UCase(NodeType)
         Case "LRU", "LRUNR"
             UserForm.NivQualifATM_txt.Value = "3"
@@ -285,15 +285,15 @@ Private Sub Btn_SearchDTR_ATM_Click()
             UserForm.NivQualifATM_txt.Value = "3+"
     End Select
 
-    ' Famille g�n�rique
-    If Not IsNull(REQSEL.Fields("Famille g�n�rique_PRODUIT").Value) Then
+    ' Famille generique
+    If Not IsNull(REQSEL.Fields("Famille generique_PRODUIT").Value) Then
         UserForm.FamPrdATM_txt.Value = _
-            Trim(REQSEL.Fields("Famille g�n�rique_PRODUIT").Value)
+            Trim(REQSEL.Fields("Famille generique_PRODUIT").Value)
     Else
         UserForm.FamPrdATM_txt.Value = ""
     End If
 
-    ' R�f�rence Plan (Drawing Number)
+    ' Reference Plan (Drawing Number)
     If Not IsNull(REQSEL.Fields("Drawing number").Value) Then
         UserForm.RefPlanATM_txt.Value = _
             Trim(REQSEL.Fields("Drawing number").Value)
@@ -304,7 +304,7 @@ Private Sub Btn_SearchDTR_ATM_Click()
 End Sub
 Private Sub Btn_TNR_Click()
 
-'On v�rifie les donn�es renseign�es par l'utilisateur
+'On verifie les donnees renseignees par l'utilisateur
 msg = MsgValidation("Providor")
 
 If msg <> "" Then
@@ -312,12 +312,12 @@ If msg <> "" Then
     Exit Sub
 End If
 
-MsgBox "Le test de non r�gression n'est pas encore disponible"
+MsgBox "Le test de non regression n'est pas encore disponible"
 Exit Sub
-'Ouverture de la connexion � la BDD
+'Ouverture de la connexion a la BDD
 Call Open_CONN(Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile")))
 
-'Il faut appeller la macro de g�n�ration Providor - Sans cas de test
+'Il faut appeller la macro de generation Providor - Sans cas de test
 Call Main_Providor(True)
 
 End Sub
@@ -327,7 +327,7 @@ Private Sub BtnATMAP_Click()
     
     url = "https://apps.powerapps.com/play/e/default-0d993ad3-fa73-421a-b129-1fe5590103f3/a/a0fc7db8-c62b-4166-a6a9-8be62fc64486?tenantId=0d993ad3-fa73-421a-b129-1fe5590103f3&hint=60f199af-f900-4abc-8581-6d0553f5645e&sourcetime=1772119906992"
     
-    ' Ouvre le lien dans le navigateur par d�faut
+    ' Ouvre le lien dans le navigateur par defaut
     ThisWorkbook.FollowHyperlink Address:=url, NewWindow:=True
 
 End Sub
@@ -373,19 +373,19 @@ End If
 
 End Sub
 Private Sub Btn_Extraction_Click()
-'On v�rifie bien que la s�lection d'un fichier est faite par l'utilisateur
+'On verifie bien que la selection d'un fichier est faite par l'utilisateur
 If lb_nomfichier_extr.Value = "" Then
-    MsgBox "Veuillez s�lectionner un fichier avant de lancer l'extraction", vbInformation
+    MsgBox "Veuillez selectionner un fichier avant de lancer l'extraction", vbInformation
     Exit Sub
 End If
 
-'Si tout est ok on passe � la suite
+'Si tout est ok on passe a la suite
 barre.Visible = True
 barretexte.Visible = True
 barreimage.Visible = True
 barrearriere.Visible = True
 
-'On r�cup�re le nom du fichier pour l'ouvrir
+'On recupere le nom du fichier pour l'ouvrir
 Call Main_Extraction
 
 End Sub
@@ -398,7 +398,7 @@ Set REQSEL = CreateObject("ADODB.Recordset")
 STRSEL = "SELECT * FROM [Projet_SLI$] WHERE [Nom projet_PROJET SLI] = '" & Project_List.Value & "'"
 Call open_REQSEL(STRSEL)
 
-' Si aucun enregistrement trouv�, on sort
+' Si aucun enregistrement trouve, on sort
 If REQSEL.RecordCount = 0 Then
     MsgBox "Projet introuvable dans la base.", vbExclamation
     Exit Sub
@@ -437,17 +437,17 @@ End If
 
 End Sub
 Private Sub ECOSLI_MultiPage_Change()
-' Si la page s�lectionn� est G�n�ration, il faut v�rifier que l'utilisateur est dans un template du g�n�rateur de livrable
+' Si la page selectionna est Generation, il faut verifier que l'utilisateur est dans un template du generateur de livrable
 If ECOSLI_MultiPage.Value = 1 Then
     If Test_feuille("DATA_ASL") = False Then
-        MsgBox "Impossible de g�n�rer � partir de ce fichier"
+        MsgBox "Impossible de generer a partir de ce fichier"
         Exit Sub
     End If
 End If
         
-' Si la page s�lectionn� est Information, il faut dire � l'utilisateur de s�lectionner un projet dans la liste si rien n'est s�lectionn�
+' Si la page selectionna est Information, il faut dire a l'utilisateur de selectionner un projet dans la liste si rien n'est selectionne
 If Project_List.Value = "" And ECOSLI_MultiPage.Value = 0 Then
-    MsgBox "Veuillez s�lectionner un projet dans la liste afin d'afficher les informations g�n�riques", vbInformation, "Aucun projet s�lectionn�."
+    MsgBox "Veuillez selectionner un projet dans la liste afin d'afficher les informations generiques", vbInformation, "Aucun projet selectionne."
 End If
 
 End Sub
@@ -462,7 +462,7 @@ Private Sub Project_List_Change()
 
 Set REQSEL = CreateObject("ADODB.Recordset")
 
-'D�s que le projet est modifi� par l'utilisateur il faut r�cup�rer toutes les informations sur le projet de la BDD
+'Des que le projet est modifia par l'utilisateur il faut recuperer toutes les informations sur le projet de la BDD
 Dim chk As MSForms.CheckBox
 
 'Info_Projet = DataProjet_SLI(Project_List.Value)
@@ -470,7 +470,7 @@ Dim chk As MSForms.CheckBox
 STRSEL = "SELECT * FROM [Projet_SLI$] WHERE [Nom projet_PROJET SLI] = '" & Project_List.Value & "'"
 Call open_REQSEL(STRSEL)
 
-' Si aucun enregistrement trouv�, on sort
+' Si aucun enregistrement trouve, on sort
 If REQSEL.RecordCount = 0 Then
     MsgBox "Projet introuvable dans la base.", vbExclamation
     Exit Sub
@@ -486,9 +486,9 @@ REQSEL.MoveFirst
 For Each key In Champs_ProjetsSLI.Keys
     ChampControl = Champs_ProjetsSLI(key)
     If Me.Controls(ChampControl) Is Nothing Then
-        Debug.Print "Contr�le introuvable pour : " & key
+        Debug.Print "Controle introuvable pour : " & key
     Else
-        ' G�rer les valeurs Null
+        ' Gerer les valeurs Null
         If IsNull(REQSEL.Fields(key).Value) Then
             Me.Controls(ChampControl).Value = ""
         Else
@@ -498,7 +498,7 @@ For Each key In Champs_ProjetsSLI.Keys
                 
                 val = UCase(Trim(val))
                 
-                ' Gestion des �tats
+                ' Gestion des etats
                 Select Case val
                     Case "OUI"
                         chk.Value = True
@@ -515,7 +515,7 @@ For Each key In Champs_ProjetsSLI.Keys
                     Case Else
                         chk.Value = False
                         chk.Enabled = True
-                        chk.BackColor = RGB(180, 180, 180) ' Gris par d�faut
+                        chk.BackColor = RGB(180, 180, 180) ' Gris par defaut
                 End Select
             Else
                 'Pour tout les autres controles (TExtBox, Combobox...)
@@ -531,7 +531,7 @@ Next key
 
 End Sub
 Private Sub Refresh_BDD_Button_Click()
-'Ouvre la base de donn�es et ferme direct
+'Ouvre la base de donnees et ferme direct
 'Forcer la synchronisation One Drive
 Call SynchroBDD
 
@@ -541,7 +541,7 @@ Private Sub RangATM_list_Change()
 Dim val As String
 val = Trim(UserForm.RangATM_list.Value)
 
-'Bloquer la s�lection des lignes de groupe
+'Bloquer la selection des lignes de groupe
 If InStr(val, "---") >= 1 Or val = "" Then
     UserForm.RangATM_list.Value = ""
 End If
@@ -556,11 +556,11 @@ MsgBox result(0), result(1), "Test connexion BDD"
 
 End Sub
 Public Sub UserForm_Initialize()
-'Initialisation de la fen�tre ECOSLI
+'Initialisation de la fenetre ECOSLI
 
-'On force l'ouverture de la base de donn�es pour que la synchronisation soit optimale
+'On force l'ouverture de la base de donnees pour que la synchronisation soit optimale
 
-'On cr�e la connexion � la Base de donn�es en ouvrant la fen�tre
+'On cree la connexion a la Base de donnees en ouvrant la fenetre
 Call Open_CONN(Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile")))
 Dim wb As Workbook
 'Dim ws As Worksheet
@@ -595,7 +595,7 @@ UserForm.Height = 570
 UserForm.Width = 810
 ECOSLI_MultiPage.MultiRow = False
 
-'Ajout de la liste de projets avec une fonction appel�
+'Ajout de la liste de projets avec une fonction appele
 listprojets = RecupProjetsList()
 For i = LBound(listprojets) To UBound(listprojets)
     If listprojets(i) <> "" Then
@@ -605,7 +605,7 @@ For i = LBound(listprojets) To UBound(listprojets)
     End If
 Next i
 
-'D�finir la liste des gates dans un tableau
+'Definir la liste des gates dans un tableau
 gates = Array("BA", "GO Order", "IGR", "PGR", "CGR", "FEI", "IQA")
 family = Array("PACIS", "IOB", "APC", "DAS", "EVR", "SRS", "Lecteur Badge", "GSM Repeater")
 revisions = Array( _
@@ -619,7 +619,7 @@ livrables = Array("ATM", "EMMST")
 HARD_SOFT = Array("HARD", "SOFT")
 langue = Array("FR", "EN")
     
-' Ajouter chaque �l�ment � la liste d�roulante
+' Ajouter chaque element a la liste deroulante
 For i = LBound(gates) To UBound(gates)
     Gate_List.AddItem gates(i)
 Next i
@@ -637,8 +637,8 @@ Next i
 'SIRUS - configuration ListViews + alimentation Generation depuis DATA_ASL + BdD
 Call G_SIRUS_UserForm.SIRUS_InitGeneration
 
-' SIRUS � �tat initial NavTab type de demande
-Call SIRUS_SetType("Cr�ation")
+' SIRUS a etat initial NavTab type de demande
+Call SIRUS_SetType("Creation")
 
 ' Ajout des listes de valeurs
 For i = 2 To dlignefrs

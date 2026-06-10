@@ -1,8 +1,8 @@
 Attribute VB_Name = "G_SIRUS_UserForm"
 
 ' -- Constante : colonnes de la ListBox Produit -------------
-' Col 0 = DTR | Col 1 = D�signation | Col 2 = Node Type
-' Col 3 = Fournisseur | Col 4 = R�f. Fourn. | Col 5 = Drawing Nb
+' Col 0 = DTR | Col 1 = Designation | Col 2 = Node Type
+' Col 3 = Fournisseur | Col 4 = Ref. Fourn. | Col 5 = Drawing Nb
 
 ' -- Collection de stockage ---------------------------------
 Private lignesProduit As Collection
@@ -29,7 +29,7 @@ Public Sub SIRUS_InitGeneration()
     Call G_SIRUS_PBS.SIRUS_RemplirListViewGeneration
 End Sub
 ' ============================================================
-' CONFIGURATION LISTVIEW_PRODUIT � dans UserForm_Initialize
+' CONFIGURATION LISTVIEW_PRODUIT a dans UserForm_Initialize
 ' ============================================================
 Public Sub SIRUS_ConfigListViewProduit()
 
@@ -46,13 +46,13 @@ Public Sub SIRUS_ConfigListViewProduit()
     lv.ColumnHeaders.Clear
     lv.ListItems.Clear
 
-    ' -- Cr�er les colonnes avec largeurs ------------------
+    ' -- Creer les colonnes avec largeurs ------------------
     lv.ColumnHeaders.Add , , "Type", 60
     lv.ColumnHeaders.Add , , "DTR", 80
-    lv.ColumnHeaders.Add , , "D�signation", 150
+    lv.ColumnHeaders.Add , , "Designation", 150
     lv.ColumnHeaders.Add , , "Node Type", 80
     lv.ColumnHeaders.Add , , "Fournisseur", 100
-    lv.ColumnHeaders.Add , , "R�f. Fournisseur", 100
+    lv.ColumnHeaders.Add , , "Ref. Fournisseur", 100
     lv.ColumnHeaders.Add , , "Drawing Number", 100
     lv.ColumnHeaders.Add , , "MTBF Intr.", 75
     lv.ColumnHeaders.Add , , "DVL HARD", 70
@@ -60,7 +60,7 @@ Public Sub SIRUS_ConfigListViewProduit()
 
 End Sub
 ' ============================================================
-' CONFIGURATION LISTVIEW_PRODUIT � dans UserForm_Initialize
+' CONFIGURATION LISTVIEW_PRODUIT a dans UserForm_Initialize
 ' ============================================================
 Public Sub SIRUS_ConfigListViewGeneration()
 
@@ -77,7 +77,7 @@ Public Sub SIRUS_ConfigListViewGeneration()
     lv.ColumnHeaders.Clear
     lv.ListItems.Clear
 
-    ' -- Cr�er les colonnes avec largeurs ------------------
+    ' -- Creer les colonnes avec largeurs ------------------
     lv.ColumnHeaders.Add , , "DTR", 80
     lv.ColumnHeaders.Add , , "Projet_ASL", 70
     lv.ColumnHeaders.Add , , "ATM - Info", 70
@@ -93,7 +93,7 @@ Public Sub SIRUS_ConfigListViewGeneration()
 
 End Sub
 ' ============================================================
-' CONFIGURATION LISTVIEW_TACHESATM � dans UserForm_Initialize
+' CONFIGURATION LISTVIEW_TACHESATM a dans UserForm_Initialize
 ' ============================================================
 Public Sub SIRUS_ConfigListViewTaches()
 
@@ -110,20 +110,20 @@ Public Sub SIRUS_ConfigListViewTaches()
     lv.ColumnHeaders.Clear
     lv.ListItems.Clear
 
-    ' -- Cr�er les colonnes avec largeurs ------------------
+    ' -- Creer les colonnes avec largeurs ------------------
     lv.ColumnHeaders.Add , , "DTR", 80
     lv.ColumnHeaders.Add , , "Langue", 40
     lv.ColumnHeaders.Add , , "Rang", 40
     lv.ColumnHeaders.Add , , "Type", 40
-    lv.ColumnHeaders.Add , , "Cat�gorie", 60
+    lv.ColumnHeaders.Add , , "Categorie", 60
     lv.ColumnHeaders.Add , , "Niv. Qualif", 60
     lv.ColumnHeaders.Add , , "Description", 100
-    lv.ColumnHeaders.Add , , "Crit�res Dim", 60
-    lv.ColumnHeaders.Add , , "Out. Sp�", 60
+    lv.ColumnHeaders.Add , , "Criteres Dim", 60
+    lv.ColumnHeaders.Add , , "Out. Spe", 60
     lv.ColumnHeaders.Add , , "Out. Standard", 60
     lv.ColumnHeaders.Add , , "Pieces Rech", 60
-    lv.ColumnHeaders.Add , , "Nb Op�rateurs", 40
-    lv.ColumnHeaders.Add , , "Tps estim� (h)", 80
+    lv.ColumnHeaders.Add , , "Nb Operateurs", 40
+    lv.ColumnHeaders.Add , , "Tps estima (h)", 80
     lv.ColumnHeaders.Add , , "Picto", 60
     lv.ColumnHeaders.Add , , "Texte Picto", 80
 
@@ -148,12 +148,12 @@ Public Sub SIRUS_ConfigListViewErreurs()
 
     lv.ColumnHeaders.Add , , "Ligne", 45
     lv.ColumnHeaders.Add , , "DTR", 90
-    lv.ColumnHeaders.Add , , "Contr�le", 110
+    lv.ColumnHeaders.Add , , "Controle", 110
     lv.ColumnHeaders.Add , , "Action corrective", 300
 
 End Sub
 ' ============================================================
-' CONFIGURATION LISTVIEW_ATM � dans UserForm_Initialize
+' CONFIGURATION LISTVIEW_ATM a dans UserForm_Initialize
 ' ============================================================
 Public Sub SIRUS_ConfigListViewATM()
 
@@ -170,7 +170,7 @@ Public Sub SIRUS_ConfigListViewATM()
     lv.ColumnHeaders.Clear
     lv.ListItems.Clear
 
-    ' -- Cr�er les colonnes avec largeurs ------------------
+    ' -- Creer les colonnes avec largeurs ------------------
     lv.ColumnHeaders.Add , , "Table", 40
     lv.ColumnHeaders.Add , , "DTR", 60
     lv.ColumnHeaders.Add , , "Descr_FR Tache", 80
@@ -183,8 +183,8 @@ Public Sub SIRUS_ConfigListViewATM()
     lv.ColumnHeaders.Add , , "Tps_ana_cumule(h)", 60
     lv.ColumnHeaders.Add , , "Out. Standard", 60
     lv.ColumnHeaders.Add , , "Pieces Rech", 60
-    lv.ColumnHeaders.Add , , "Nb Op�rateurs", 40
-    lv.ColumnHeaders.Add , , "Tps estim� (h)", 40
+    lv.ColumnHeaders.Add , , "Nb Operateurs", 40
+    lv.ColumnHeaders.Add , , "Tps estima (h)", 40
     lv.ColumnHeaders.Add , , "Picto", 60
     lv.ColumnHeaders.Add , , "Texte Picto", 80
 
@@ -199,15 +199,15 @@ Public Sub SIRUS_AddToListViewProduit(vals() As String, TypeMod As String)
 
     Set lv = UserForm.ListView_Produit
 
-    ' Cr�er la ligne avec la valeur de la premi�re colonne (DTR)
+    ' Creer la ligne avec la valeur de la premiere colonne (DTR)
     Set item = lv.ListItems.Add(, , TypeMod)
 
-    ' Ajouter les sous-�l�ments (colonnes 2 � 10)
-    item.SubItems(1) = vals(1)  ' D�signation
-    item.SubItems(2) = vals(2)  ' D�signation
+    ' Ajouter les sous-elements (colonnes 2 a 10)
+    item.SubItems(1) = vals(1)  ' Designation
+    item.SubItems(2) = vals(2)  ' Designation
     item.SubItems(3) = vals(3)  ' Node Type
     item.SubItems(4) = vals(4)  ' Fournisseur
-    item.SubItems(5) = vals(5)  ' R�f. Fournisseur
+    item.SubItems(5) = vals(5)  ' Ref. Fournisseur
     item.SubItems(6) = vals(6)  ' Drawing Number
     item.SubItems(7) = vals(7)  ' MTBF Intr.
     item.SubItems(8) = vals(8)  ' DVL HARD
@@ -216,14 +216,14 @@ Public Sub SIRUS_AddToListViewProduit(vals() As String, TypeMod As String)
 End Sub
 
 ' ============================================================
-' CHANGEMENT TYPE DEMANDE (NavTab Cr�ation/Modif/Suppression)
+' CHANGEMENT TYPE DEMANDE (NavTab Creation/Modif/Suppression)
 ' ============================================================
 Public Sub SIRUS_SetType(typeVal As String)
 
     With UserForm
         Select Case typeVal
 
-            Case "Cr�ation"
+            Case "Creation"
                 ' DTR = TextBox libre, blanc
                 .DTRProduit_txt.Enabled = True
                 .DTRProduit_txt.BackColor = RGB(255, 255, 255)
@@ -241,7 +241,7 @@ Public Sub SIRUS_SetType(typeVal As String)
                 ' DTR = lookup BdD (fond bleu clair)
                 .DTRProduit_txt.Enabled = True
                 .DTRProduit_txt.BackColor = RGB(214, 228, 241)
-                ' Tous les champs actifs � pr�-remplis depuis BdD apr�s saisie DTR
+                ' Tous les champs actifs a pre-remplis depuis BdD apres saisie DTR
                 .Designation_txt.Enabled = True
                 .NodeType_list.Enabled = True
                 .FRS_list.Enabled = True
@@ -252,7 +252,7 @@ Public Sub SIRUS_SetType(typeVal As String)
                 .DVL_SOFT_txt.Enabled = True
 
             Case "Suppression"
-                ' DTR seul requis, tout le reste gris�
+                ' DTR seul requis, tout le reste grise
                 .DTRProduit_txt.Enabled = True
                 .DTRProduit_txt.BackColor = RGB(255, 235, 235)
                 .Designation_txt.Enabled = False
@@ -296,12 +296,12 @@ Public Sub SIRUS_AjouterLigneProduit(TypeMod As String)
         If dtr = "" Then missing = "DTR"
     Else
         If dtr = "" Then missing = missing & "DTR / "
-        If des = "" Then missing = missing & "D�signation / "
+        If des = "" Then missing = missing & "Designation / "
         If node = "" Then missing = missing & "Node Type / "
         If fourn = "" Then missing = missing & "Fournisseur / "
-        If ref = "" Then missing = missing & "R�f. Fournisseur / "
+        If ref = "" Then missing = missing & "Ref. Fournisseur / "
         If drw = "" Then missing = missing & "Drawing Number / "
-        If MTBF = "" Then missing = missing & "MTBF Intrins�que / "
+        If MTBF = "" Then missing = missing & "MTBF Intrinseque / "
         If dvlh = "" Then missing = missing & "DVL HARD / "
     End If
 
@@ -311,19 +311,19 @@ Public Sub SIRUS_AjouterLigneProduit(TypeMod As String)
         Exit Sub
     End If
 
-    ' -- V�rifier doublon DTR dans la collection ------------
+    ' -- Verifier doublon DTR dans la collection ------------
     Dim item As Variant
     For Each item In lignesProduit
         If IsArray(item) Then
             If UCase(Trim(item(0))) = UCase(dtr) Then
-                MsgBox "DTR '" & dtr & "' d�j� pr�sent dans la liste.", _
+                MsgBox "DTR '" & dtr & "' deja present dans la liste.", _
                        vbExclamation, "SIRUS"
                 Exit Sub
             End If
         End If
     Next item
 
-    ' -- Ajouter � la collection ----------------------------
+    ' -- Ajouter a la collection ----------------------------
     Dim vals(9) As String
     vals(0) = dtr: vals(1) = des: vals(2) = node
     vals(3) = fourn: vals(4) = ref: vals(5) = drw
@@ -333,7 +333,7 @@ Public Sub SIRUS_AjouterLigneProduit(TypeMod As String)
 
     Call SIRUS_AddToListViewProduit(vals, TypeMod)
 
-    ' -- Vider les champs apr�s ajout ----------------------
+    ' -- Vider les champs apres ajout ----------------------
     Call SIRUS_EffacerChampsProduit
 
     ' -- Mettre le focus sur DTR pour saisie suivante -------
@@ -359,7 +359,7 @@ Public Sub SIRUS_EffacerChampsProduit()
 
 End Sub
 ' ============================================================
-' BOUTON "Effacer la s�lection"
+' BOUTON "Effacer la selection"
 ' ============================================================
 Public Sub SIRUS_EffacerSelectionProduitProduit()
 
@@ -370,11 +370,11 @@ Public Sub SIRUS_EffacerSelectionProduitProduit()
     idx = lb.ListIndex
 
     If idx = -1 Then
-        MsgBox "S�lectionnez une ligne � supprimer.", vbExclamation, "SIRUS"
+        MsgBox "Selectionnez une ligne a supprimer.", vbExclamation, "SIRUS"
         Exit Sub
     End If
 
-    ' Reconstruire la collection sans la ligne supprim�e
+    ' Reconstruire la collection sans la ligne supprimee
     Dim newCol As New Collection
     Dim i      As Long
     Dim item   As Variant
@@ -393,11 +393,11 @@ Public Sub SIRUS_EffacerSelectionProduitProduit()
 End Sub
 
 ' ============================================================
-' AJOUTER UNE T�CHE DANS LISTVIEW_TACHES
+' AJOUTER UNE TeCHE DANS LISTVIEW_TACHES
 ' ============================================================
 Public Sub SIRUS_AjouterTacheATM()
 
-    ' -- R�cup�ration des valeurs ---------------------------
+    ' -- Recuperation des valeurs ---------------------------
     Dim dtr     As String: dtr = Trim(UserForm.DTRATM_txt.Value)
     Dim langue  As String: langue = Trim(UserForm.LangueATM_list.Value)
     Dim rang    As String: rang = Trim(UserForm.RangATM_list.Value)
@@ -408,8 +408,8 @@ Public Sub SIRUS_AjouterTacheATM()
     Dim critdim As String: critdim = Trim(UserForm.CritDimATM_txt.Value)
     Dim outspec As String: outspec = Trim(UserForm.OutSpecATM_txt.Value)
     Dim outstd  As String: outstd = Trim(UserForm.OutStandardATM_txt.Value)
-    Dim piecesR As String: piecesR = ""   ' � brancher si tu as le champ
-    Dim nbops   As String: nbops = ""     ' � brancher si tu as le champ
+    Dim piecesR As String: piecesR = ""   ' a brancher si tu as le champ
+    Dim nbops   As String: nbops = ""     ' a brancher si tu as le champ
     Dim tps     As String: tps = Trim(UserForm.TpsTachesATM_txt.Value)
     Dim picto   As String: picto = Trim(UserForm.PictoATM_list.Value)
     Dim txtpic  As String: txtpic = Trim(UserForm.TxtPictoATM_txt.Value)
@@ -422,22 +422,22 @@ Public Sub SIRUS_AjouterTacheATM()
     If langue = "" Then missing = missing & "Langue / "
     If rang = "" Then missing = missing & "Rang / "
     If hs = "" Then missing = missing & "Type (HARD/SOFT) / "
-    If cat = "" Then missing = missing & "Cat�gorie / "
+    If cat = "" Then missing = missing & "Categorie / "
     If nq = "" Then missing = missing & "Niveau qualif / "
     If desc = "" Then missing = missing & "Description / "
-    If tps = "" Then missing = missing & "Temps estim� / "
+    If tps = "" Then missing = missing & "Temps estima / "
     If picto = "" Then missing = missing & "Picto / "
     If txtpic = "" Then missing = missing & "Texte Picto / "
 
     ' Outillage standard toujours obligatoire
     If outstd = "" Then missing = missing & "Out. Standard / "
 
-    ' Outillage sp�cifique obligatoire si rang 2-1 ou 5-1
+    ' Outillage specifique obligatoire si rang 2-1 ou 5-1
     If (rang = "2-1" Or rang = "5-1") And outspec = "" Then
-        missing = missing & "Out. Sp�c. (obligatoire rang " & rang & ") / "
+        missing = missing & "Out. Spec. (obligatoire rang " & rang & ") / "
     End If
 
-    ' Crit�res dimensionnels � obligatoire si description contient
+    ' Criteres dimensionnels a obligatoire si description contient
     ' "Torque", "Tighten" (EN) ou "Serrer" + "couple" (FR)
     Dim descLower As String
     descLower = LCase(desc)
@@ -447,16 +447,16 @@ Public Sub SIRUS_AjouterTacheATM()
                 (InStr(descLower, "serrer") > 0 And InStr(descLower, "couple") > 0))
 
     If needCrit And critdim = "" Then
-        missing = missing & "Crit�res dim. (serrage d�tect�) / "
+        missing = missing & "Criteres dim. (serrage detecte) / "
     End If
 
     If missing <> "" Then
         MsgBox "Champs obligatoires manquants :" & vbCrLf & _
-               Left(missing, Len(missing) - 3), vbExclamation, "SIRUS � ATM"
+               Left(missing, Len(missing) - 3), vbExclamation, "SIRUS a ATM"
         Exit Sub
     End If
 
-    ' -- V�rification doublon DTR + Rang + Langue ----------
+    ' -- Verification doublon DTR + Rang + Langue ----------
     Dim lv   As MSComctlLib.ListView
     Dim li   As MSComctlLib.ListItem
 
@@ -467,8 +467,8 @@ Public Sub SIRUS_AjouterTacheATM()
            UCase(li.SubItems(2)) = UCase(rang) And _
            UCase(li.SubItems(1)) = UCase(langue) Then
             MsgBox "La combinaison DTR '" & dtr & "' / Rang '" & rang & _
-                   "' / Langue '" & langue & "' existe d�j�.", _
-                   vbExclamation, "SIRUS � ATM"
+                   "' / Langue '" & langue & "' existe deja.", _
+                   vbExclamation, "SIRUS a ATM"
             Exit Sub
         End If
     Next li
@@ -518,7 +518,7 @@ Public Sub SIRUS_EffacerChampsTaches()
 End Sub
 
 ' ============================================================
-' SUPPRIMER LA LIGNE S�LECTIONN�E DANS LISTVIEW_TACHES
+' SUPPRIMER LA LIGNE SELECTIONNeE DANS LISTVIEW_TACHES
 ' ============================================================
 
 Public Sub SIRUS_SupprimerTacheATM()
@@ -527,7 +527,7 @@ Public Sub SIRUS_SupprimerTacheATM()
     Set lv = UserForm.ListView_Taches
 
     If lv.SelectedItem Is Nothing Then
-        MsgBox "S�lectionnez une t�che � supprimer.", vbExclamation, "SIRUS"
+        MsgBox "Selectionnez une teche a supprimer.", vbExclamation, "SIRUS"
         Exit Sub
     End If
 
@@ -535,15 +535,15 @@ Public Sub SIRUS_SupprimerTacheATM()
 
 End Sub
 ' ============================================================
-' R�CUP�RER LE TYPE DE DEMANDE ACTIF (NavTab)
+' RECUPeRER LE TYPE DE DEMANDE ACTIF (NavTab)
 ' ============================================================
 Private Function SIRUS_GetTypeActif() As String
 
     Select Case UserForm.Type_Import_Tab.SelectedItem.index
-        Case 0: SIRUS_GetTypeActif = "Cr�ation"
+        Case 0: SIRUS_GetTypeActif = "Creation"
         Case 1: SIRUS_GetTypeActif = "Modification"
         Case 2: SIRUS_GetTypeActif = "Suppression"
-        Case Else: SIRUS_GetTypeActif = "Cr�ation"
+        Case Else: SIRUS_GetTypeActif = "Creation"
     End Select
 
 End Function
@@ -871,6 +871,47 @@ Public Sub SIRUS_UI_BtnAnalyserClick()
 
     ' Remplir la ListView des NOK
     Call SIRUS_RemplirListViewResultats(sFeuille)
+
+    ' Pre-remplir la Zone 3 (envoi ATMAP) si l analyse est OK pour envoyer.
+    ' Sujet (IMP-YYYY-00X), Description, Priorite et Attentes auto-remplis.
+    ' L utilisateur peut ensuite editer librement.
+    If taux >= 0.7 Then Call SIRUS_UI_PreRemplirEnvoi
+End Sub
+
+' -------------------------------------------------------------------------
+' SIRUS_UI_BtnEditerFeuilleClick : porte de sortie vers la feuille
+' -------------------------------------------------------------------------
+' Active la feuille SIRUS selectionnee dans Cmb_SIRUS_FeuilleAnalyse et
+' masque le UserForm pour permettre la saisie libre dans Excel.
+' Le user peut revenir au UserForm via le raccourci Ctrl+W (W_AppelUsf).
+' Solution pragmatique si le UserForm reste bloquant malgre vbModeless
+' (cas ou ShowModal=True dans le designer).
+Public Sub SIRUS_UI_BtnEditerFeuilleClick()
+    Dim sFeuille As String
+    Dim ws As Worksheet
+
+    sFeuille = CStr(UserForm.Cmb_SIRUS_FeuilleAnalyse.Value)
+    If LenB(sFeuille) = 0 Then
+        MsgBox "Selectionner d'abord une feuille dans la liste Zone 2.", _
+               vbExclamation, "SIRUS"
+        Exit Sub
+    End If
+
+    On Error Resume Next
+    Set ws = ActiveWorkbook.Worksheets(sFeuille)
+    On Error GoTo 0
+    If ws Is Nothing Then
+        MsgBox "Feuille '" & sFeuille & "' introuvable dans le classeur actif.", _
+               vbExclamation, "SIRUS"
+        Exit Sub
+    End If
+
+    ' Activer la feuille + placer le curseur sur la 1re cellule de saisie (col 2)
+    ws.Activate
+    ws.Cells(3, 2).Select
+
+    ' Masquer le UserForm (le user ramene via Ctrl+W)
+    UserForm.Hide
 End Sub
 
 ' -------------------------------------------------------------------------
@@ -901,8 +942,277 @@ End Sub
 ' SIRUS_Envoyer_Demande : Phase 5, TODO
 ' -------------------------------------------------------------------------
 Public Sub SIRUS_UI_BtnEnvoyerClick()
-    MsgBox "Envoi ATMAP : a brancher Phase 5 (etape G).", vbInformation, "SIRUS"
+    Dim sProjet As String, sSujet As String, sDesc As String
+    Dim sAttentes As String, sPriorite As String
+    Dim sNumeroTicket As String
+    Dim digest As String
+    Dim userID As Long, ticketID As Long
+    Dim cheminPJ As String
+    Dim resultTicket As String, resultPJ As String
+    Dim reponse As VbMsgBoxResult
+    Dim feuilles() As String
+
+    cheminPJ = ""
+    On Error GoTo Sortie
+
+    ' -- 1. Validation des inputs ----------------------------
+    sProjet = CStr(UserForm.Project_List.Value)
+    sSujet = Trim$(CStr(UserForm.Txt_SIRUS_Sujet.Value))
+    sDesc = Trim$(CStr(UserForm.Txt_SIRUS_Description.Value))
+    sAttentes = Trim$(CStr(UserForm.Txt_SIRUS_Attentes.Value))
+    sPriorite = CStr(UserForm.Cmb_SIRUS_Priorite.Value)
+
+    If LenB(sProjet) = 0 Then
+        MsgBox "Selectionner un projet dans la liste principale Project_List " & _
+               "avant l envoi.", vbExclamation, "SIRUS"
+        Exit Sub
+    End If
+    If LenB(sSujet) = 0 Then
+        MsgBox "Le sujet est obligatoire.", vbExclamation, "SIRUS"
+        Exit Sub
+    End If
+    If LenB(sDesc) = 0 Then
+        MsgBox "La description est obligatoire.", vbExclamation, "SIRUS"
+        Exit Sub
+    End If
+    If LenB(sPriorite) = 0 Then
+        MsgBox "Selectionner une priorite (High/Medium/Low).", vbExclamation, "SIRUS"
+        Exit Sub
+    End If
+
+    feuilles = SIRUS_RecupererFeuillesAEnvoyer()
+    If UBound(feuilles) < LBound(feuilles) Then
+        MsgBox "Aucune feuille SIRUS a envoyer. Generer + analyser une feuille d abord.", _
+               vbExclamation, "SIRUS"
+        Exit Sub
+    End If
+
+    ' -- 2. Confirmation utilisateur -------------------------
+    reponse = MsgBox("Confirmer l envoi du ticket ATMAP ?" & vbCrLf & vbCrLf & _
+                     "Sujet     : " & sSujet & vbCrLf & _
+                     "Priorite  : " & sPriorite & vbCrLf & _
+                     "Projet    : " & sProjet & vbCrLf & _
+                     "Feuilles  : " & (UBound(feuilles) - LBound(feuilles) + 1) & " a envoyer", _
+                     vbYesNo + vbQuestion + vbDefaultButton2, _
+                     "SIRUS - Confirmation envoi ATMAP")
+    If reponse <> vbYes Then Exit Sub
+
+    ' -- 3. Construire la PJ Excel (toutes feuilles SIRUS du combo) ----
+    UserForm.Lbl_SIRUS_StatutEnvoi.Caption = "Construction de la PJ Excel..."
+    DoEvents
+    cheminPJ = SIRUS_ConstruirePJ(feuilles, "SIRUS_PJ")
+    If LenB(cheminPJ) = 0 Then
+        UserForm.Lbl_SIRUS_StatutEnvoi.Caption = "Echec construction PJ"
+        UserForm.Lbl_SIRUS_StatutEnvoi.ForeColor = RGB(163, 45, 45)
+        Exit Sub
+    End If
+
+    ' -- 4. Recuperer digest SharePoint ----------------------
+    UserForm.Lbl_SIRUS_StatutEnvoi.Caption = "Authentification SharePoint..."
+    DoEvents
+    digest = SIRUS_GetFormDigest()
+    If LenB(digest) = 0 Then
+        UserForm.Lbl_SIRUS_StatutEnvoi.Caption = "Echec digest SharePoint"
+        UserForm.Lbl_SIRUS_StatutEnvoi.ForeColor = RGB(163, 45, 45)
+        On Error Resume Next
+        Kill cheminPJ
+        On Error GoTo 0
+        Exit Sub
+    End If
+
+    userID = SIRUS_GetCurrentUserID(digest)
+    If userID = -1 Then
+        UserForm.Lbl_SIRUS_StatutEnvoi.Caption = "Echec recuperation utilisateur"
+        UserForm.Lbl_SIRUS_StatutEnvoi.ForeColor = RGB(163, 45, 45)
+        On Error Resume Next
+        Kill cheminPJ
+        On Error GoTo 0
+        Exit Sub
+    End If
+
+    ' -- 5. Extraire le numero du sujet (format "IMP-YYYY-00X - ...") ----
+    Dim posSep As Long
+    posSep = InStr(1, sSujet, " - ")
+    If posSep > 0 Then
+        sNumeroTicket = Trim$(Left$(sSujet, posSep - 1))
+    Else
+        sNumeroTicket = sSujet
+    End If
+
+    ' -- 6. Creer le ticket ATMAP ----------------------------
+    UserForm.Lbl_SIRUS_StatutEnvoi.Caption = "Creation du ticket..."
+    DoEvents
+    resultTicket = SIRUS_CreerTicketEnvoi(digest, userID, sNumeroTicket, _
+                                            sSujet, sDesc, sAttentes, sPriorite, ticketID)
+
+    If ticketID = -1 Then
+        UserForm.Lbl_SIRUS_StatutEnvoi.Caption = "Echec creation ticket"
+        UserForm.Lbl_SIRUS_StatutEnvoi.ForeColor = RGB(163, 45, 45)
+        MsgBox "Echec creation ticket :" & vbCrLf & resultTicket, vbCritical, "SIRUS"
+        On Error Resume Next
+        Kill cheminPJ
+        On Error GoTo 0
+        Exit Sub
+    End If
+
+    ' -- 7. Attacher la PJ -----------------------------------
+    UserForm.Lbl_SIRUS_StatutEnvoi.Caption = "Upload de la PJ..."
+    DoEvents
+    resultPJ = SIRUS_AttacherFichierAuTicket(ticketID, digest, cheminPJ)
+
+    ' -- 8. Cleanup PJ temp ----------------------------------
+    On Error Resume Next
+    Kill cheminPJ
+    On Error GoTo 0
+
+    ' -- 9. Statut final visible -----------------------------
+    UserForm.Lbl_SIRUS_StatutEnvoi.Caption = "OK - Ticket " & sNumeroTicket & _
+                                              " (SP Id " & ticketID & ")"
+    UserForm.Lbl_SIRUS_StatutEnvoi.ForeColor = RGB(39, 80, 10)
+
+    MsgBox "Ticket cree avec succes !" & vbCrLf & vbCrLf & _
+           "Numero    : " & sNumeroTicket & vbCrLf & _
+           "SharePoint ID : " & ticketID & vbCrLf & vbCrLf & _
+           resultPJ, vbInformation, "SIRUS - Envoi termine"
+    Exit Sub
+
+Sortie:
+    UserForm.Lbl_SIRUS_StatutEnvoi.Caption = "Erreur : " & Err.Description
+    UserForm.Lbl_SIRUS_StatutEnvoi.ForeColor = RGB(163, 45, 45)
+    On Error Resume Next
+    If LenB(cheminPJ) > 0 Then Kill cheminPJ
+    On Error GoTo 0
 End Sub
+
+' =========================================================================
+' SIRUS_UI_PrioriteChange : appele par Cmb_SIRUS_Priorite_Change
+' =========================================================================
+' Met a jour le pre-remplissage des Attentes selon la priorite choisie.
+' L utilisateur peut ensuite editer librement.
+Public Sub SIRUS_UI_PrioriteChange()
+    Dim sPriorite As String
+    On Error Resume Next
+    sPriorite = CStr(UserForm.Cmb_SIRUS_Priorite.Value)
+    Select Case sPriorite
+        Case "High":   UserForm.Txt_SIRUS_Attentes.Value = "Traitement sous 1 jour"
+        Case "Medium": UserForm.Txt_SIRUS_Attentes.Value = "Traitement sous 3 jours"
+        Case "Low":    UserForm.Txt_SIRUS_Attentes.Value = "Traitement sous 5 jours"
+    End Select
+    On Error GoTo 0
+End Sub
+
+' =========================================================================
+' SIRUS_UI_PreRemplirEnvoi
+' =========================================================================
+' Pre-remplit la Zone 3 apres une analyse reussie. A appeler depuis
+' SIRUS_UI_BtnAnalyserClick a la fin (cf. SIRUS_RemplirListViewResultats).
+' Auto-rempli :
+'   - Demandeur (Application.UserName), Date (today)
+'   - Op + Table recopies des controles Zone 1
+'   - Recap feuilles
+'   - Sujet : IMP-YYYY-00X (via SIRUS_NumeroTicketSuivant) + Op + Table
+'   - Description : "<Op> de <N> reference(s) en <Table> pour le projet <Projet>"
+'   - Priorite : Medium par defaut
+'   - Attentes : selon priorite via SIRUS_UI_PrioriteChange
+Public Sub SIRUS_UI_PreRemplirEnvoi()
+    Dim sOp As String, sTable As String, sProjet As String
+    Dim sFeuilleActive As String
+    Dim nbLignes As Long
+    Dim numTicket As String
+
+    On Error Resume Next
+
+    sOp = SIRUS_GetOpActive()
+    sTable = CStr(UserForm.Cmb_SIRUS_Table.Value)
+    sFeuilleActive = CStr(UserForm.Cmb_SIRUS_FeuilleAnalyse.Value)
+    sProjet = CStr(UserForm.Project_List.Value)
+
+    ' Recap auto-rempli
+    UserForm.Lbl_SIRUS_Demandeur.Caption = Application.UserName
+    UserForm.Lbl_SIRUS_Date.Caption = Format$(Now, "dd/mm/yyyy")
+    UserForm.Lbl_SIRUS_OpRecap.Caption = sOp
+    UserForm.Lbl_SIRUS_TableRecap.Caption = sTable
+    UserForm.Lbl_SIRUS_FeuillesRecap.Caption = SIRUS_ResumerFeuillesPourEnvoi()
+
+    ' Sujet auto (numero ticket suivant via SharePoint)
+    numTicket = SIRUS_NumeroTicketSuivant()
+    UserForm.Txt_SIRUS_Sujet.Value = numTicket & " - Import " & sOp & " " & sTable
+
+    ' Description auto
+    nbLignes = SIRUS_CompterLignesFeuille(sFeuilleActive)
+    Dim sProjetAff As String
+    If LenB(sProjet) > 0 Then
+        sProjetAff = sProjet
+    Else
+        sProjetAff = "<projet non selectionne>"
+    End If
+    UserForm.Txt_SIRUS_Description.Value = sOp & " de " & nbLignes & _
+        " reference(s) en " & sTable & " pour le projet " & sProjetAff
+
+    ' Priorite defaut Medium + pre-remplir Attentes
+    If LenB(CStr(UserForm.Cmb_SIRUS_Priorite.Value)) = 0 Then
+        UserForm.Cmb_SIRUS_Priorite.Value = "Medium"
+    End If
+    Call SIRUS_UI_PrioriteChange
+
+    On Error GoTo 0
+End Sub
+
+' =========================================================================
+' Helpers UI Phase 5
+' =========================================================================
+
+' Recupere les noms des feuilles SIRUS du combo Cmb_SIRUS_FeuilleAnalyse
+' (= toutes les feuilles generees pour la session courante).
+Private Function SIRUS_RecupererFeuillesAEnvoyer() As String()
+    Dim i As Long, n As Long
+    Dim resultat() As String
+
+    On Error Resume Next
+    n = UserForm.Cmb_SIRUS_FeuilleAnalyse.ListCount
+    On Error GoTo 0
+
+    If n = 0 Then
+        ReDim resultat(0 To -1)
+        SIRUS_RecupererFeuillesAEnvoyer = resultat
+        Exit Function
+    End If
+
+    ReDim resultat(0 To n - 1)
+    For i = 0 To n - 1
+        resultat(i) = CStr(UserForm.Cmb_SIRUS_FeuilleAnalyse.List(i))
+    Next i
+    SIRUS_RecupererFeuillesAEnvoyer = resultat
+End Function
+
+' Resume textuel des feuilles a envoyer (pour Lbl_SIRUS_FeuillesRecap).
+Private Function SIRUS_ResumerFeuillesPourEnvoi() As String
+    Dim feuilles() As String
+    Dim i As Long, s As String
+    feuilles = SIRUS_RecupererFeuillesAEnvoyer()
+    For i = LBound(feuilles) To UBound(feuilles)
+        If LenB(s) > 0 Then s = s & ", "
+        s = s & feuilles(i)
+    Next i
+    SIRUS_ResumerFeuillesPourEnvoi = s
+End Function
+
+' Compte les lignes de donnees (apres entete) d une feuille SIRUS
+' (col 2 = 1er champ saisie, generalement DTR ou Nom projet).
+Private Function SIRUS_CompterLignesFeuille(ByVal sNomFeuille As String) As Long
+    Dim ws As Worksheet
+    Dim n As Long
+    On Error Resume Next
+    Set ws = ActiveWorkbook.Worksheets(sNomFeuille)
+    On Error GoTo 0
+    If ws Is Nothing Then
+        SIRUS_CompterLignesFeuille = 0
+        Exit Function
+    End If
+    n = ws.Cells(ws.rows.count, 2).End(xlUp).Row - 2
+    If n < 0 Then n = 0
+    SIRUS_CompterLignesFeuille = n
+End Function
 
 ' =========================================================================
 ' Helpers UI SIRUS v2
@@ -992,6 +1302,10 @@ Private Sub SIRUS_RemplirListViewResultats(ByVal sFeuille As String)
     Dim statut As String, cle As String, detail As String
     Dim cellStatut As Range
 
+    ' Re-configurer la ListView (idempotent : recree les ColumnHeaders).
+    ' Critique : sans ColumnHeaders, SubItems(1) leve "Invalid property value".
+    Call SIRUS_ConfigListViewResultats
+
     Set lv = UserForm.ListView_SIRUS_Resultats
     lv.ListItems.Clear
 
@@ -1002,19 +1316,42 @@ Private Sub SIRUS_RemplirListViewResultats(ByVal sFeuille As String)
 
     ligneMax = ws.Cells(ws.rows.count, 2).End(xlUp).Row
     For ligne = 3 To ligneMax
-        statut = CStr(ws.Cells(ligne, 1).Value)
+        statut = SafeCStr(ws.Cells(ligne, 1).Value)
         If InStr(1, statut, "NOK", vbTextCompare) > 0 _
            Or InStr(1, statut, "non trouv", vbTextCompare) > 0 Then
-            cle = CStr(ws.Cells(ligne, 2).Value)
+            cle = SafeCStr(ws.Cells(ligne, 2).Value)
             detail = ""
             Set cellStatut = ws.Cells(ligne, 1)
             If Not cellStatut.Comment Is Nothing Then
                 detail = cellStatut.Comment.Text
                 detail = Replace(detail, vbLf, " | ")
             End If
+            On Error Resume Next
             Set li = lv.ListItems.Add(, , CStr(ligne))
             li.SubItems(1) = cle
             li.SubItems(2) = detail
+            On Error GoTo 0
         End If
     Next ligne
 End Sub
+
+' SafeCStr : conversion en chaine resistante a Null / Error / Empty.
+' Evite les "Invalid use of Null" et "Invalid property value" quand on lit
+' des cellules contenant des valeurs speciales (#N/A, formules vides, etc.).
+Private Function SafeCStr(ByVal v As Variant) As String
+    On Error Resume Next
+    If IsNull(v) Then
+        SafeCStr = ""
+    ElseIf IsEmpty(v) Then
+        SafeCStr = ""
+    ElseIf IsError(v) Then
+        SafeCStr = ""
+    Else
+        SafeCStr = CStr(v)
+    End If
+    If Err.Number <> 0 Then
+        SafeCStr = ""
+        Err.Clear
+    End If
+    On Error GoTo 0
+End Function

@@ -2,7 +2,7 @@ Attribute VB_Name = "E_Extraction_Main"
 '--------------------------------------------------------------------------------------------------------
 '
 '                                       Generateur Livrables SLI
-'                                       Module L_Extraction_Main (Version Refactoris�e)
+'                                       Module L_Extraction_Main (Version Refactorisee)
 '                                       Developpement : LE LARGE Thomas (LGM/Alstom)
 '                                       Module principal d'extraction ATM et EMMST
 '
@@ -11,7 +11,7 @@ Option Compare Text
 Option Explicit
 
 ' =========================================================================
-' PROC�DURE PRINCIPALE: MAIN EXTRACTION (wrapper retrocompat)
+' PROCEDURE PRINCIPALE: MAIN EXTRACTION (wrapper retrocompat)
 ' =========================================================================
 ' Conserve l'interface historique pilote par le UserForm (controles legacy
 ' lb_nomfichier_extr / Extr_Livrables_List / Langue_*_Extr). Delegue le
