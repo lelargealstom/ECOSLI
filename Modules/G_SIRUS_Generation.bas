@@ -27,6 +27,13 @@ Private Const COULEUR_ENTETE             As Long = 14606303   ' bleu tres clair 
 Private Const COULEUR_AUTO_HERITE        As Long = 14211288   ' gris clair RGB(216,216,216)
 Private Const COULEUR_ENTETE_BDD         As Long = 9868950    ' gris fonce RGB(150,150,150)
 
+' Mot de passe de protection des feuilles SIRUS generees (Phase 3.1).
+' UserInterfaceOnly:=True permet a VBA (moteur d'analyse Phase 2, ATMAP
+' Phase 5) d'ecrire dans toutes les cellules, l'utilisateur ne peut
+' modifier QUE les cellules Saisie (Auto/Herite + entetes + Statut verrouilles).
+' A centraliser en Phase 6.2 (MOT_DE_PASSE_PROTECTION_FEUILLES dans params).
+Private Const SIRUS_PROTECTION_PWD As String = "SIRUS"
+
 ' =========================================================================
 ' Limite ACE OLE DB : noms de champ Excel tronques a 64 caracteres
 ' =========================================================================
@@ -172,6 +179,10 @@ Public Sub SIRUS_GenererFeuilleAnalyse(ByVal sTable As String, _
     ' -- 9. Griser les champs Auto / Herite -----------------
     Call GriserChampsAutoHerite(wsCible, col)
 
+    ' -- 9 bis. Verrouiller cellules Auto/Herite + entetes + Statut
+    '          et activer la protection feuille (Phase 3.1).
+    Call VerrouillerEtProteger(wsCible, col)
+
     ' -- 10. Aller a la cellule de saisie -------------------
     wsCible.Activate
     wsCible.Cells(SIRUS_LIGNE_DONNEES_DEBUT, 1).Select
@@ -298,6 +309,64 @@ Private Sub GriserChampsAutoHerite(ws As Worksheet, col As Collection)
         End If
         i = i + 1
     Next def
+End Sub
+
+' =========================================================================
+' VerrouillerEtProteger (Phase 3.1)
+' =========================================================================
+' Verrouille les cellules non-editables par l'utilisateur (entetes + colonne
+' Statut + colonnes Source = "Auto"/"Herite") puis active la protection de
+' la feuille avec UserInterfaceOnly:=True (VBA peut toujours ecrire partout).
+'
+' Strategie : deverrouiller TOUTES les cellules d'abord (par defaut Excel
+' met .Locked = True partout), puis re-verrouiller specifiquement les zones
+' qui ne doivent pas etre editees. Plus simple a maintenir que de tracker
+' les Saisie individuellement.
+'
+' Note : UserInterfaceOnly n'est pas persiste apres Save/Reopen. Si le
+' classeur est ferme puis rouvert, VBA devra reappeler Protect pour
+' restaurer le drapeau. A traiter en Phase 6.2 si besoin (Workbook_Open).
+Private Sub VerrouillerEtProteger(ws As Worksheet, col As Collection)
+
+    Dim def As SIRUS_Champ_Config
+    Dim i As Long
+    Dim nbCol As Long
+    Dim plage As Range
+
+    nbCol = col.Count
+
+    ' 1. Deverrouiller toutes les cellules (.Locked = True par defaut sinon)
+    ws.Cells.Locked = False
+
+    ' 2. Verrouiller les 2 lignes d'entete (humain + ColonneBdD masquee)
+    ws.Rows(SIRUS_LIGNE_ENTETE_HUMAIN).Locked = True
+    ws.Rows(SIRUS_LIGNE_ENTETE_BDD).Locked = True
+
+    ' 3. Verrouiller la colonne Statut (en bout : nbCol + 1) - ecrite par
+    '    le moteur d'analyse Phase 2, pas par l'utilisateur.
+    ws.Columns(nbCol + 1).Locked = True
+
+    ' 4. Verrouiller les colonnes Auto / Herite dans la zone de saisie.
+    i = 1
+    For Each def In col
+        If def.Source = "Auto" Or def.Source = "Herite" Then
+            Set plage = ws.Range( _
+                ws.Cells(SIRUS_LIGNE_DONNEES_DEBUT, i), _
+                ws.Cells(SIRUS_LIGNE_DONNEES_DEBUT + SIRUS_NB_LIGNES_VALIDATION - 1, i))
+            plage.Locked = True
+        End If
+        i = i + 1
+    Next def
+
+    ' 5. Activer la protection. UserInterfaceOnly:=True : VBA peut continuer
+    '    a ecrire dans toutes les cellules (moteur d'analyse, ATMAP), seul
+    '    l'utilisateur est bloque sur les cellules verrouillees.
+    '    AllowFormattingColumns/Rows : utile pour AutoFit, masquage de lignes.
+    ws.Protect Password:=SIRUS_PROTECTION_PWD, _
+               UserInterfaceOnly:=True, _
+               AllowFormattingCells:=False, _
+               AllowFormattingColumns:=True, _
+               AllowFormattingRows:=True
 End Sub
 
 ' =========================================================================
