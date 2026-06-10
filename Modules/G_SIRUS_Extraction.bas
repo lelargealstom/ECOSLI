@@ -171,6 +171,11 @@ Private Sub DeverserFeuilleVersSIRUS(ByVal wbSrc As Workbook, _
         End If
     Next i
 
+    ' Forcer NumberFormat = "@" (texte) sur les colonnes SIRUS dont le
+    ' TypeChamp du config = "Texte" (notamment Rang). Empeche la conversion
+    ' Excel "1-1" / "5-2" en date au moment de l'ecriture.
+    Call ForcerFormatTexte(wsDest, sDestFeuille, mapColBdD)
+
     ' Lire les en-tetes + donnees brutes en bloc pour reduire les acces COM
     nbColsSrc = wsSrc.Cells(1, wsSrc.Columns.count).End(xlToLeft).Column
     nbLignesSrc = wsSrc.Cells(wsSrc.rows.count, 1).End(xlUp).Row
@@ -244,6 +249,50 @@ Private Sub DeverserFeuilleVersSIRUS(ByVal wbSrc As Workbook, _
 Sortie:
     MsgBox "Erreur DeverserFeuilleVersSIRUS [" & sDestFeuille & "] : " & _
            Err.Description, vbCritical, "SIRUS"
+End Sub
+
+' =========================================================================
+' ForcerFormatTexte (helper interne)
+' =========================================================================
+' Pour chaque champ TypeChamp = "Texte" du config SIRUS de la table
+' correspondante, force NumberFormat = "@" sur la zone de saisie de la
+' colonne SIRUS. Evite la conversion automatique Excel de valeurs
+' comme "1-1", "5-2" en date lors du deversement.
+'
+' Strategie : nom feuille = "SIRUS_<Table>_<Op>" -> on extrait <Table>
+' et on lit le config via SIRUS_LireConfig(<Table>).
+Private Sub ForcerFormatTexte(ByVal wsDest As Worksheet, _
+                                ByVal sDestFeuille As String, _
+                                ByRef mapColBdD As Object)
+    Dim parts() As String
+    Dim sTable As String
+    Dim col As Collection
+    Dim def As SIRUS_Champ_Config
+    Dim sNomNormalise As String
+    Dim colIdx As Long
+
+    ' Extraire le nom de table depuis "SIRUS_<Table>_<Op>"
+    parts = Split(sDestFeuille, "_")
+    If UBound(parts) < 2 Then Exit Sub
+    sTable = parts(1)
+
+    On Error Resume Next
+    Set col = SIRUS_LireConfig(sTable)
+    On Error GoTo 0
+    If col Is Nothing Then Exit Sub
+
+    For Each def In col
+        If def.TypeChamp = "Texte" And LenB(def.ColonneBdD) > 0 Then
+            sNomNormalise = NormaliserNomBdD(def.ColonneBdD)
+            If mapColBdD.Exists(sNomNormalise) Then
+                colIdx = CLng(mapColBdD(sNomNormalise))
+                ' Forcer texte sur la zone de saisie (ligne 3 jusqu'au bas
+                ' raisonnable - on prend 5000 lignes pour couvrir les
+                ' extractions volumineuses).
+                wsDest.Range(wsDest.Cells(3, colIdx), wsDest.Cells(5000, colIdx)).NumberFormat = "@"
+            End If
+        End If
+    Next def
 End Sub
 
 ' =========================================================================

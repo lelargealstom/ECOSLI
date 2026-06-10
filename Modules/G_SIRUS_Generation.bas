@@ -527,7 +527,11 @@ Private Sub PreRemplirDepuisBdD(ws As Worksheet, ByVal sTable As String, _
 
         trouve = False
         If Not (REQSEL Is Nothing) Then
-            If Not REQSEL.EOF Then
+            ' Boucle Do While (et non If) car une cle peut renvoyer
+            ' N lignes (ProjetASL : 1 nom de projet -> N DTR du projet).
+            ' Chaque ligne du Recordset est ecrite sur une ligne distincte
+            ' de la feuille SIRUS.
+            Do While Not REQSEL.EOF
                 ' Remplir la ligne champ par champ. Les champs du config
                 ' sont en col 2..(nbCol+1) suite a Statut en col 1.
                 i = 2
@@ -541,7 +545,9 @@ Private Sub PreRemplirDepuisBdD(ws As Worksheet, ByVal sTable As String, _
                 Next def
                 trouve = True
                 nbOk = nbOk + 1
-            End If
+                ligne = ligne + 1
+                REQSEL.MoveNext
+            Loop
         End If
 
         If Not trouve Then
@@ -552,9 +558,8 @@ Private Sub PreRemplirDepuisBdD(ws As Worksheet, ByVal sTable As String, _
             ws.Cells(ligne, 1).Font.Color = vbRed
             ws.Cells(ligne, 2).Value = cle
             nbKo = nbKo + 1
+            ligne = ligne + 1
         End If
-
-        ligne = ligne + 1
     Next cle
 
     Call Close_CONN(ChaineConnexionSIRUS)

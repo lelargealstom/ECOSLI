@@ -53,6 +53,8 @@ Public Function Main_Extraction_Params(ByVal sFichier As String, _
                                         Optional ByVal bAfficherMsgFin As Boolean = True) As Workbook
     Dim nbFiches As Integer
     Dim validationOK As Boolean
+    Dim ws As Worksheet
+    Dim feuillesDispo As String
 
     On Error GoTo ErrorHandler
 
@@ -62,12 +64,26 @@ Public Function Main_Extraction_Params(ByVal sFichier As String, _
     langue = sLangue
 
     ' ETAPE 1 : Ouverture fichier livrable
+    Debug.Print "Main_Extraction_Params : ouverture du fichier '" & sFichier & "'"
     Set wb = Workbooks.Open(sFichier, UpdateLinks:=False, ReadOnly:=False)
+    Debug.Print "  -> wb.Name = '" & wb.Name & "', " & wb.Worksheets.count & " feuille(s)."
 
     ' ETAPE 2 : Validation fichier
     nbFiches = CompterFichesDTR(wb)
+    Debug.Print "  CompterFichesDTR -> " & nbFiches & " fiche(s) reconnue(s) (filtre nom Like '*DTR*')"
     If nbFiches = 0 Then
-        MsgBox "Aucune fiche " & sLivrable & " n'est reconnue dans le fichier.", _
+        ' Diagnostic : lister les feuilles disponibles pour identifier
+        ' pourquoi aucune ne matche le pattern "*DTR*".
+        feuillesDispo = ""
+        For Each ws In wb.Worksheets
+            If LenB(feuillesDispo) > 0 Then feuillesDispo = feuillesDispo & vbCrLf
+            feuillesDispo = feuillesDispo & "  - " & ws.Name
+        Next ws
+        MsgBox "Aucune fiche " & sLivrable & " n'est reconnue dans le fichier." & vbCrLf & vbCrLf & _
+               "Fichier : " & wb.Name & vbCrLf & _
+               wb.Worksheets.count & " feuille(s) au total :" & vbCrLf & feuillesDispo & vbCrLf & vbCrLf & _
+               "Le compteur cherche les feuilles dont le nom contient 'DTR' (sensible au pattern Like '*DTR*'). " & _
+               "Verifier que le fichier est bien un livrable " & sLivrable & " au format VBN.", _
                vbExclamation, "Extraction"
         wb.Close SaveChanges:=False
         Set wb = Nothing
@@ -95,7 +111,10 @@ Public Function Main_Extraction_Params(ByVal sFichier As String, _
 
     Select Case sLivrable
         Case "ATM"
-            Call Extraction_Fiches_ATM(wb, sLangue, nbFiches)
+            ' Bascule vers la version tolerante (Phase 4 entree A).
+            ' L'ancien Extraction_Fiches_ATM reste disponible comme
+            ' fallback pour usage direct si besoin.
+            Call Extraction_Fiches_ATM_Tolerant(wb, sLangue, nbFiches)
         Case "EMMST"
             Call Extraction_Fiches_EMMST(wb, sLangue, nbFiches)
         Case Else
@@ -148,55 +167,73 @@ End Function
 Private Function ValiderFormatLivrable(ByRef wb As Workbook, _
                                        ByVal typeLivrable As String, _
                                        ByVal langue As String) As Boolean
-' V�rifie que les fiches DTR sont bien au format VBN attendu
-' Retourne True si format OK, False sinon
-    
+' Validation tolerante du format livrable VBN (revision 2026-06-10).
+' Au lieu d'exiger que la cellule B2 de CHAQUE feuille DTR contienne le
+' titre EXACT, on cherche un mot-cle caracteristique du livrable dans
+' la zone d'entete A1:J10 d'AU MOINS UNE feuille DTR. Cela tolere :
+'   - les variations de titre (Analyse de Taches / Analyse de Taches de Maintenance / MTA)
+'   - le titre place dans une autre cellule de l'entete
+'   - une eventuelle fiche d'exemple ou de garde non standard
+'
+' Si une seule fiche DTR contient le mot-cle, on accepte le format et on
+' poursuit l'extraction. Les fiches non conformes seront ignorees plus
+' loin par les fonctions Extraire* (qui sont elles-memes tolerantes).
+
     Dim ws As Worksheet
-    Dim titreAttendu As String
-    Dim celluleTitre As Range
-    
+    Dim motsCles As Variant
+    Dim mc As Variant
+    Dim cell As Range
+    Dim nbDTRTestees As Long
+    Dim nbDTRMatch As Long
+
     On Error GoTo ValidationFailed
-    
-    ' D�terminer titre attendu selon livrable et langue
+
+    ' Mots-cles a chercher (au moins 1 doit matcher dans la zone A1:J10)
     Select Case typeLivrable
         Case "ATM"
             If langue = "FR" Then
-                titreAttendu = "Analyse de T�ches de Maintenance"
+                motsCles = Array("Maintenance", "ATM", "Taches", "T" & ChrW(226) & "ches")
             Else
-                titreAttendu = "Maintenance Tasks Analysis"
+                motsCles = Array("Maintenance", "MTA", "Tasks")
             End If
-        
         Case "EMMST"
             If langue = "FR" Then
-                titreAttendu = "Emballage Marquage Manutention Stockage Transport"
+                motsCles = Array("Emballage", "EMMST", "Marquage", "Stockage")
             Else
-                titreAttendu = "Packaging Labelling Handling Storage Transport"
+                motsCles = Array("Packaging", "PHLST", "Labelling", "Storage")
             End If
-        
         Case Else
             ValiderFormatLivrable = False
             Exit Function
     End Select
-    
-    ' V�rifier chaque feuille DTR
+
+    nbDTRTestees = 0
+    nbDTRMatch = 0
     For Each ws In wb.Worksheets
         If ws.Name Like "*DTR*" Then
-            Set celluleTitre = ws.Cells(2, 2)
-            
-            If celluleTitre.Value <> titreAttendu Then
-                ValiderFormatLivrable = False
-                Exit Function
-            End If
+            nbDTRTestees = nbDTRTestees + 1
+            ' Cherche au moins un mot-cle dans la zone d'entete (10x10)
+            For Each cell In ws.Range("A1:J10")
+                For Each mc In motsCles
+                    If InStr(1, CStr(cell.Value), CStr(mc), vbTextCompare) > 0 Then
+                        nbDTRMatch = nbDTRMatch + 1
+                        GoTo NextWs
+                    End If
+                Next mc
+            Next cell
+NextWs:
         End If
     Next ws
-    
-    ' Si aucune erreur ? format valide
-    ValiderFormatLivrable = True
+
+    Debug.Print "ValiderFormatLivrable (" & typeLivrable & ", " & langue & ") : " & _
+                nbDTRMatch & " / " & nbDTRTestees & " feuille(s) DTR ont matche au moins un mot-cle."
+
+    ' On accepte si au moins 1 feuille DTR contient un mot-cle.
+    ValiderFormatLivrable = (nbDTRMatch > 0)
     Exit Function
-    
+
 ValidationFailed:
     ValiderFormatLivrable = False
-    
 End Function
 
 
