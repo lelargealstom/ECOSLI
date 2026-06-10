@@ -24,6 +24,7 @@ Public Const SIRUS_LIST_BOOLEEN         As String = "Booleen"
 Public Const SIRUS_LIST_TYPETRAIN       As String = "TypeTrain"
 Public Const SIRUS_LIST_DEVISE          As String = "Devise"
 Public Const SIRUS_LIST_NIVMAINTENANCE  As String = "NiveauMaintenance"
+Public Const SIRUS_LIST_MOTIFNA         As String = "MotifNA"
 
 ' =========================================================================
 ' SIRUS_GetListe
@@ -57,6 +58,9 @@ Public Function SIRUS_GetListe(ByVal sNomListe As String) As Variant
 
         Case SIRUS_LIST_NIVMAINTENANCE
             SIRUS_GetListe = Array("3", "3/3+", "3+")
+
+        Case SIRUS_LIST_MOTIFNA
+            SIRUS_GetListe = Array("NA", "NA MECA", "NA KIT")
 
         Case Else
             Debug.Print "SIRUS_GetListe : nom de liste inconnu '" & sNomListe & "'."
@@ -100,7 +104,7 @@ Public Sub Test_GetListe()
 
     cles = Array(SIRUS_LIST_NODETYPE, SIRUS_LIST_HARDSOFT, SIRUS_LIST_LANGUE, _
                  SIRUS_LIST_BOOLEEN, SIRUS_LIST_TYPETRAIN, SIRUS_LIST_DEVISE, _
-                 SIRUS_LIST_NIVMAINTENANCE)
+                 SIRUS_LIST_NIVMAINTENANCE, SIRUS_LIST_MOTIFNA)
 
     Debug.Print "=== Test_GetListe ==="
     For Each k In cles

@@ -183,15 +183,17 @@ Public Sub SIRUS_GenererFeuilleAnalyse(ByVal sTable As String, _
     '          et activer la protection feuille (Phase 3.1).
     Call VerrouillerEtProteger(wsCible, col)
 
-    ' -- 10. Aller a la cellule de saisie -------------------
+    ' -- 10. Aller a la 1re cellule de saisie (col 2, ligne 3) ----
+    '    Col 1 = Statut (verrouille). 1er champ saisissable = col 2.
     wsCible.Activate
-    wsCible.Cells(SIRUS_LIGNE_DONNEES_DEBUT, 1).Select
+    wsCible.Cells(SIRUS_LIGNE_DONNEES_DEBUT, 2).Select
     ActiveWindow.FreezePanes = False
-    wsCible.Cells(SIRUS_LIGNE_DONNEES_DEBUT, 1).Select
+    wsCible.Cells(SIRUS_LIGNE_DONNEES_DEBUT, 2).Select
     ActiveWindow.FreezePanes = True
 
     MsgBox "Feuille '" & nomFeuille & "' generee avec succes." & vbCrLf & _
-           col.Count & " colonnes + colonne Statut.", vbInformation, "SIRUS"
+           "Statut (col 1) + " & col.Count & " champs + Commentaires (col " & _
+           (col.Count + 2) & ").", vbInformation, "SIRUS"
     Exit Sub
 
 Sortie:
@@ -201,30 +203,47 @@ End Sub
 ' =========================================================================
 ' PoserEntetes
 ' =========================================================================
-' Ligne 1 : libelles humains (Champ du config) + colonne "Statut" en bout.
-' Ligne 2 : ColonneBdD techniques (masquee). Sert d'index BdD <-> colonne
-'           pour le moteur d'analyse Phase 2 et la PJ ATMAP Phase 5.
+' Layout (refonte 2026-06-10) :
+'   colonne 1            : "Statut"        (ColonneBdD = "_statut")
+'   colonnes 2..(nbCol+1): champs du config (ordre = Ordre croissant)
+'   colonne (nbCol+2)    : "Commentaires"  (ColonneBdD = "_commentaires")
+'
+' Ligne 1 : libelles humains. Ligne 2 : ColonneBdD techniques (masquee).
 Private Sub PoserEntetes(ws As Worksheet, col As Collection)
 
     Dim def As SIRUS_Champ_Config
     Dim i As Long
     Dim nbCol As Long
+    Dim colStatut As Long, colCommentaires As Long
 
-    i = 1
+    nbCol = col.Count
+    colStatut = 1
+    colCommentaires = nbCol + 2
+
+    ' --- Statut en colonne 1 ---
+    ws.Cells(SIRUS_LIGNE_ENTETE_HUMAIN, colStatut).Value = "Statut"
+    ws.Cells(SIRUS_LIGNE_ENTETE_BDD, colStatut).Value = "_statut"
+
+    ' --- Champs du config en colonnes 2..(nbCol+1) ---
+    '    Marquage visuel des champs obligatoires :
+    '       " *"   en rouge pour Obligatoire = "Oui"
+    '       " (*)" en rouge pour Obligatoire = "Conditionnel"
+    '    Permet a l'utilisateur de reperer en un coup d'oeil les champs
+    '    a remplir avant de pousser la demande ATMAP.
+    i = 2
     For Each def In col
-        ws.Cells(SIRUS_LIGNE_ENTETE_HUMAIN, i).Value = def.Champ
+        Call PoserLibelleEntete(ws.Cells(SIRUS_LIGNE_ENTETE_HUMAIN, i), def)
         ws.Cells(SIRUS_LIGNE_ENTETE_BDD, i).Value = def.ColonneBdD
         i = i + 1
     Next def
-    nbCol = col.Count
 
-    ' Statut en derniere colonne
-    ws.Cells(SIRUS_LIGNE_ENTETE_HUMAIN, nbCol + 1).Value = "Statut"
-    ws.Cells(SIRUS_LIGNE_ENTETE_BDD, nbCol + 1).Value = "_statut"
+    ' --- Commentaires en derniere colonne ---
+    ws.Cells(SIRUS_LIGNE_ENTETE_HUMAIN, colCommentaires).Value = "Commentaires"
+    ws.Cells(SIRUS_LIGNE_ENTETE_BDD, colCommentaires).Value = "_commentaires"
 
     ' Formatage ligne 1 (humain)
     With ws.Range(ws.Cells(SIRUS_LIGNE_ENTETE_HUMAIN, 1), _
-                  ws.Cells(SIRUS_LIGNE_ENTETE_HUMAIN, nbCol + 1))
+                  ws.Cells(SIRUS_LIGNE_ENTETE_HUMAIN, colCommentaires))
         .Font.Bold = True
         .Interior.Color = COULEUR_ENTETE
         .HorizontalAlignment = xlCenter
@@ -234,19 +253,70 @@ Private Sub PoserEntetes(ws As Worksheet, col As Collection)
 
     ' Formatage ligne 2 (BdD) + masquage
     With ws.Range(ws.Cells(SIRUS_LIGNE_ENTETE_BDD, 1), _
-                  ws.Cells(SIRUS_LIGNE_ENTETE_BDD, nbCol + 1))
+                  ws.Cells(SIRUS_LIGNE_ENTETE_BDD, colCommentaires))
         .Font.Color = COULEUR_ENTETE_BDD
         .Font.Size = 8
         .Font.Italic = True
     End With
     ws.Rows(SIRUS_LIGNE_ENTETE_BDD).Hidden = True
 
-    ' Largeur auto
+    ' Largeur auto (basee sur le contenu de l'entete) avec bornes :
+    ' AutoFit pur avec WrapText donne des largeurs minimales (Excel essaie
+    ' d'ajuster en hauteur). On force un min/max raisonnable pour la
+    ' lisibilite : 14 (champs courts) <= largeur <= 35 (libellés longs).
+    Const LARG_MIN As Double = 14
+    Const LARG_MAX As Double = 35
+    Dim cIdx As Long
     ws.Range(ws.Cells(SIRUS_LIGNE_ENTETE_HUMAIN, 1), _
-             ws.Cells(SIRUS_LIGNE_ENTETE_HUMAIN, nbCol + 1)).EntireColumn.AutoFit
+             ws.Cells(SIRUS_LIGNE_ENTETE_HUMAIN, colCommentaires)).EntireColumn.AutoFit
+    For cIdx = 1 To colCommentaires
+        If ws.Columns(cIdx).ColumnWidth < LARG_MIN Then
+            ws.Columns(cIdx).ColumnWidth = LARG_MIN
+        ElseIf ws.Columns(cIdx).ColumnWidth > LARG_MAX Then
+            ws.Columns(cIdx).ColumnWidth = LARG_MAX
+        End If
+    Next cIdx
 
-    ' Hauteur entete + figer
-    ws.Rows(SIRUS_LIGNE_ENTETE_HUMAIN).RowHeight = 30
+    ' Hauteur entete + figer. Hauteur 45 pour laisser le wrap text afficher
+    ' les libellés sur 2 lignes sans coupure.
+    ws.Rows(SIRUS_LIGNE_ENTETE_HUMAIN).RowHeight = 45
+End Sub
+
+' =========================================================================
+' PoserLibelleEntete (helper interne)
+' =========================================================================
+' Ecrit le libelle Champ dans la cellule d'entete + suffixe rouge pour les
+' champs obligatoires :
+'   - Obligatoire = "Oui"          ==> suffixe " *"   en rouge
+'   - Obligatoire = "Conditionnel" ==> suffixe " (*)" en rouge
+'   - Obligatoire = "Non"          ==> rien
+' Le libellé principal reste dans la couleur d'entete (noir gras).
+Private Sub PoserLibelleEntete(ByVal cellEntete As Range, _
+                                ByVal def As SIRUS_Champ_Config)
+    Dim sLibelle As String
+    Dim sSuffixe As String
+    Dim posSuffixe As Long
+
+    sLibelle = def.Champ
+    Select Case def.Obligatoire
+        Case "Oui"
+            sSuffixe = " *"
+        Case "Conditionnel"
+            sSuffixe = " (*)"
+        Case Else
+            sSuffixe = ""
+    End Select
+
+    cellEntete.Value = sLibelle & sSuffixe
+
+    ' Mettre le suffixe en rouge gras pour le distinguer du libelle
+    If LenB(sSuffixe) > 0 Then
+        posSuffixe = Len(sLibelle) + 1
+        With cellEntete.Characters(Start:=posSuffixe, Length:=Len(sSuffixe)).Font
+            .Color = RGB(192, 0, 0)
+            .Bold = True
+        End With
+    End If
 End Sub
 
 ' =========================================================================
@@ -262,7 +332,8 @@ Private Sub AppliquerListes(ws As Worksheet, col As Collection)
     Dim sFormula As String
     Dim plage As Range
 
-    i = 1
+    ' Champs decales en col 2..(nbCol+1) suite a Statut en col 1.
+    i = 2
     For Each def In col
         If def.TypeChamp = "Liste" Or def.TypeChamp = "Booleen" Then
             sFormula = SIRUS_ListeEnChaine(def.ListeSource)
@@ -299,7 +370,8 @@ Private Sub GriserChampsAutoHerite(ws As Worksheet, col As Collection)
     Dim i As Long
     Dim plage As Range
 
-    i = 1
+    ' Champs decales en col 2..(nbCol+1) suite a Statut en col 1.
+    i = 2
     For Each def In col
         If def.Source = "Auto" Or def.Source = "Herite" Then
             Set plage = ws.Range( _
@@ -342,12 +414,16 @@ Private Sub VerrouillerEtProteger(ws As Worksheet, col As Collection)
     ws.Rows(SIRUS_LIGNE_ENTETE_HUMAIN).Locked = True
     ws.Rows(SIRUS_LIGNE_ENTETE_BDD).Locked = True
 
-    ' 3. Verrouiller la colonne Statut (en bout : nbCol + 1) - ecrite par
-    '    le moteur d'analyse Phase 2, pas par l'utilisateur.
-    ws.Columns(nbCol + 1).Locked = True
+    ' 3. Verrouiller la colonne 1 (Statut) - ecrite par le moteur d'analyse
+    '    Phase 2, pas par l'utilisateur.
+    ws.Columns(1).Locked = True
 
-    ' 4. Verrouiller les colonnes Auto / Herite dans la zone de saisie.
-    i = 1
+    ' 4. Colonne Commentaires (en bout : nbCol + 2) : LAISSEE DEVERROUILLEE
+    '    pour la saisie libre utilisateur (note metier, justification).
+
+    ' 5. Verrouiller les colonnes Auto / Herite dans la zone de saisie
+    '    (decalees de +1 a cause de la col Statut).
+    i = 2
     For Each def In col
         If def.Source = "Auto" Or def.Source = "Herite" Then
             Set plage = ws.Range( _
@@ -358,11 +434,18 @@ Private Sub VerrouillerEtProteger(ws As Worksheet, col As Collection)
         i = i + 1
     Next def
 
-    ' 5. Activer la protection. UserInterfaceOnly:=True : VBA peut continuer
-    '    a ecrire dans toutes les cellules (moteur d'analyse, ATMAP), seul
-    '    l'utilisateur est bloque sur les cellules verrouillees.
-    '    AllowFormattingColumns/Rows : utile pour AutoFit, masquage de lignes.
+    ' 5. Activer la protection.
+    '    - UserInterfaceOnly:=True : VBA peut ecrire dans toutes les cellules
+    '      (moteur d'analyse, ATMAP), seul l'utilisateur est bloque sur les
+    '      cellules verrouillees.
+    '    - DrawingObjects:=False : autorise VBA a manipuler les objets dessin
+    '      (commentaires de cellule, formes). Necessaire pour que
+    '      EcrireStatutCellule puisse poser un commentaire de cellule avec
+    '      le detail des alertes (sinon AddComment leve "Erreur 1004 :
+    '      Impossible de definir la propriete Comment, la feuille est protegee").
+    '    - AllowFormattingColumns/Rows : utile pour AutoFit, masquage de lignes.
     ws.Protect Password:=SIRUS_PROTECTION_PWD, _
+               DrawingObjects:=False, _
                UserInterfaceOnly:=True, _
                AllowFormattingCells:=False, _
                AllowFormattingColumns:=True, _
@@ -442,9 +525,9 @@ Private Sub PreRemplirDepuisBdD(ws As Worksheet, ByVal sTable As String, _
         trouve = False
         If Not (REQSEL Is Nothing) Then
             If Not REQSEL.EOF Then
-                ' Remplir la ligne champ par champ
-                ' Lecture REQSEL.Fields avec nom tronque a 64 chars (limite ACE).
-                i = 1
+                ' Remplir la ligne champ par champ. Les champs du config
+                ' sont en col 2..(nbCol+1) suite a Statut en col 1.
+                i = 2
                 For Each def In col
                     If LenB(def.ColonneBdD) > 0 Then
                         On Error Resume Next
@@ -459,10 +542,12 @@ Private Sub PreRemplirDepuisBdD(ws As Worksheet, ByVal sTable As String, _
         End If
 
         If Not trouve Then
-            ' Cle non trouvee : on remplit au moins la cle + un Statut explicite
-            ws.Cells(ligne, 1).Value = cle
-            ws.Cells(ligne, col.Count + 1).Value = "Cle non trouvee en BdD"
-            ws.Cells(ligne, col.Count + 1).Font.Color = vbRed
+            ' Cle non trouvee :
+            '   - col 1 (Statut) : marquer "Cle non trouvee" en rouge
+            '   - col 2 (1er champ config = cle) : reporter la valeur de cle
+            ws.Cells(ligne, 1).Value = "Cle non trouvee en BdD"
+            ws.Cells(ligne, 1).Font.Color = vbRed
+            ws.Cells(ligne, 2).Value = cle
             nbKo = nbKo + 1
         End If
 

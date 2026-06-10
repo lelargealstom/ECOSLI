@@ -132,101 +132,129 @@ End Sub
 ' Conditionnels : MTBF intrinseque / Motif NA (au moins un des deux),
 ' Prix/Date validite Spare et Repair selon Node Type et presence prix manuel.
 Private Sub PeuplerProduit(lo As ListObject)
-    ' ColonneBdD = vrais noms BdD (cf. Champs_BDD.xlsx, colonne Produit).
+    ' Refonte 2026-06-10 : nouvel ordre + 25 champs metier alignes sur le
+    ' brief Thomas. Champs marques ??_*_a_definir : nom BdD a confirmer
+    ' via Test_DiagnostiquerEcartsConfig_Toutes / Test_DiagnostiquerColonnesBdDFeuille.
 
-    Call AjouterChamp(lo, "Produit", "DTR", "DTR", 10, _
+    Call AjouterChamp(lo, "Produit", "Famille Generique", _
+                      "??_FamilleGenerique_a_definir", 10, _
+                      "Texte", "", "Non", "", "Saisie", "", 1, "", _
+                      "Famille generique du produit (a definir).")
+
+    Call AjouterChamp(lo, "Produit", "DTR", "DTR", 20, _
                       "Texte", "", "Oui", "", "Saisie", "", 3, "", _
                       "Identifiant unique du produit (cle).")
 
     Call AjouterChamp(lo, "Produit", "Designation manuelle", _
-                      "Désignation manuelle_PRODUIT", 20, _
+                      "Désignation manuelle_PRODUIT", 30, _
                       "Texte", "", "Oui", "", "Saisie", "", 2, "", "")
 
     Call AjouterChamp(lo, "Produit", "Node Type", _
-                      "Node type Produit (LRU/SRU…)_PRODUIT", 30, _
+                      "Node type Produit (LRU/SRU…)_PRODUIT", 40, _
                       "Liste", "NodeType", "Oui", "", "Saisie", "", 2, "", "")
 
+    Call AjouterChamp(lo, "Produit", "Ref RAM Report", _
+                      "??_RefRAMReport_a_definir", 50, _
+                      "Texte", "", "Non", "", "Saisie", "", 1, "", _
+                      "Reference RAM Report (a definir).")
+
     Call AjouterChamp(lo, "Produit", "Fournisseur", _
-                      "Fournisseur_PRODUIT", 40, _
+                      "Fournisseur_PRODUIT", 60, _
                       "Texte", "", "Oui", "", "Saisie", "", 1, "", "")
 
     Call AjouterChamp(lo, "Produit", "Reference fournisseur", _
-                      "Référence fournisseur_PRODUIT", 50, _
+                      "Référence fournisseur_PRODUIT", 70, _
                       "Texte", "", "Oui", "", "Saisie", "", 1, "", "")
 
-    Call AjouterChamp(lo, "Produit", "Numero plan", _
-                      "Drawing number", 60, _
+    Call AjouterChamp(lo, "Produit", "Motif NA", _
+                      "MotifNonApplicabilité_PRODUIT", 80, _
+                      "Liste", "MotifNA", "Conditionnel", "Vide si MTBF intrinseque renseigne", "Saisie", "", 1, "", _
+                      "Liste : NA, NA MECA, NA KIT.")
+
+    Call AjouterChamp(lo, "Produit", "Drawing Number", _
+                      "Drawing number", 90, _
                       "Texte", "", "Oui", "", "Saisie", "", 1, "", _
-                      "Note : nom BdD sans suffixe _PRODUIT.")
+                      "Nom BdD sans suffixe _PRODUIT.")
 
-    Call AjouterChamp(lo, "Produit", "MoQ Spare", _
-                      "MoQ spare catalogue_PRODUIT", 70, _
-                      "Nombre", "", "Oui", "", "Saisie", "", 1, "", _
-                      "Minimum Order Quantity Spare.")
-
-    Call AjouterChamp(lo, "Produit", "MTBF intrinseque", _
-                      "MTBF intrinsèque Produit (h) issu de la datasheet _PRODUIT", 80, _
+    Call AjouterChamp(lo, "Produit", "MTBF intrinseque (h)", _
+                      "MTBF intrinsèque Produit (h) issu de la datasheet _PRODUIT", 100, _
                       "Nombre", "", "Conditionnel", "Vide si Motif NA renseigne", "Saisie", "", 2, "", _
                       "Obligatoire sauf si Motif NA renseigne. Note : espace avant _PRODUIT dans le nom BdD.")
 
-    Call AjouterChamp(lo, "Produit", "Motif NA", _
-                      "MotifNonApplicabilité_PRODUIT", 90, _
-                      "Texte", "", "Conditionnel", "Vide si MTBF intrinseque renseigne", "Saisie", "", 1, "", _
-                      "Obligatoire sauf si MTBF intrinseque renseigne.")
+    Call AjouterChamp(lo, "Produit", "DVL HARD generique", _
+                      "??_DureeVieLimiteeHARDGenerique_a_definir", 110, _
+                      "Nombre", "", "Non", "", "Saisie", "", 1, "", _
+                      "Duree de vie limitee HARD generique (a definir).")
+
+    Call AjouterChamp(lo, "Produit", "DVL SOFT generique", _
+                      "??_DureeVieLimiteeSOFTGenerique_a_definir", 120, _
+                      "Nombre", "", "Non", "", "Saisie", "", 1, "", _
+                      "Duree de vie limitee SOFT generique (a definir).")
 
     Call AjouterChamp(lo, "Produit", "Prix Spare manuel", _
-                      "Prix SPARE manuel_PRODUIT", 100, _
-                      "Nombre", "", "Conditionnel", "NodeType LRU/SRU obligatoire ; sinon 1 prix Spare sur 3", "Saisie", "", 1, "", _
-                      "Obligatoire pour LRU/SRU ; au moins 1 prix Spare sur 3 pour LRUNR/SRUNR/KIT/VISSERIE/ASSEMBLY.")
+                      "Prix SPARE manuel_PRODUIT", 130, _
+                      "Nombre", "", "Non", "", "Saisie", "", 1, "", _
+                      "Prix Spare manuel (saisie libre).")
+
+    Call AjouterChamp(lo, "Produit", "Lead Time Spare", _
+                      "??_LeadTimeSpare_a_definir", 140, _
+                      "Nombre", "", "Non", "", "Saisie", "", 1, "", _
+                      "Lead time Spare (jours) - a definir.")
+
+    Call AjouterChamp(lo, "Produit", "Source Spare", _
+                      "??_SourceSpare_a_definir", 150, _
+                      "Texte", "", "Non", "", "Saisie", "", 1, "", _
+                      "Source du prix Spare (a definir).")
+
+    Call AjouterChamp(lo, "Produit", "Date Source Spare", _
+                      "??_DateSourceSpare_a_definir", 160, _
+                      "Date", "", "Non", "", "Saisie", "", 1, "", _
+                      "Date de la source du prix Spare (a definir).")
 
     Call AjouterChamp(lo, "Produit", "Prix Repair manuel", _
-                      "Prix REPAIR manuel_PRODUIT", 110, _
-                      "Nombre", "", "Conditionnel", "NodeType LRU/SRU", "Saisie", "", 1, "", _
-                      "Obligatoire pour LRU/SRU.")
+                      "Prix REPAIR manuel_PRODUIT", 170, _
+                      "Nombre", "", "Non", "", "Saisie", "", 1, "", _
+                      "Prix Repair manuel (saisie libre).")
 
-    Call AjouterChamp(lo, "Produit", "Date validite Spare", _
-                      "Dates de validité des prix SPARE connus sur Projet (ASL)_PRODUIT", 120, _
-                      "Date", "", "Conditionnel", "Prix Spare manuel renseigne", "Saisie", "", 1, "", _
-                      "Attendue des qu'un prix Spare manuel est saisi.")
+    Call AjouterChamp(lo, "Produit", "Lead Time Repair", _
+                      "Lead time REPAIR (jours) manuel_PRODUIT", 180, _
+                      "Nombre", "", "Non", "", "Saisie", "", 1, "", _
+                      "Lead time Repair manuel (jours).")
 
-    Call AjouterChamp(lo, "Produit", "Date validite Repair", _
-                      "Dates de validité des prix REPAIR connus sur Projet (ASL)_PRODUIT", 130, _
-                      "Date", "", "Conditionnel", "Prix Repair manuel renseigne", "Saisie", "", 1, "", _
-                      "Attendue des qu'un prix Repair manuel est saisi.")
+    Call AjouterChamp(lo, "Produit", "Source Repair", _
+                      "??_SourceRepair_a_definir", 190, _
+                      "Texte", "", "Non", "", "Saisie", "", 1, "", _
+                      "Source du prix Repair (a definir).")
 
-    ' --- Repair catalogue + reparabilite + LCS Repair (ajout 2026-06-09) ---
-    Call AjouterChamp(lo, "Produit", "Reparabilite (catalogue D&IS)", _
-                      "Réparabilité D&IS Service France VBN Repair Catalog - FY2425_26-04-2024_PRODUIT", 140, _
-                      "Texte", "", "Non", "", "Saisie", "", 0, "", _
-                      "Reference catalogue D&IS Service France VBN Repair (snapshot 26-04-2024).")
+    Call AjouterChamp(lo, "Produit", "Date Source Repair", _
+                      "??_DateSourceRepair_a_definir", 200, _
+                      "Date", "", "Non", "", "Saisie", "", 1, "", _
+                      "Date de la source du prix Repair (a definir).")
 
-    Call AjouterChamp(lo, "Produit", "Prix Repair catalogue", _
-                      "Prix REPAIR catalogue à date_PRODUIT", 150, _
-                      "Nombre", "", "Non", "", "Saisie", "", 0, "", _
-                      "Prix REPAIR catalogue a date.")
+    Call AjouterChamp(lo, "Produit", "Reference datasheet", _
+                      "??_RefDatasheet_a_definir", 210, _
+                      "Texte", "", "Non", "", "Saisie", "", 1, "", _
+                      "Reference de la datasheet (a definir).")
 
-    Call AjouterChamp(lo, "Produit", "Lead time Repair catalogue", _
-                      "Lead time REPAIR catalogue (jours) à date_PRODUIT", 160, _
-                      "Nombre", "", "Non", "", "Saisie", "", 0, "", _
-                      "Lead time REPAIR catalogue (jours) a date.")
+    Call AjouterChamp(lo, "Produit", "Reference MUL installation", _
+                      "??_RefMULInstallation_a_definir", 220, _
+                      "Texte", "", "Non", "", "Saisie", "", 1, "", _
+                      "Reference MUL installation (a definir).")
 
-    Call AjouterChamp(lo, "Produit", "Lead time Repair manuel", _
-                      "Lead time REPAIR (jours) manuel_PRODUIT", 170, _
-                      "Nombre", "", "Non", "", "Saisie", "", 0, "", _
-                      "Lead time REPAIR (jours) saisie manuelle.")
+    Call AjouterChamp(lo, "Produit", "Reference MUL maintenance", _
+                      "??_RefMULMaintenance_a_definir", 230, _
+                      "Texte", "", "Non", "", "Saisie", "", 1, "", _
+                      "Reference MUL maintenance (a definir).")
 
-    Call AjouterChamp(lo, "Produit", "LCS Repair", _
-                      "LCS_Repair_PRODUIT", 180, _
-                      "Texte", "", "Non", "", "Saisie", "", 0, "", "")
+    Call AjouterChamp(lo, "Produit", "Reference MUL software", _
+                      "??_RefMULSoftware_a_definir", 240, _
+                      "Texte", "", "Non", "", "Saisie", "", 1, "", _
+                      "Reference MUL software (a definir).")
 
-    Call AjouterChamp(lo, "Produit", "Data Catalogue Repair", _
-                      "Data_Catalogue_Repair_PRODUIT", 190, _
-                      "Texte", "", "Non", "", "Saisie", "", 0, "", "")
-
-    Call AjouterChamp(lo, "Produit", "Designation BdD", _
-                      "Désignation_PRODUIT", 200, _
-                      "Texte", "", "Non", "", "Auto", "", 0, "", _
-                      "Lecture seule, recuperee de la BdD (affichage gris).")
+    Call AjouterChamp(lo, "Produit", "Reference MUL interface", _
+                      "??_RefMULInterface_a_definir", 250, _
+                      "Texte", "", "Non", "", "Saisie", "", 1, "", _
+                      "Reference MUL interface (a definir).")
 End Sub
 
 ' =========================================================================
