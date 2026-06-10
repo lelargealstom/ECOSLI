@@ -88,15 +88,89 @@ Colonnes attendues sur `ListView_SIRUS_Resultats` (configurées par `SIRUS_Confi
 
 ---
 
-## Zone 3 — Envoyer ATMAP
+## Zone 3 — Envoyer ATMAP (Phase 5)
 
-| Type | Name | Caption / Propriétés |
+### Bloc Récap (lecture seule, auto-rempli)
+
+| Type | Name | Source |
 |---|---|---|
 | Frame | `Frame_SIRUS_Envoi` | "3. Envoyer ATMAP" |
-| Label | `Lbl_SIRUS_StatutEnvoi` | "" (résumé feuilles à envoyer) |
-| CommandButton | `Btn_SIRUS_Envoyer` | "Envoyer la demande ATMAP" |
+| Label | `Lbl_SIRUS_Demandeur` | `Application.UserName` |
+| Label | `Lbl_SIRUS_Date` | `Format(Now, "dd/mm/yyyy")` |
+| Label | `Lbl_SIRUS_OpRecap` | Recopie l'Op active (Créer/Modifier/Extraction) |
+| Label | `Lbl_SIRUS_TableRecap` | Recopie la Table active |
+| Label | `Lbl_SIRUS_FeuillesRecap` | Liste feuilles + nb lignes + MeQ |
 
-(Détails Phase 5 — pour l'instant le bouton sera désactivé tant que Phase 5 n'est pas branchée.)
+### Bloc Saisie (pré-rempli, modifiable)
+
+| Type | Name | Pré-rempli | Obligatoire |
+|---|---|---|---|
+| TextBox | `Txt_SIRUS_Sujet` | `IMP-YYYY-00X - Import <Op> <Table>` | ✅ |
+| TextBox `MultiLine=True` | `Txt_SIRUS_Description` | `<Op> de <N> référence(s) en <Table> pour le projet <Projet>` | ✅ |
+| ComboBox | `Cmb_SIRUS_Priorite` | "Medium" par défaut | ✅ |
+| TextBox `MultiLine=True` | `Txt_SIRUS_Attentes` | "Traitement sous X jours" selon priorité | non |
+
+**Liste Priorité** : `High`, `Medium`, `Low`.
+
+**Pré-remplissage Attentes** selon Priorité (re-calculé à chaque changement de `Cmb_SIRUS_Priorite`) :
+- `High`   → `Traitement sous 1 jour`
+- `Medium` → `Traitement sous 3 jours`
+- `Low`    → `Traitement sous 5 jours`
+
+### Bloc Action
+
+| Type | Name | Caption |
+|---|---|---|
+| CommandButton | `Btn_SIRUS_Envoyer` | "Envoyer la demande ATMAP" |
+| Label | `Lbl_SIRUS_StatutEnvoi` | "" (rempli après envoi : ID ticket + couleur verte/rouge) |
+
+### Logique métier
+
+**Numéro de ticket `IMP-YYYY-00X`** : généré automatiquement par requête SharePoint sur la liste `ID_Import` :
+- Filtre `Typedemande = "Import"`
+- Récupère le `ID_Import` le plus haut **de l'année en cours**
+- Incrémente de 1
+- Format : `IMP-2026-001`, `IMP-2026-002`, ...
+- **Passage d'année** : si aucun ID trouvé pour l'année en cours, recommence à `001`.
+
+**Projet** : récupéré depuis `Project_List` (combobox principale du UserForm en haut). Si vide → MsgBox bloquante demandant à l'utilisateur de choisir un projet avant envoi.
+
+**Multi-feuilles (cas Extraction ATM)** :
+- L'extraction ATM produit 2 feuilles : `SIRUS_InfoATM_Extraction` + `SIRUS_TachesATM_Extraction`.
+- Côté envoi : **1 seul ticket** avec **1 PJ Excel unique** contenant les 2 feuilles d'analyse dans un même classeur (logique : 1 livrable = 1 demande d'import).
+- Extraction EMMST : 1 feuille → 1 PJ.
+
+**Mapping vers l'API ATMAP** (`CreateTicketREST`) :
+- `numeroTicket` ← `Txt_SIRUS_Sujet` (préfixe `IMP-YYYY-00X`)
+- `sujet` ← `Txt_SIRUS_Sujet`
+- `statut` ← `"Nouveau"` (en dur)
+- `description` ← `Txt_SIRUS_Description`
+- `attentes` ← `Txt_SIRUS_Attentes`
+- `typedemande` ← `"Import"` (en dur, c'est le filtre SharePoint pour l'auto-numérotation)
+- `priorite` ← `Cmb_SIRUS_Priorite.Value`
+- `userID` ← `GetCurrentUserID(digest)` (helper existant `G_SIRUS_ATMAP`)
+
+### Garde-fous
+
+`Btn_SIRUS_Envoyer.Enabled = False` tant que :
+- Aucune feuille analysée OU taux MeQ < seuil (déjà géré)
+- `Project_List.Value` vide (côté validation à l'envoi : MsgBox)
+- `Txt_SIRUS_Sujet` ou `Txt_SIRUS_Description` vides
+- `Cmb_SIRUS_Priorite` non choisie
+
+**Confirmation `MsgBox vbYesNo`** avant l'appel `CreateTicketREST` (envoi irréversible).
+
+### Câblage événements (à ajouter dans le code-behind UserForm)
+
+```vba
+Private Sub Cmb_SIRUS_Priorite_Change()
+    Call SIRUS_UI_PrioriteChange
+End Sub
+
+Private Sub Btn_SIRUS_Envoyer_Click()
+    Call SIRUS_UI_BtnEnvoyerClick
+End Sub
+```
 
 ---
 
