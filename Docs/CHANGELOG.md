@@ -6,6 +6,185 @@ Format : `[Date] — Auteur — Périmètre`, puis liste des changements par mod
 
 ---
 
+## 2026-06-10 — Session Claude Code (avec Thomas LE LARGE)
+
+Session très chargée — refonte complète du pipeline SIRUS (Phases 2 → 5), refonte de la génération ATM V1 (HARD/SOFT pilotée par BdD, sommaire consolidé, remapping SOFT), refonte tolérante de l'extraction ATM, et bouclage du workflow UI end-to-end.
+
+### Phase 2 SIRUS — Moteur d'analyse (`G_SIRUS_Regles` + `SIRUS_AnalyserFeuille`)
+
+- **`G_SIRUS_Regles.bas`** (nouveau) : API publique `SIRUS_RegleObligatoire(table, colonneBdD, ligne)` + `SIRUS_RegleAlerte(...)`. Pattern D1 validé : `Select Case Table|ColonneBdD`, pas de mini-langage. 5 règles Produit + 4 TachesATM + 1 ProjetASL + 3 alertes (prix sans date, Nb opérateurs > 4, MTBF fct < intrinsèque).
+- **`G_SIRUS_Analyse.bas`** étendu : nouvelle `SIRUS_AnalyserFeuille(sTable, [op]) As Double`. Pour chaque ligne, construit Dictionary `{ColonneBdD → valeur}`, applique les règles (Obligatoire config + RegleObligatoire conditionnelle + RegleAlerte), écrit le Statut col 1 (OK vert / NOK (n) rouge) + commentaire de cellule avec détail des alertes. Renvoie le taux MeQ global (somme poids remplis obligatoires / somme poids obligatoires).
+- Helpers privés : `EvaluerChampLigne`, `LireLigneEnDictionary`, `EstLigneVide`, `EcrireStatutCellule`, `AjouterAlerte`.
+- L'ancien `SIRUS_AnalyserProduit` (ListView du UserForm legacy) reste fonctionnel.
+
+### Refonte layout SIRUS (toutes tables)
+
+Avant : champs en col 1..N + Statut en col N+1. Après : **Statut col 1 + champs col 2..N+1 + Commentaires col N+2**.
+- `G_SIRUS_Generation.PoserEntetes` : Statut en col 1 (`ColonneBdD = "_statut"`), Commentaires en bout (`"_commentaires"`).
+- `AppliquerListes` / `GriserChampsAutoHerite` / `VerrouillerEtProteger` / `PreRemplirDepuisBdD` : tous décalés de +1 pour placer les champs en col 2..N+1.
+- Focus initial sur `(3, 2)` (1re cellule de saisie).
+- `PoserLibelleEntete` : suffixe rouge gras ` *` (Oui) ou ` (*)` (Conditionnel) sur l'entête pour signaler visuellement les champs obligatoires. `Characters(...).Font` pour colorer uniquement le suffixe.
+- AutoFit avec bornes `14..35` + hauteur entête 45 pour le wrap.
+
+### Phase 3.1 SIRUS — Verrouillage cellules + protection feuille
+
+- Constante module `SIRUS_PROTECTION_PWD = "SIRUS"` (à centraliser Phase 6.2).
+- Nouveau helper `VerrouillerEtProteger(ws, col)` :
+  - Déverrouille toutes les cellules (`.Cells.Locked = False`)
+  - Re-verrouille entêtes (lignes 1+2), col 1 (Statut), colonnes Auto/Herite. Col N+2 (Commentaires) reste **déverrouillée** (saisie libre user).
+  - `ws.Protect Password:="SIRUS", UserInterfaceOnly:=True, DrawingObjects:=False` (VBA peut écrire + AddComment).
+- Appelé dans `SIRUS_GenererFeuilleAnalyse` après `GriserChampsAutoHerite`.
+
+### Refonte config Produit (25 champs)
+
+`PeuplerProduit` refondu avec nouvel ordre métier (validation Thomas) :
+Famille Generique, DTR, Designation manuelle, Node Type, Ref RAM Report, Fournisseur, Référence fournisseur, Motif NA (liste NA/NA MECA/NA KIT), Drawing Number, MTBF intrinsèque, DVL HARD/SOFT générique, Prix Spare manuel, Lead Time Spare, Source Spare, Date Source Spare, Prix Repair manuel, Lead Time Repair, Source Repair, Date Source Repair, Reference datasheet, Reference MUL installation/maintenance/software/interface.
+- Prix Spare/Repair manuel + Date Source = `Obligatoire = "Non"` (saisie libre).
+- Nouveaux champs marqués `??_*_a_definir` (à confirmer via `Test_DiagnostiquerEcartsConfig_Toutes`).
+- Champs retirés (hors scope SIRUS) : MoQ Spare, Réparabilité D&IS, Prix REPAIR catalogue, Lead time REPAIR catalogue, LCS_Repair, Data_Catalogue_Repair, Désignation BdD (Auto).
+- `G_SIRUS_Listes.bas` : ajout `SIRUS_LIST_MOTIFNA` = `NA / NA MECA / NA KIT`.
+
+### Nettoyage ProjetSLI
+
+Retrait des 6 champs hors scope SIRUS (Ordre 280-330) : Requis client Acceptance/Clausing/MoP, Requis fournisseur Clausing, PSLI préliminaire/final.
+
+### Phase 4 entrée A — Extraction ATM/EMMST → SIRUS (étape D)
+
+- **`E_Extraction_Main.Main_Extraction_Params(sFichier, sLivrable, sLangue, [bAfficherMsgFin])`** (nouvelle, paramétrée, découplée UserForm) : ouvre le fichier, valide, lance Extraction. L'ancien `Main_Extraction` devient wrapper rétrocompat. Retourne le `Workbook` livrable ouvert.
+- **`G_SIRUS_Extraction.bas`** (nouveau module) :
+  - `SIRUS_DeverserExtractionDansSIRUS(sTable, sFichier, sLangue, [sVersion])` : orchestrateur. ATM → 2 feuilles (`SIRUS_InfoATM_Extraction` + `SIRUS_TachesATM_Extraction`). EMMST → 1 feuille.
+  - `DeverserFeuilleVersSIRUS` : mapping `ColonneBdD → index col SIRUS` via ligne 2 (entête masqué) avec `NormaliserNomBdD` (trim + lowercase) pour matching tolérant. MsgBox diagnostic : N mappées / N ignorées + liste des colonnes ignorées.
+  - Helper `ForcerFormatTexte` : applique `NumberFormat = "@"` sur les champs `TypeChamp = "Texte"` du config (notamment Rang) pour éviter conversion "1-1" → date.
+
+### Extraction ATM tolérante (`E_Extraction_ATM_Tolerant.bas` — nouveau module)
+
+Algo de détection par **libellé** au lieu de positions fixes (D4/D5/I6/I7/I8/I9). Préserve **toute** la logique métier (DTR=Left(13), HARD/SOFT=Right(4), prefix REPLACE pour EN, Version="A1", catégorie chapitre, Connu/Inconnu BdD, mapping temps total → col N HARD / O SOFT).
+
+- `ExtraireInfoATM_T` : `LireValeurApresLibelle` cherche libellé dans `A1:N12`, lit cellule droite (ou dessous si droite vide). Fallback positions historiques.
+- `ExtraireTachesATM_T` : `TrouverLigneHeaderTaches` (cherche "Description" + "Outillage" en col B), puis `MapperColonnesTaches` (par libellé d'entête) avec fallback positions. `EstFeuilleVide_T` cherche pattern "x-y" en col B.
+- `ValiderFormatLivrable` (E_Extraction_Main) : assoupli — mots-clés ("Maintenance", "ATM", "Tâches", "Tasks", "MTA") dans `A1:J10` d'**au moins 1 fiche DTR**, au lieu du titre exact en B2 de **chaque** fiche.
+- Validé sur le fichier BaWu POOL (61 fiches DTR TCMS HARD).
+
+### Refonte ATM V1 — HARD/SOFT piloté par BdD
+
+- **`PrecalculerTypesDTR_BdD`** (nouveau) : parcourt `Taches_tab` (déjà chargé par `RecupererDonneesBDD_ATM`) et alimente `dictTypeDTR = {DTR → HARD/SOFT/BOTH/""}`. Plus de dépendance à `tHARD_SOFT` (DATA_ASL).
+- `GetTypeDTR(dtr)` helper d'accès. `""` = pas de tâche en BdD → fiche HARD vide + "À faire" sommaire (continuité métier).
+- `PrecalculerLignesSommaire` calcule `mapLigneHARD(i)` : DTR BOTH = 2 lignes consécutives (HARD puis SOFT) au lieu d'avoir toutes les SOFT en fin de tableau.
+- `RemplirIndexV1` pose les lignes consécutives (même désignation, sans suffixe " (SOFT)").
+- `PoserLienSommaireSOFT` (remplace `AjouterLigneSommaireSOFT`) : pose le lien hypertexte sur la ligne pré-allouée.
+- `MarquerStatutIndex`, `CreerLienHypertexte`, supports/frames "NA" utilisent `mapLigneHARD(indexDTR)` au lieu de `indexDTR + 5`.
+
+### Fix nommage doublons fiches ATM V1
+
+Bug : pour un DTR BOTH, la fiche SOFT était nommée `DTR_TCMS (2)` (sans suffixe). Cause : `CompterDoublonsFeuilles` comparait sur baseName seul → confondait HARD et SOFT du même DTR. `NommerFeuilleV1` (cpt > 0) construisait le nom sans préserver le suffixe.
+- `CompterDoublonsFeuilles` : nouveau param `typeHS`, compare avec **nom complet** `baseName + _HARD/_SOFT`.
+- `NommerFeuilleV1` (cpt > 0) : `nomComplet & " (" & cpt & ")"` au lieu de `baseName & " (cpt+1)"`. Suffixe préservé : `DTR_TCMS_HARD (1)`.
+
+### Remapping rangs SOFT (template 4 chapitres)
+
+Le template `ATM_SOFT`/`MTA_SOFT` n'a que **4 marqueurs** (pas 5 comme HARD). Mapping rang BdD → chapitre SOFT (validé Thomas) :
+- `1-x` BdD → Chapitre 1 SOFT
+- `2-x` BdD → Chapitre 2 SOFT
+- `3-x` BdD → Chapitre 3 SOFT (rang inchangé)
+- `4-x` BdD → Chapitre 3 SOFT, renuméroté `3-(maxRang3 + x)`
+- `5-x` BdD → Chapitre 4 SOFT, renuméroté `4-x`
+
+Implémentation : pré-passe calcule `maxRang3` (plus grand x des rangs 3-x SOFT). `RemplirTachesV1` Select Case sur `rangChiffre`. `InsererTacheV1` accepte un param optionnel `rangAffiche` qui prime sur la valeur BdD. **Comportement HARD strictement inchangé**.
+
+`destSOFT.Columns("C").WrapText = False` après remplissage SOFT : description sur 1 seule ligne.
+
+### MTBF/DVL : SOFT sans MTBF + DVL contextuelle + scalabilité
+
+- `RemplirDonneesRAM_V1(dest, indexDTR, typeHS)` refondue : pour SOFT, MTBF n'est plus posé en I4 (logique métier). DVL choisie selon `typeHS` (et plus `tHARD_SOFT`).
+- Helpers `CalculerMTBF` (hiérarchie fonctionnel/intrinsèque/générique selon gate + RAM Report) et `CalculerDVL` (col P/R pour HARD, col U/W pour SOFT selon gate).
+- **`PoserValeurApresLibelle`** : `Range.Find` des libellés "MTBF" / "Périodicit"/"Periodicit"/"Periodicity" dans `A1:K12`, écrit cellule droite. Fallback I4/I5. Rend la génération **scalable** aux versions de template (positions peuvent bouger).
+
+### Phase 5 SIRUS — Envoi ATMAP
+
+**`G_SIRUS_ATMAP.bas`** étendu (API publique) :
+- `SIRUS_NumeroTicketSuivant()` : GET SharePoint sur ATMAP_TICKETS filtré `Typedemande='Import'`, parse `Numero_ticket` au format `IMP-YYYY-NNN`, retourne max+1 de l'année en cours. **Passage d'année** : retour à 001 si aucun ticket pour l'année en cours.
+- `SIRUS_ConstruirePJ(feuilles, sNomBase)` : copie les feuilles SIRUS du projet vers un classeur temp dans `%TEMP%`, sauve en `.xlsx`. Multi-feuilles ATM → 1 fichier unique avec les 2 feuilles (logique : 1 livrable = 1 PJ).
+- `SIRUS_AttacherFichierAuTicket(ticketID, digest, cheminFichier)` : upload PJ via `XMLHTTP POST` + `ADODB.Stream` binaire.
+- Wrappers publics : `SIRUS_GetFormDigest`, `SIRUS_GetCurrentUserID`, `SIRUS_CreerTicketEnvoi` (defaults : statut="Nouveau", typedemande="Import", outilID=43).
+
+### UI Workflow 3 zones (UserForm Frame_SIRUS_v2)
+
+**`G_SIRUS_UserForm.bas`** étendu (handlers `SIRUS_UI_*`) :
+- `SIRUS_PhaseInit_v2` : init au démarrage (combo Table/Op, masque sous-zones, peuple `Cmb_SIRUS_Priorite` avec High/Medium/Low + `Style = fmStyleDropDownList`, masque Frames Analyse/Envoi).
+- `SIRUS_RafraichirComboFeuilles` : scanne `ActiveWorkbook` et alimente `Cmb_SIRUS_FeuilleAnalyse` avec toutes les feuilles `SIRUS_<Table>_<Op>` présentes (exclut Config, Diag, Historique, _Snap). Permet de retrouver les feuilles déjà générées dans une session précédente.
+- `SIRUS_UI_BtnGenererClick` : dispatch Créer/Modifier/Extraction. Pour Modifier ProjetSLI/ProjetASL : clé depuis `Cmb_SIRUS_Projet`. Pour Extraction : appelle `SIRUS_DeverserExtractionDansSIRUS`.
+- `SIRUS_UI_BtnAnalyserClick` : appelle `SIRUS_AnalyserFeuille`, remplit la ListView NOK, active `Frame_SIRUS_Envoi` si MeQ ≥ 70%, pré-remplit la Zone 3 via `SIRUS_UI_PreRemplirEnvoi`.
+- `SIRUS_UI_BtnEnvoyerClick` complet (9 étapes) : validation → confirmation `vbYesNo` → PJ → digest → userID → extraction numéro → ticket → upload PJ → cleanup + statut.
+- `SIRUS_UI_PrioriteChange` : MAJ `Txt_SIRUS_Attentes` selon priorité (1/3/5 jours).
+- `SIRUS_UI_ProjetListChange` : MAJ Description si Frame Envoi visible. Pour ProjetSLI/ProjetASL, ignoré (la source est la feuille).
+- `SIRUS_UI_PreRemplirEnvoi` : auto-rempli Sujet (`IMP-YYYY-00X - Import <Op> <Table>`), Description (`<Op> de <N> référence(s) en <Table> pour le projet <ProjetContextuel>`), Priorité Medium par défaut.
+- `SIRUS_UI_BtnEditerFeuilleClick` (porte de sortie) : active la feuille du combo + `UserForm.Hide`. Retour via Ctrl+W.
+
+### Affichage progressif des frames
+
+- Au démarrage : Frame Analyse + Frame Envoi cachés.
+- Après Génération : Frame Analyse visible.
+- Après Analyse MeQ ≥ 70% : Frame Envoi visible + pré-remplissage auto.
+
+### ListView NOK : rouge gras + clé selon table
+
+- `SIRUS_RemplirListViewResultats` : appel `SIRUS_ConfigListViewResultats` au début (idempotent — recrée les ColumnHeaders, sinon `SubItems(1)` lève "Invalid property value").
+- Clé affichée : col 3 (DTR) pour ProjetASL, col 2 (DTR ou Nom projet) pour les autres.
+- `ForeColor = RGB(163,45,45)` + `Bold = True` sur item et subitems.
+- Helper `SafeCStr` (gère Null/Empty/Error/autres types).
+
+### Projet contextuel pour la description ATMAP
+
+- `SIRUS_ProjetPourDescription` : pour ProjetSLI/ProjetASL, lit col 2 ligne 3 de la feuille SIRUS active (= projet en cours), pas `Project_List`. Fallback `Project_List` si feuille vide.
+- `SIRUS_MajDescriptionEnvoi` : helper unifié pour reconstruire la description avec la bonne logique projet.
+
+### Freeze panes par table
+
+`SIRUS_GenererFeuilleAnalyse` fige automatiquement les colonnes selon la table :
+- Produit / InfoATM / TachesATM / EMMST / ProjetSLI : col 1-2 (Statut + DTR ou Nom projet)
+- ProjetASL : col 1-3 (Statut + Projet + DTR)
+
+### Multi-lignes ProjetASL (`PreRemplirDepuisBdD`)
+
+Bug : pour ProjetASL Modifier avec 1 clé projet (N DTR), seule la 1re ligne du Recordset était écrite (`If Not REQSEL.EOF` au lieu de boucle).
+Fix : `Do While Not REQSEL.EOF` + `MoveNext` + `ligne = ligne + 1` à chaque tour.
+
+### Bouton dans le Sommaire ATM V1 SOFT
+
+- Pour les DTR BOTH : 2 lignes consécutives dans Tableau1 (HARD puis SOFT), même désignation, lien hypertexte distinct vers chaque fiche. Statut "À faire" sur ligne SOFT si pas de tâches SOFT en BdD.
+
+### Nettoyage encoding (446 occurrences)
+
+5 modules avec caractères corrompus `U+FFFD` (cp1252 mal importé) remplacés par leur équivalent ASCII selon contexte :
+- `C_EMMST_Main.bas` (156), `E_Extraction_Main.bas` (2), `G_SIRUS_ATMAP.bas` (91), `G_SIRUS_UserForm.bas` (75), `UserForm.frm` (122).
+- Mots métier traités : Creer, Generer, Selection, donnees, recuperer, repertoire, etape, procedure, executer, definir, designation, necessaire, ecrire, complete, different, presence, present, specifique, succes, securite, controle, meme, plutot, periode, periodicite, etc.
+
+### Docs créées / mises à jour
+
+- **`Docs/EXTRACTION_LOGIQUE_METIER.md`** (nouveau) : référence complète de la logique métier de l'extraction ATM/EMMST (algo actuel + ce qui doit être préservé dans la refonte tolérante).
+- **`Docs/UI_SIRUS_CONTROLES.md`** : enrichi avec Zone 3 ATMAP détaillée (récap + saisie + action + bouton Editer + freeze panes + affichage progressif + ComboBox Priorité + coloration ListView + handler `Project_List_Change`).
+- **`Docs/6_2026_BaWu POOL_ATM_1A.xlsx`** : fichier de référence (61 fiches DTR TCMS HARD) utilisé comme cas de test pour la refonte tolérante.
+- **`Docs/Spec_Recettes_ECOSLI.xlsx`** : 33 lignes ajoutées (F3.6.8-12, F3.7.12-14, F6.5-7, F7 SIRUS complet F7.1 à F7.6.3) en version cible V2.
+
+### Décisions verrouillées
+
+- **HARD/SOFT depuis BdD** (pas DATA_ASL) pour ATM V1 — décision Thomas 2026-06-10.
+- **Doublons PBS** : suffixe `(1)`, `(2)`... uniquement si même DTR doublé en PBS pour le même type (HARD ou SOFT séparément).
+- **Template SOFT ATM V1** : 4 chapitres seulement, rangs 3+4 fusionnés dans Chap 3 avec renumération continue, rang 5 → Chap 4 renuméroté 4-x.
+- **Numéro ticket Import** : auto-incrément SharePoint, format `IMP-YYYY-00X`, passage d'année avec retour à 001.
+- **Multi-feuilles ATM (Extraction)** : 1 ticket = 1 PJ unique contenant les 2 feuilles SIRUS (logique 1 livrable = 1 demande).
+- **Projet pour ProjetSLI/ProjetASL** : pris depuis la feuille SIRUS active (col 2 ligne 3), pas `Project_List`.
+
+### Reste à faire
+
+- Tester end-to-end le workflow SIRUS (Sprint 1 du plan).
+- Phase 3.2 : snapshot Modifier (feuille `_Snap` veryHidden + diff dans PJ ATMAP).
+- Phase 2.1 : enrichir `G_SIRUS_Regles` (EMMST, InfoATM, ProjetSLI complets).
+- Enrichir `PeuplerInfoATM` / `PeuplerTachesATM` / `PeuplerEMMST` pour couvrir 100% des colonnes brutes d'extraction (cf. MsgBox diagnostic).
+- Phase 4 entrée B (`SIRUS_DetecterEcartsPBS`) + Phase 6 (Historique, Paramètres, Recette).
+
+---
+
 ## 2026-06-09 (Phase 1) — Session Claude Code (avec Thomas LE LARGE)
 
 ### Périmètre

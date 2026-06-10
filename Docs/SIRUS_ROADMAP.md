@@ -1,25 +1,53 @@
 # SIRUS — Roadmap de développement
 
 > Plan d'avancement du module **SIRUS** dans `ECOSLI.xlam`.
-> Document vivant : à jour des décisions prises en sessions de dev jusqu'au **2026-06-09**.
+> Document vivant : à jour des décisions prises en sessions de dev jusqu'au **2026-06-10**.
 > Référence : brief v0.2 (voir aussi `Docs/CHANGELOG.md` pour l'historique détaillé).
 
 ---
 
-## État global
+## État global (mis à jour 2026-06-10)
 
 | Phase | Périmètre | État | Module(s) |
 |---|---|:---:|---|
 | 0 — Socle config | `SIRUS_Config` + `SIRUS_Champ_Config` (~158 champs sur 6 tables) | ✅ | `G_SIRUS_Config.bas`, `SIRUS_Champ_Config.cls` |
-| 0 bis — Listes en code | `SIRUS_GetListe(cle)` + 7 listes | ✅ | `G_SIRUS_Listes.bas` |
-| 1 — Générateur de feuille | `SIRUS_GenererFeuilleAnalyse(table, op, [cles])` + diag BdD | ✅ | `G_SIRUS_Generation.bas` |
-| 2 — Moteur d'analyse | `G_SIRUS_Regles` + généralisation `SIRUS_AnalyserFeuille` | 🔴 | à créer |
-| 3 — Surfaces UI | radar UserForm + verrouillage cellules + diff Modifier | 🟡 | partiel |
-| 4 — Entrées A et B | consommation ATM fournisseur + détection écarts PBS | 🔴 | à créer |
-| 5 — Envoi ATMAP | PJ normalisée + branchement ticket | 🟡 | ATMAP déjà fonctionnel |
-| 6 — Industrialisation | logs, paramètres, perfs, recette | 🔴 | à créer |
+| 0 bis — Listes en code | `SIRUS_GetListe(cle)` + 8 listes (ajout `MotifNA`) | ✅ | `G_SIRUS_Listes.bas` |
+| 1 — Générateur de feuille | `SIRUS_GenererFeuilleAnalyse(table, op, [cles])` + diag BdD + Extraction | ✅ | `G_SIRUS_Generation.bas` |
+| 2 — Moteur d'analyse | `G_SIRUS_Regles` + `SIRUS_AnalyserFeuille` MVP | ✅ | `G_SIRUS_Regles.bas`, `G_SIRUS_Analyse.bas` |
+| 2.1 — Enrichir règles | Couvrir EMMST/InfoATM/ProjetSLI (au-delà des 10 règles MVP) | 🔴 | à enrichir |
+| 3.1 — Verrouillage cellules | `VerrouillerEtProteger` + UserInterfaceOnly + DrawingObjects | ✅ | `G_SIRUS_Generation.bas` |
+| 3.2 — Snapshot Modifier | Feuille `_Snap` veryHidden + diff dans PJ ATMAP | 🔴 | à créer |
+| 3.3 — Radar UserForm | ListView NOK + lignes rouges + double-clic goto | ✅ | `G_SIRUS_UserForm.bas` |
+| 4 entrée A — Extraction | ATM/EMMST → feuilles SIRUS via livrable | ✅ | `G_SIRUS_Extraction.bas`, `E_Extraction_ATM_Tolerant.bas` |
+| 4 entrée B — Détection écarts PBS | `SIRUS_DetecterEcartsPBS()` | 🔴 | à créer |
+| 5 — Envoi ATMAP | PJ normalisée + auto-numéro + ticket + upload | ✅ | `G_SIRUS_ATMAP.bas` |
+| 6.1 — Journal historique | Feuille `SIRUS_Historique` veryHidden | 🔴 | à créer |
+| 6.2 — Paramètres | `G_SIRUS_Parametres` (seuils, mots de passe, IDs ATMAP) | 🔴 | à créer |
+| 6.3 — Recette | `Docs/SIRUS_RECETTE.md` plan de tests par phase | 🔴 | à créer |
 
 Légende : ✅ fait — 🟡 partiel — 🔴 à faire.
+
+## Plan d'action (sprints proposés, par ordre de valeur)
+
+### Sprint 1 — Stabilisation Phase 5 (1 session)
+- Test end-to-end Produit Créer (5 DTR) avec envoi ATMAP réel.
+- Test Modifier ProjetASL (multi-DTR pré-rempli) + envoi.
+- Test Extraction ATM BaWu POOL : déversement → analyse → envoi (1 PJ avec 2 feuilles).
+- Ajustements UI / fix erreurs détectées.
+
+### Sprint 2 — Enrichir configs InfoATM/TachesATM/EMMST (1 session)
+- Le déversement Extraction ignore actuellement ~50% des colonnes brutes (Désignation ATM, Localisation, Commentaire, Version, Tps analytiques, etc.) car absentes du config SIRUS.
+- Refondre `PeuplerInfoATM` / `PeuplerTachesATM` / `PeuplerEMMST` pour couvrir 100% des colonnes brutes (cf. MsgBox diagnostic du déversement).
+
+### Sprint 3 — Phase 3.2 Snapshot + Phase 2.1 Règles (1-2 sessions)
+- Phase 3.2 : feuille `SIRUS_<Table>_Modifier_Snap` (`veryHidden`) avec snapshot BdD lors du pré-remplissage. À l'envoi ATMAP, diff `ValeurActuelle / NouvelleValeur` injecté dans la PJ.
+- Phase 2.1 : enrichir `G_SIRUS_Regles` avec les ~20 règles métier restantes (EMMST, InfoATM, ProjetSLI complètes).
+
+### Sprint 4 — Phase 4 entrée B + Phase 6 (1-2 sessions)
+- Phase 4 entrée B : `SIRUS_DetecterEcartsPBS()` — scan `DATA_ASL` à la génération des livrables, détecte les DTR absents en BdD. Bouton "Ouvrir SIRUS pour corriger".
+- Phase 6.1 : feuille `SIRUS_Historique` (veryHidden dans le `.xlam`) qui trace Date / Demandeur / Table / Op / DTR / TicketID / MeQ.
+- Phase 6.2 : paramètres globaux centralisés (seuil MeQ, mot de passe protection, outilID ATMAP, ATMAP_BASE_URL).
+- Phase 6.3 : `Docs/SIRUS_RECETTE.md` plan de tests par phase.
 
 ---
 

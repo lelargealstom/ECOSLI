@@ -92,6 +92,52 @@ Le module `G_SIRUS_PBS` cadre la feuille `DATA_ASL` du classeur actif via `MapCo
 - Si une critique est introuvable → MsgBox récapitulatif + abandon du remplissage.
 - Si une optionnelle est introuvable → `Debug.Print` seulement, le remplissage continue.
 
+## Pipeline SIRUS complet (mis à jour 2026-06-10)
+
+Le pipeline SIRUS est désormais **end-to-end** : Génération → Saisie → Analyse → Envoi ATMAP.
+
+### Modules SIRUS
+
+| Module | Rôle |
+|---|---|
+| `G_SIRUS_Config.bas` + `SIRUS_Champ_Config.cls` | Socle config : feuille `SIRUS_Config` (veryHidden) avec ~158 champs sur 6 tables (Produit, InfoATM, TachesATM, EMMST, ProjetSLI, ProjetASL). |
+| `G_SIRUS_Listes.bas` | 8 listes en code (NodeType, HardSoft, Langue, Booleen, TypeTrain, Devise, NiveauMaintenance, MotifNA). |
+| `G_SIRUS_Generation.bas` | Phase 1 : générateur de feuille `SIRUS_<Table>_<Op>` avec layout Statut/Champs/Commentaires, listes déroulantes, grisage Auto/Herite, verrouillage cellules + protection feuille (Phase 3.1), pré-remplissage BdD pour Modifier, freeze panes. |
+| `G_SIRUS_Regles.bas` | Phase 2 : `SIRUS_RegleObligatoire` + `SIRUS_RegleAlerte` (Select Case par Table\|ColonneBdD). 10 règles MVP (Produit/TachesATM/ProjetASL). |
+| `G_SIRUS_Analyse.bas` | Phase 2 : `SIRUS_AnalyserFeuille(table, op)` parcourt la feuille, applique les règles, écrit Statut col 1 + commentaire de cellule. Renvoie taux MeQ. |
+| `G_SIRUS_Extraction.bas` | Phase 4 entrée A : `SIRUS_DeverserExtractionDansSIRUS` orchestre Main_Extraction_Params + mapping colonnes brutes → SIRUS via ligne 2 (ColonneBdD). |
+| `E_Extraction_ATM_Tolerant.bas` | Extraction ATM par détection libellés (cartouche + headers tableau) avec fallback positions. Logique métier conservée (DTR=Left(13), HARD/SOFT=Right(4), prefix REPLACE EN, Version="A1"). |
+| `G_SIRUS_ATMAP.bas` | Phase 5 : API REST SharePoint pour ATMAP_TICKETS. Wrappers publics + `SIRUS_NumeroTicketSuivant` (auto-incrément IMP-YYYY-00X via GET avec passage d'année), `SIRUS_ConstruirePJ`, `SIRUS_AttacherFichierAuTicket`. |
+| `G_SIRUS_UserForm.bas` | UI Workflow 3 zones (Génération / Analyse / Envoi) avec affichage progressif des Frames, ComboBox auto-remplie pour les feuilles SIRUS_*, handlers `SIRUS_UI_*` avec préfixe distinct de l'API métier. |
+| `G_SIRUS_PBS.bas` | Cadrage `DATA_ASL` + ListView Generation (lookup BdD, qualité prix Spare/Repair). |
+
+### Workflow utilisateur
+
+```
+1. UserForm → Onglet SIRUS
+2. Choisir Op (Créer/Modifier/Extraction) + Table (combo dynamique selon Op)
+   - Modifier ProjetSLI/ProjetASL → Combo Projet auto-alimenté depuis BdD
+   - Extraction ATM → Version V1/V2 + Fichier livrable via Parcourir
+3. Cliquer "Générer" → feuille SIRUS_<Table>_<Op> créée dans le classeur projet
+   → Frame Analyse devient visible
+4. Saisir / corriger les valeurs dans la feuille (champs marqués * rouges = obligatoires)
+5. Cliquer "Analyser" → Statut OK/NOK + commentaire détaillé sur cellule Statut
+   → ListView NOK avec lignes rouges (clé = DTR, ou DTR pour ProjetASL)
+   → Frame Envoi devient visible si MeQ ≥ 70%, pré-remplissage auto
+6. (Modifier) Sujet/Description/Priorité/Attentes pré-remplis → ajuster si besoin
+7. Cliquer "Envoyer la demande ATMAP" → confirmation → ticket créé + PJ uploadée
+```
+
+### Layout des feuilles SIRUS_*
+
+- **Col 1** = Statut (verrouillé, écrit par moteur d'analyse, fond vert OK / rouge NOK + commentaire de cellule avec détail)
+- **Col 2..N+1** = Champs config (selon `Ordre` croissant, marqueurs ` *` rouge si Obligatoire, ` (*)` rouge si Conditionnel)
+- **Col N+2** = Commentaires (déverrouillé, saisie libre user)
+- **Ligne 1** = Libellé humain (gras, fond bleu clair, hauteur 45 avec wrap)
+- **Ligne 2** = ColonneBdD technique (masquée, sert d'index pour le moteur)
+- **Lignes 3+** = Données
+- **Freeze panes** : col 1-2 par défaut, col 1-3 pour ProjetASL
+
 ## Évolutions à venir (non figées)
 
 D'autres règles métier et nouvelles tables sont attendues côté SIRUS. Le code doit rester :
