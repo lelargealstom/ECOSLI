@@ -18,6 +18,17 @@ Private Const SEUIL_KO_BLOQUANT As Double = 0.2  ' 20%
 ' Stocké dans une Collection globale pour accès depuis UI
 Public resultatsAnalyse As Collection
 
+' sirusAlertes : alertes structurees produites par SIRUS_AnalyserFeuille.
+' Chaque entree = Array(cle, champ, texteAlerte, ligne, colChamp). Consomme
+' par SIRUS_RemplirListViewResultats (UserForm) pour afficher 1 ligne par
+' alerte (au lieu d 1 ligne par DTR avec alertes concatenees).
+'   cle       : DTR (ou Nom projet pour ProjetSLI) lu en col 3
+'   champ     : libelle humain du config (def.Champ)
+'   alerte    : "Obligatoire manquant" ou retour de SIRUS_RegleAlerte
+'   ligne     : numero de ligne dans la feuille (pour goto)
+'   colChamp  : numero de la colonne du champ (pour goto la cellule fautive)
+Public sirusAlertes As Collection
+
 ' ============================================================
 ' POINT D'ENTREE A LANCER L'ANALYSE PRODUIT
 ' ============================================================
@@ -461,15 +472,26 @@ Public Function SIRUS_AnalyserFeuille(ByVal sTable As String, _
     Next i
 
     ' -- 5. Determiner la derniere ligne de donnees ---------
-    '    On scanne la colonne 2 (1er champ saisie, generalement la cle :
-    '    DTR, Nom projet...). La col 1 est Statut, ecrite par cette
-    '    fonction et donc non fiable comme indicateur de presence.
-    ligneMax = ws.Cells(ws.rows.count, 2).End(xlUp).Row
+    '    On scanne la colonne cle metier (table-aware via
+    '    SIRUS_ColonneClePourTable) : DTR ou Nom projet selon la table.
+    Dim colCle As Long
+    colCle = SIRUS_ColonneClePourTable(sTable)
+    ligneMax = ws.Cells(ws.rows.count, colCle).End(xlUp).Row
     If ligneMax < 3 Then
         MsgBox "La feuille '" & nomFeuille & "' ne contient aucune donnee a analyser.", _
                vbInformation, "SIRUS - Analyse"
         Exit Function
     End If
+
+    ' -- 5 bis. Localiser la colonne Commentaires (col N+2, marquee
+    '   "_commentaires" en ligne 2). Permet d ecrire le detail des alertes
+    '   directement dans la feuille.
+    Dim colCommentaires As Long
+    colCommentaires = TrouverColonneCommentaires(ws)
+
+    ' -- 5 ter. Reset de la collection structuree des alertes -----
+    Set sirusAlertes = New Collection
+    Dim sCle As String
 
     ' -- 6. Boucle d'analyse par ligne ----------------------
     totNum = 0
@@ -478,10 +500,17 @@ Public Function SIRUS_AnalyserFeuille(ByVal sTable As String, _
         ' Construire le Dictionary {ColonneBdD -> valeur} de la ligne
         Set ligneDict = LireLigneEnDictionary(ws, ligne, mapColBdD_Index)
 
+        ' Cle metier de la ligne (table-aware) :
+        '   ProjetASL : col 4 (DTR)
+        '   Produit   : col 3 (DTR, apres Famille Generique)
+        '   autres    : col 2 (DTR ou Nom projet pour ProjetSLI)
+        sCle = SafeCStrAnalyse(ws.Cells(ligne, colCle).Value)
+
         ' Skip ligne vide (toutes valeurs vides)
         ligneVide = EstLigneVide(ligneDict)
         If ligneVide Then
             ws.Cells(ligne, colStatut).Value = ""
+            If colCommentaires > 0 Then ws.Cells(ligne, colCommentaires).Value = ""
             GoTo NextLigne
         End If
 
@@ -493,6 +522,7 @@ Public Function SIRUS_AnalyserFeuille(ByVal sTable As String, _
 
         For Each def In col
             Call EvaluerChampLigne(def, sTable, ligneDict, _
+                                   sCle, ligne, mapColBdD_Index, _
                                    sStatutLigne, nAlertesLigne, _
                                    poidsLigneNum, poidsLigneDen)
         Next def
@@ -500,6 +530,20 @@ Public Function SIRUS_AnalyserFeuille(ByVal sTable As String, _
         ' Ecrire le Statut court en col 1 + detail en commentaire de cellule
         ' (survol). Format simple : OK (vert) / NOK (rouge avec n alertes).
         Call EcrireStatutCellule(ws.Cells(ligne, colStatut), nAlertesLigne, sStatutLigne)
+
+        ' Ecrire le detail des alertes dans la colonne Commentaires
+        ' (visible inline, en plus du survol sur Statut). Vide si OK.
+        ' Format : 1 alerte = texte simple. N alertes (N > 1) = liste a
+        ' puces avec "- " devant chaque ligne, separees par vbLf.
+        If colCommentaires > 0 Then
+            If nAlertesLigne = 0 Then
+                ws.Cells(ligne, colCommentaires).Value = ""
+            Else
+                ws.Cells(ligne, colCommentaires).Value = _
+                    FormaterAlertesCommentaire(sStatutLigne, nAlertesLigne)
+                ws.Cells(ligne, colCommentaires).WrapText = True
+            End If
+        End If
 
         totNum = totNum + poidsLigneNum
         totDen = totDen + poidsLigneDen
@@ -531,10 +575,14 @@ End Function
 '   - obligatoire (config Oui OU regle conditionnelle)
 '   - regle d'alerte (coherence metier)
 '   - cumul poids MeQ (pour le taux global)
-' Modifie en sortie le statut ligne + compteurs (passes ByRef).
+' Modifie en sortie le statut ligne + compteurs (passes ByRef) ET pousse
+' chaque alerte dans la collection structuree sirusAlertes (UI consume).
 Private Sub EvaluerChampLigne(ByVal def As SIRUS_Champ_Config, _
                               ByVal sTable As String, _
                               ByRef ligneDict As Object, _
+                              ByVal sCle As String, _
+                              ByVal nLigne As Long, _
+                              ByRef mapColBdD_Index As Object, _
                               ByRef sStatutLigne As String, _
                               ByRef nAlertes As Long, _
                               ByRef poidsNum As Double, _
@@ -545,6 +593,7 @@ Private Sub EvaluerChampLigne(ByVal def As SIRUS_Champ_Config, _
     Dim bObligConfig As Boolean
     Dim bObligRegle As Boolean
     Dim sAlerte As String
+    Dim colChamp As Long
 
     ' Champs sans ColonneBdD (ex. infos pures heritees, MTBF intrins
     ' note dans ProjetASL) : pas evalues.
@@ -566,10 +615,17 @@ Private Sub EvaluerChampLigne(ByVal def As SIRUS_Champ_Config, _
         bObligRegle = SIRUS_RegleObligatoire(sTable, def.ColonneBdD, ligneDict)
     End If
 
+    ' Numero de colonne du champ dans la feuille (pour goto cellule depuis UI)
+    colChamp = 0
+    If mapColBdD_Index.Exists(def.ColonneBdD) Then
+        colChamp = CLng(mapColBdD_Index(def.ColonneBdD))
+    End If
+
     ' Cas 1 : Champ obligatoire manquant
     If (bObligConfig Or bObligRegle) And Not bRempli Then
         nAlertes = nAlertes + 1
         sStatutLigne = AjouterAlerte(sStatutLigne, "Obligatoire manquant '" & def.Champ & "'")
+        sirusAlertes.Add Array(sCle, def.Champ, "Obligatoire manquant", nLigne, colChamp)
     End If
 
     ' Cas 2 : Regle d'alerte metier
@@ -577,6 +633,7 @@ Private Sub EvaluerChampLigne(ByVal def As SIRUS_Champ_Config, _
     If LenB(sAlerte) > 0 Then
         nAlertes = nAlertes + 1
         sStatutLigne = AjouterAlerte(sStatutLigne, def.Champ & ": " & sAlerte)
+        sirusAlertes.Add Array(sCle, def.Champ, sAlerte, nLigne, colChamp)
     End If
 
     ' Cas 3 : Cumul poids MeQ
@@ -587,6 +644,65 @@ Private Sub EvaluerChampLigne(ByVal def As SIRUS_Champ_Config, _
         If bRempli Then poidsNum = poidsNum + def.PoidsMeQ
     End If
 End Sub
+
+' Formate les alertes pour la colonne Commentaires :
+'   nAlertes = 1 -> texte simple (pas de puce, plus lisible pour 1 ligne)
+'   nAlertes > 1 -> "- alerte1" & vbLf & "- alerte2" & vbLf & ...
+' sStatutLigne est la chaine concatenee par AjouterAlerte (separateur " | ").
+Private Function FormaterAlertesCommentaire(ByVal sStatutLigne As String, _
+                                             ByVal nAlertes As Long) As String
+    Dim arr() As String
+    Dim i As Long
+    Dim sOut As String
+
+    If nAlertes <= 1 Then
+        FormaterAlertesCommentaire = sStatutLigne
+        Exit Function
+    End If
+
+    arr = Split(sStatutLigne, " | ")
+    For i = LBound(arr) To UBound(arr)
+        If LenB(arr(i)) > 0 Then
+            If LenB(sOut) > 0 Then sOut = sOut & vbLf
+            sOut = sOut & "- " & arr(i)
+        End If
+    Next i
+    FormaterAlertesCommentaire = sOut
+End Function
+
+' Recherche la colonne marquee "_commentaires" en ligne 2 (entete BdD).
+' Renvoie 0 si pas trouve (ne casse pas l analyse).
+Private Function TrouverColonneCommentaires(ByVal ws As Worksheet) As Long
+    Dim c As Long
+    Dim lastCol As Long
+    On Error Resume Next
+    lastCol = ws.Cells(2, ws.Columns.count).End(xlToLeft).Column
+    If lastCol < 1 Then lastCol = 1
+    On Error GoTo 0
+    For c = 1 To lastCol
+        If CStr(ws.Cells(2, c).Value) = "_commentaires" Then
+            TrouverColonneCommentaires = c
+            Exit Function
+        End If
+    Next c
+    TrouverColonneCommentaires = 0
+End Function
+
+' Variante locale de SafeCStr pour ce module (le SafeCStr public est dans
+' G_SIRUS_UserForm, on garde l independance).
+Private Function SafeCStrAnalyse(ByVal v As Variant) As String
+    On Error Resume Next
+    If IsNull(v) Or IsEmpty(v) Or IsError(v) Then
+        SafeCStrAnalyse = ""
+    Else
+        SafeCStrAnalyse = CStr(v)
+    End If
+    If Err.Number <> 0 Then
+        SafeCStrAnalyse = ""
+        Err.Clear
+    End If
+    On Error GoTo 0
+End Function
 
 Private Function AjouterAlerte(ByVal sStatut As String, ByVal sNouvelle As String) As String
     If LenB(sStatut) = 0 Then

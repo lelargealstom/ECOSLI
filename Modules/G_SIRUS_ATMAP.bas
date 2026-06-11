@@ -90,13 +90,17 @@ Private Function CreateTicketREST(digest As String, _
                                    attentes As String, _
                                    typedemande As String, _
                                    priorite As String, _
-                                   ticketIDOut As Long) As String
+                                   ticketIDOut As Long, _
+                                   Optional numeroImport As String = "", _
+                                   Optional dateEstimee As String = "") As String
 
     Dim xhr   As Object
     Dim url   As String
     Dim body  As String
     Dim resp  As String
     Dim today As String
+    Dim champImport As String
+    Dim champDateEst As String
 
     ticketIDOut = -1
 
@@ -106,9 +110,21 @@ Private Function CreateTicketREST(digest As String, _
     url = SITE_URL & "/_api/web/lists/getbytitle('" & LIST_NAME & "')/items"
     today = Format(Now(), "yyyy-mm-dd") & "T00:00:00Z"
 
+    ' Champ Numero_Import optionnel (non emis si vide)
+    If LenB(numeroImport) > 0 Then
+        champImport = """Numero_Import"":""" & EscJson(numeroImport) & ""","
+    End If
+
+    ' Champ Date_estimee optionnel : ISO yyyy-mm-ddT00:00:00Z attendu.
+    ' Nom interne SP confirme par Thomas : "Date_estimee" (sans accent).
+    If LenB(dateEstimee) > 0 Then
+        champDateEst = """Date_estimee"":""" & dateEstimee & ""","
+    End If
+
     ' Pas de Title a champ non utilisa dans ATMAP
     body = "{""__metadata"":{""type"":""" & LIST_ENTITY_TYPE & """}," & _
            """Numero_ticket"":""" & EscJson(numeroTicket) & """," & _
+           champImport & _
            """Sujet"":""" & EscJson(sujet) & """," & _
            """Statut"":""" & EscJson(statut) & """," & _
            """Description"":""" & EscJson(description) & """," & _
@@ -116,6 +132,7 @@ Private Function CreateTicketREST(digest As String, _
            """Typedemande"":""" & EscJson(typedemande) & """," & _
            """Priorit_x00e9_"":""" & EscJson(priorite) & """," & _
            """Datecr_x00e9_ation"":""" & today & """," & _
+           champDateEst & _
            """DemandeurId"":" & userID & "," & _
            """Assign_x00e9__x00e0_Id"":" & userID & "," & _
            """NomoutilId"":" & outilID & _
@@ -346,7 +363,9 @@ Public Function SIRUS_CreerTicketEnvoi(ByVal digest As String, _
                                          ByVal description As String, _
                                          ByVal attentes As String, _
                                          ByVal priorite As String, _
-                                         ByRef ticketIDOut As Long) As String
+                                         ByRef ticketIDOut As Long, _
+                                         Optional ByVal numeroImport As String = "", _
+                                         Optional ByVal dateEstimee As String = "") As String
     SIRUS_CreerTicketEnvoi = CreateTicketREST( _
         digest:=digest, _
         userID:=userID, _
@@ -358,7 +377,123 @@ Public Function SIRUS_CreerTicketEnvoi(ByVal digest As String, _
         attentes:=attentes, _
         typedemande:="Import", _
         priorite:=priorite, _
-        ticketIDOut:=ticketIDOut)
+        ticketIDOut:=ticketIDOut, _
+        numeroImport:=numeroImport, _
+        dateEstimee:=dateEstimee)
+End Function
+
+' =========================================================================
+' SIRUS_JoursTraitementSelonPriorite
+' =========================================================================
+' Centralise la regle metier "priorite -> nombre de jours de traitement".
+' Utilise par SIRUS_UI_PrioriteChange (Attentes) ET SIRUS_DateEstimeeISO
+' (champ Date_estimee du ticket). Modifier ici si la regle evolue.
+'   High   -> 1 jour
+'   Medium -> 3 jours  (defaut si priorite inconnue ou vide)
+'   Low    -> 5 jours
+Public Function SIRUS_JoursTraitementSelonPriorite(ByVal sPriorite As String) As Long
+    Select Case sPriorite
+        Case "High":   SIRUS_JoursTraitementSelonPriorite = 1
+        Case "Low":    SIRUS_JoursTraitementSelonPriorite = 5
+        Case Else:     SIRUS_JoursTraitementSelonPriorite = 3
+    End Select
+End Function
+
+' =========================================================================
+' SIRUS_DateEstimeeISO
+' =========================================================================
+' Calcule la date estimee = aujourd'hui + N jours (selon priorite) et
+' renvoie au format ISO yyyy-mm-ddT00:00:00Z attendu par SharePoint.
+Public Function SIRUS_DateEstimeeISO(ByVal sPriorite As String) As String
+    Dim nbJours As Long
+    Dim dEst As Date
+    nbJours = SIRUS_JoursTraitementSelonPriorite(sPriorite)
+    dEst = DateAdd("d", nbJours, Date)
+    SIRUS_DateEstimeeISO = Format(dEst, "yyyy-mm-dd") & "T00:00:00Z"
+End Function
+
+' =========================================================================
+' SIRUS_NumeroVBNSuivant
+' =========================================================================
+' Genere le prochain Numero_ticket au format VBN_NN, suivant l'increment
+' des tickets deja presents dans SharePoint ATMAP_TICKETS.
+' Strategie : GET top 500 (tous types confondus), parse "VBN_<nb>",
+' max +1. Si rien -> VBN_1. Le format est entier brut, pas zero-padde
+' (ex: VBN_20 -> VBN_21).
+Public Function SIRUS_NumeroVBNSuivant() As String
+    Dim maxNum As Long
+    Dim numNouveau As Long
+
+    maxNum = ChercherMaxNumeroVBN()
+    If maxNum < 1 Then
+        numNouveau = 1
+    Else
+        numNouveau = maxNum + 1
+    End If
+
+    SIRUS_NumeroVBNSuivant = "VBN_" & numNouveau
+End Function
+
+' Helper prive : interroge SharePoint pour le max VBN_<nb> tous types
+' confondus. Ignore les VBN_<non_numerique> (ex: VBN_Test).
+Private Function ChercherMaxNumeroVBN() As Long
+    Dim xhr As Object
+    Dim url As String
+    Dim resp As String
+    Dim maxNum As Long
+    Dim pos As Long
+    Dim startPos As Long, endPos As Long
+    Dim numTicket As String
+    Dim suffix As String
+
+    maxNum = 0
+
+    On Error GoTo Sortie
+
+    Set xhr = CreateObject("MSXML2.XMLHTTP.6.0")
+    ' Recupere les 500 derniers tickets (tous types). Suffisant pour le
+    ' max courant VBN_<nb>.
+    url = SITE_URL & "/_api/web/lists/getbytitle('" & LIST_NAME & "')/items" & _
+          "?$select=Numero_ticket&$orderby=Id desc&$top=500"
+
+    xhr.Open "GET", url, False
+    xhr.setRequestHeader "Accept", "application/json;odata=verbose"
+    xhr.Send
+
+    If xhr.Status <> 200 Then
+        ChercherMaxNumeroVBN = 0
+        Exit Function
+    End If
+
+    resp = xhr.responseText
+
+    ' Parser tous les "Numero_ticket":"VBN_<...>"
+    pos = 1
+    Do
+        startPos = InStr(pos, resp, """Numero_ticket"":""")
+        If startPos = 0 Then Exit Do
+        startPos = startPos + Len("""Numero_ticket"":""")
+        endPos = InStr(startPos, resp, """")
+        If endPos = 0 Then Exit Do
+
+        numTicket = Mid$(resp, startPos, endPos - startPos)
+        pos = endPos + 1
+
+        ' Filtrer prefixe VBN_
+        If Left$(numTicket, 4) = "VBN_" Then
+            suffix = Mid$(numTicket, 5)
+            If IsNumeric(suffix) Then
+                If CLng(suffix) > maxNum Then maxNum = CLng(suffix)
+            End If
+        End If
+    Loop
+
+    ChercherMaxNumeroVBN = maxNum
+    Exit Function
+
+Sortie:
+    Debug.Print "ChercherMaxNumeroVBN erreur : " & Err.Description
+    ChercherMaxNumeroVBN = 0
 End Function
 
 ' =========================================================================
@@ -385,7 +520,11 @@ Public Function SIRUS_NumeroTicketSuivant() As String
     SIRUS_NumeroTicketSuivant = "IMP-" & annee & "-" & Format$(numNouveau, "000")
 End Function
 
-' Helper prive : interroge SharePoint pour le max Numero_ticket Import annee
+' Helper prive : interroge SharePoint pour le max du champ Numero_Import
+' (format IMP-YYYY-NNN) sur les tickets Import de l'annee en cours.
+' Note : depuis le split Numero_ticket (VBN_NN) / Numero_Import (IMP-...)
+' du 2026-06-11, c'est bien Numero_Import qu il faut parser ici, pas
+' Numero_ticket comme avant.
 Private Function ChercherMaxNumeroImport(ByVal annee As Long) As Long
     Dim xhr As Object
     Dim url As String
@@ -394,7 +533,7 @@ Private Function ChercherMaxNumeroImport(ByVal annee As Long) As Long
     Dim maxNum As Long
     Dim pos As Long
     Dim startPos As Long, endPos As Long
-    Dim numTicket As String
+    Dim numImport As String
     Dim suffix As String
 
     prefixe = "IMP-" & annee & "-"
@@ -407,7 +546,7 @@ Private Function ChercherMaxNumeroImport(ByVal annee As Long) As Long
     ' max de l annee en cours (au-dela les tickets sont vieux d au moins
     ' plusieurs annees).
     url = SITE_URL & "/_api/web/lists/getbytitle('" & LIST_NAME & "')/items" & _
-          "?$select=Numero_ticket,Typedemande&$filter=Typedemande eq 'Import'" & _
+          "?$select=Numero_Import,Typedemande&$filter=Typedemande eq 'Import'" & _
           "&$orderby=Id desc&$top=500"
 
     xhr.Open "GET", url, False
@@ -421,21 +560,21 @@ Private Function ChercherMaxNumeroImport(ByVal annee As Long) As Long
 
     resp = xhr.responseText
 
-    ' Parser tous les "Numero_ticket":"IMP-YYYY-NNN"
+    ' Parser tous les "Numero_Import":"IMP-YYYY-NNN"
     pos = 1
     Do
-        startPos = InStr(pos, resp, """Numero_ticket"":""")
+        startPos = InStr(pos, resp, """Numero_Import"":""")
         If startPos = 0 Then Exit Do
-        startPos = startPos + Len("""Numero_ticket"":""")
+        startPos = startPos + Len("""Numero_Import"":""")
         endPos = InStr(startPos, resp, """")
         If endPos = 0 Then Exit Do
 
-        numTicket = Mid$(resp, startPos, endPos - startPos)
+        numImport = Mid$(resp, startPos, endPos - startPos)
         pos = endPos + 1
 
         ' Filtrer prefixe IMP-YYYY-
-        If Left$(numTicket, Len(prefixe)) = prefixe Then
-            suffix = Mid$(numTicket, Len(prefixe) + 1)
+        If Left$(numImport, Len(prefixe)) = prefixe Then
+            suffix = Mid$(numImport, Len(prefixe) + 1)
             If IsNumeric(suffix) Then
                 If CLng(suffix) > maxNum Then maxNum = CLng(suffix)
             End If
@@ -446,7 +585,7 @@ Private Function ChercherMaxNumeroImport(ByVal annee As Long) As Long
     Exit Function
 
 Sortie:
-    Debug.Print "ChercherMaxNumeroImport erreur : " & Err.Description
+    Debug.Print "ChercherMaxNumeroImport erreur : " & Err.description
     ChercherMaxNumeroImport = 0
 End Function
 

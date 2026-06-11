@@ -1004,24 +1004,33 @@ End Sub
 ' SIRUS_GotoLigneFautive : double-clic ListView -> Activer la cellule cle
 ' -------------------------------------------------------------------------
 Public Sub SIRUS_UI_LvResultatsDblClick()
+    ' Double-clic sur une alerte = goto sur la cellule fautive (ligne+colChamp
+    ' parses depuis la key "alerte_<idx>_<ligne>_<colChamp>" stockee par
+    ' SIRUS_RemplirListViewResultats).
     Dim lv As MSComctlLib.ListView
     Dim li As MSComctlLib.ListItem
-    Dim ligne As Long
+    Dim ligne As Long, colChamp As Long
     Dim sFeuille As String
     Dim ws As Worksheet
+    Dim parts() As String
 
     Set lv = UserForm.ListView_SIRUS_Resultats
     Set li = lv.SelectedItem
     If li Is Nothing Then Exit Sub
 
-    ligne = CLng(li.Text)
+    parts = Split(li.key, "_")
+    If UBound(parts) < 3 Then Exit Sub
+    ligne = CLng(parts(2))
+    colChamp = CLng(parts(3))
+    If colChamp < 1 Then colChamp = 3   ' fallback : cellule cle
+
     sFeuille = CStr(UserForm.Cmb_SIRUS_FeuilleAnalyse.Value)
     On Error Resume Next
     Set ws = ActiveWorkbook.Worksheets(sFeuille)
     On Error GoTo 0
     If ws Is Nothing Then Exit Sub
 
-    Application.Goto ws.Cells(ligne, 2), Scroll:=True
+    Application.Goto ws.Cells(ligne, colChamp), Scroll:=True
 End Sub
 
 ' -------------------------------------------------------------------------
@@ -1030,7 +1039,7 @@ End Sub
 Public Sub SIRUS_UI_BtnEnvoyerClick()
     Dim sProjet As String, sSujet As String, sDesc As String
     Dim sAttentes As String, sPriorite As String
-    Dim sNumeroTicket As String
+    Dim sNumeroImport As String, sNumeroVBN As String
     Dim digest As String
     Dim userID As Long, ticketID As Long
     Dim cheminPJ As String
@@ -1070,6 +1079,19 @@ Public Sub SIRUS_UI_BtnEnvoyerClick()
     If UBound(feuilles) < LBound(feuilles) Then
         MsgBox "Aucune feuille SIRUS a envoyer. Generer + analyser une feuille d abord.", _
                vbExclamation, "SIRUS"
+        Exit Sub
+    End If
+
+    ' -- 1 bis. Garde-fou ProjetASL : aucun projet inconnu en ProjetSLI ----
+    '    Critere metier (Thomas 2026-06-11) : impossible de creer/modifier
+    '    un ProjetASL pour un code projet qui n existe pas dans ProjetSLI.
+    Dim sProjetsInconnus As String
+    sProjetsInconnus = SIRUS_ProjetsASL_Inconnus(feuilles)
+    If LenB(sProjetsInconnus) > 0 Then
+        MsgBox "Envoi bloque : projet(s) inconnu(s) dans ProjetSLI :" & vbCrLf & vbCrLf & _
+               sProjetsInconnus & vbCrLf & vbCrLf & _
+               "Creer d abord le projet en ProjetSLI avant d ajouter des entrees ProjetASL.", _
+               vbCritical, "SIRUS - Envoi impossible"
         Exit Sub
     End If
 
@@ -1116,20 +1138,38 @@ Public Sub SIRUS_UI_BtnEnvoyerClick()
         Exit Sub
     End If
 
-    ' -- 5. Extraire le numero du sujet (format "IMP-YYYY-00X - ...") ----
+    ' -- 5. Extraire le numero d'import du sujet (format "IMP-YYYY-00X - ...")
+    '       et generer le Numero_ticket VBN_NN cote SP (auto-increment).
     Dim posSep As Long
     posSep = InStr(1, sSujet, " - ")
     If posSep > 0 Then
-        sNumeroTicket = Trim$(Left$(sSujet, posSep - 1))
+        sNumeroImport = Trim$(Left$(sSujet, posSep - 1))
     Else
-        sNumeroTicket = sSujet
+        sNumeroImport = sSujet
+    End If
+
+    sNumeroVBN = SIRUS_NumeroVBNSuivant()
+    If LenB(sNumeroVBN) = 0 Then
+        UserForm.Lbl_SIRUS_StatutEnvoi.Caption = "Echec generation Numero_ticket VBN"
+        UserForm.Lbl_SIRUS_StatutEnvoi.ForeColor = RGB(163, 45, 45)
+        On Error Resume Next
+        Kill cheminPJ
+        On Error GoTo 0
+        Exit Sub
     End If
 
     ' -- 6. Creer le ticket ATMAP ----------------------------
+    '       Numero_ticket   = VBN_NN (auto-incremente cote SP)
+    '       Numero_Import   = IMP-YYYY-NNN (extrait du sujet)
+    '       Date_estimee    = aujourd hui + N jours selon priorite
+    Dim sDateEstimee As String
+    sDateEstimee = SIRUS_DateEstimeeISO(sPriorite)
+
     UserForm.Lbl_SIRUS_StatutEnvoi.Caption = "Creation du ticket..."
     DoEvents
-    resultTicket = SIRUS_CreerTicketEnvoi(digest, userID, sNumeroTicket, _
-                                            sSujet, sDesc, sAttentes, sPriorite, ticketID)
+    resultTicket = SIRUS_CreerTicketEnvoi(digest, userID, sNumeroVBN, _
+                                            sSujet, sDesc, sAttentes, sPriorite, ticketID, _
+                                            sNumeroImport, sDateEstimee)
 
     If ticketID = -1 Then
         UserForm.Lbl_SIRUS_StatutEnvoi.Caption = "Echec creation ticket"
@@ -1152,13 +1192,15 @@ Public Sub SIRUS_UI_BtnEnvoyerClick()
     On Error GoTo 0
 
     ' -- 9. Statut final visible -----------------------------
-    UserForm.Lbl_SIRUS_StatutEnvoi.Caption = "OK - Ticket " & sNumeroTicket & _
+    UserForm.Lbl_SIRUS_StatutEnvoi.Caption = "OK - " & sNumeroVBN & _
+                                              " / " & sNumeroImport & _
                                               " (SP Id " & ticketID & ")"
     UserForm.Lbl_SIRUS_StatutEnvoi.ForeColor = RGB(39, 80, 10)
 
     MsgBox "Ticket cree avec succes !" & vbCrLf & vbCrLf & _
-           "Numero    : " & sNumeroTicket & vbCrLf & _
-           "SharePoint ID : " & ticketID & vbCrLf & vbCrLf & _
+           "Numero ticket  : " & sNumeroVBN & vbCrLf & _
+           "Numero import  : " & sNumeroImport & vbCrLf & _
+           "SharePoint ID  : " & ticketID & vbCrLf & vbCrLf & _
            resultPJ, vbInformation, "SIRUS - Envoi termine"
     Exit Sub
 
@@ -1177,13 +1219,17 @@ End Sub
 ' L utilisateur peut ensuite editer librement.
 Public Sub SIRUS_UI_PrioriteChange()
     Dim sPriorite As String
+    Dim nbJours As Long
+    Dim sLabel As String
     On Error Resume Next
     sPriorite = CStr(UserForm.Cmb_SIRUS_Priorite.Value)
-    Select Case sPriorite
-        Case "High":   UserForm.Txt_SIRUS_Attentes.Value = "Traitement sous 1 jour"
-        Case "Medium": UserForm.Txt_SIRUS_Attentes.Value = "Traitement sous 3 jours"
-        Case "Low":    UserForm.Txt_SIRUS_Attentes.Value = "Traitement sous 5 jours"
-    End Select
+    nbJours = SIRUS_JoursTraitementSelonPriorite(sPriorite)
+    If nbJours <= 1 Then
+        sLabel = "Traitement sous " & nbJours & " jour"
+    Else
+        sLabel = "Traitement sous " & nbJours & " jours"
+    End If
+    UserForm.Txt_SIRUS_Attentes.Value = sLabel
     On Error GoTo 0
 End Sub
 
@@ -1360,11 +1406,76 @@ Private Function SIRUS_ResumerFeuillesPourEnvoi() As String
     SIRUS_ResumerFeuillesPourEnvoi = s
 End Function
 
-' Compte les lignes de donnees (apres entete) d une feuille SIRUS
-' (col 2 = 1er champ saisie, generalement DTR ou Nom projet).
+' Scan les feuilles SIRUS_ProjetASL_* a envoyer, collecte les noms de projets
+' uniques en col 2 et renvoie ceux absents de ProjetSLI (BdD TRAVAIL).
+' Renvoie une chaine vide si tout est connu, ou un texte multi-lignes
+' avec un projet inconnu par ligne sinon. Helper du garde-fou envoi.
+Private Function SIRUS_ProjetsASL_Inconnus(ByRef feuilles() As String) As String
+    Dim i As Long
+    Dim sNom As String, sTable As String, sOp As String
+    Dim ws As Worksheet
+    Dim ligneMax As Long, ligne As Long
+    Dim sProjet As String
+    Dim dictProjSLI As Object, dictInconnus As Object
+    Dim sOut As String, k As Variant
+
+    For i = LBound(feuilles) To UBound(feuilles)
+        sNom = feuilles(i)
+        Call SIRUS_ParserNomFeuille(sNom, sTable, sOp)
+        If sTable = "ProjetASL" Then
+            On Error Resume Next
+            Set ws = ActiveWorkbook.Worksheets(sNom)
+            On Error GoTo 0
+            If ws Is Nothing Then GoTo NextFeuille
+
+            ' Charger le cache ProjetSLI une fois (lazy load).
+            If dictProjSLI Is Nothing Then Set dictProjSLI = SIRUS_ProjetsSLI()
+            If dictProjSLI Is Nothing Then
+                ' Echec connexion BdD : on ne bloque pas (l alerte radar
+                ' apparaitra deja cote feuille). Cas degrade tolere.
+                Exit Function
+            End If
+            If dictInconnus Is Nothing Then
+                Set dictInconnus = CreateObject("Scripting.Dictionary")
+                dictInconnus.CompareMode = 1
+            End If
+
+            ligneMax = ws.Cells(ws.rows.count, 2).End(xlUp).Row
+            For ligne = 3 To ligneMax
+                sProjet = Trim$(SafeCStr(ws.Cells(ligne, 2).Value))
+                If LenB(sProjet) > 0 Then
+                    If Not dictProjSLI.Exists(UCase$(sProjet)) Then
+                        If Not dictInconnus.Exists(UCase$(sProjet)) Then
+                            dictInconnus.Add UCase$(sProjet), sProjet
+                        End If
+                    End If
+                End If
+            Next ligne
+        End If
+NextFeuille:
+        Set ws = Nothing
+    Next i
+
+    If dictInconnus Is Nothing Then
+        SIRUS_ProjetsASL_Inconnus = ""
+        Exit Function
+    End If
+
+    For Each k In dictInconnus.Keys
+        If LenB(sOut) > 0 Then sOut = sOut & vbLf
+        sOut = sOut & "- " & dictInconnus(k)
+    Next k
+    SIRUS_ProjetsASL_Inconnus = sOut
+End Function
+
+' Compte les lignes de donnees (apres entete) d une feuille SIRUS.
+' Scanne la colonne cle metier (table-aware via SIRUS_ColonneClePourTable).
 Private Function SIRUS_CompterLignesFeuille(ByVal sNomFeuille As String) As Long
     Dim ws As Worksheet
     Dim n As Long
+    Dim sTable As String, sOp As String
+    Dim colCle As Long
+
     On Error Resume Next
     Set ws = ActiveWorkbook.Worksheets(sNomFeuille)
     On Error GoTo 0
@@ -1372,7 +1483,11 @@ Private Function SIRUS_CompterLignesFeuille(ByVal sNomFeuille As String) As Long
         SIRUS_CompterLignesFeuille = 0
         Exit Function
     End If
-    n = ws.Cells(ws.rows.count, 2).End(xlUp).Row - 2
+
+    Call SIRUS_ParserNomFeuille(sNomFeuille, sTable, sOp)
+    colCle = SIRUS_ColonneClePourTable(sTable)
+
+    n = ws.Cells(ws.rows.count, colCle).End(xlUp).Row - 2
     If n < 0 Then n = 0
     SIRUS_CompterLignesFeuille = n
 End Function
@@ -1441,34 +1556,34 @@ Public Sub SIRUS_ConfigListViewResultats()
     If lv Is Nothing Then Exit Sub
     On Error GoTo 0
 
+    ' Nouveau layout (refonte 2026-06-11) : 1 ligne par alerte.
+    '   Cle    : DTR (toutes tables) ou Projet (ProjetSLI) — col 3 feuille
+    '   Champ  : libelle humain du champ fautif (def.Champ)
+    '   Alertes: detail de l alerte sur ce champ precis
     With lv
         .View = lvwReport
         .FullRowSelect = True
         .Gridlines = True
         .LabelEdit = lvwManual
         .ColumnHeaders.Clear
-        .ColumnHeaders.Add , , "Ligne", 50, lvwColumnLeft
         .ColumnHeaders.Add , , "Cle", 120, lvwColumnLeft
-        .ColumnHeaders.Add , , "Alertes", 350, lvwColumnLeft
+        .ColumnHeaders.Add , , "Champ", 180, lvwColumnLeft
+        .ColumnHeaders.Add , , "Alertes", 300, lvwColumnLeft
         .ListItems.Clear
     End With
 End Sub
 
 Private Sub SIRUS_RemplirListViewResultats(ByVal sFeuille As String)
-    ' Lit la colonne Statut (col 1) de la feuille active et liste les NOK
-    ' dans la ListView avec coloration rouge.
-    ' Cle affichee :
-    '   - Produit/InfoATM/TachesATM/EMMST/ProjetSLI : col 2 (DTR ou Nom projet)
-    '   - ProjetASL : col 3 (DTR, car col 2 = Projet)
-    ' Detail des alertes = commentaire de cellule du Statut.
+    ' Refonte 2026-06-11 : une ligne par alerte (au lieu d'une ligne par DTR
+    ' avec alertes concatenees). Lit la collection structuree sirusAlertes
+    ' alimentee par SIRUS_AnalyserFeuille (G_SIRUS_Analyse).
+    ' Chaque entree sirusAlertes = Array(cle, champ, alerte, ligne, colChamp).
     Dim lv As MSComctlLib.ListView
-    Dim ws As Worksheet
     Dim li As MSComctlLib.ListItem
-    Dim ligne As Long, ligneMax As Long
-    Dim statut As String, cle As String, detail As String
-    Dim cellStatut As Range
-    Dim sTable As String, sOp As String
-    Dim colCle As Long
+    Dim it As Variant
+    Dim sCle As String, sChamp As String, sAlerte As String
+    Dim nLigne As Long, nColChamp As Long
+    Dim key As String
 
     ' Re-configurer la ListView (idempotent : recree les ColumnHeaders).
     ' Critique : sans ColumnHeaders, SubItems(1) leve "Invalid property value".
@@ -1477,44 +1592,33 @@ Private Sub SIRUS_RemplirListViewResultats(ByVal sFeuille As String)
     Set lv = UserForm.ListView_SIRUS_Resultats
     lv.ListItems.Clear
 
-    On Error Resume Next
-    Set ws = ActiveWorkbook.Worksheets(sFeuille)
-    On Error GoTo 0
-    If ws Is Nothing Then Exit Sub
+    If sirusAlertes Is Nothing Then Exit Sub
+    If sirusAlertes.count = 0 Then Exit Sub
 
-    ' Determiner la colonne contenant la cle affichee selon la table
-    Call SIRUS_ParserNomFeuille(sFeuille, sTable, sOp)
-    If sTable = "ProjetASL" Then
-        colCle = 3   ' col 2 = Projet, col 3 = DTR
-    Else
-        colCle = 2   ' col 2 = DTR (ou Nom projet pour ProjetSLI)
-    End If
+    Dim idx As Long: idx = 0
+    For Each it In sirusAlertes
+        sCle = SafeCStr(it(0))
+        sChamp = SafeCStr(it(1))
+        sAlerte = SafeCStr(it(2))
+        nLigne = CLng(it(3))
+        nColChamp = CLng(it(4))
+        idx = idx + 1
 
-    ligneMax = ws.Cells(ws.rows.count, 2).End(xlUp).Row
-    For ligne = 3 To ligneMax
-        statut = SafeCStr(ws.Cells(ligne, 1).Value)
-        If InStr(1, statut, "NOK", vbTextCompare) > 0 _
-           Or InStr(1, statut, "non trouv", vbTextCompare) > 0 Then
-            cle = SafeCStr(ws.Cells(ligne, colCle).Value)
-            detail = ""
-            Set cellStatut = ws.Cells(ligne, 1)
-            If Not cellStatut.Comment Is Nothing Then
-                detail = cellStatut.Comment.Text
-                detail = Replace(detail, vbLf, " | ")
-            End If
-            On Error Resume Next
-            Set li = lv.ListItems.Add(, , CStr(ligne))
-            li.SubItems(1) = cle
-            li.SubItems(2) = detail
-            ' Coloration rouge des lignes NOK (texte rouge gras)
-            li.ForeColor = RGB(163, 45, 45)
-            li.Bold = True
-            li.ListSubItems(1).ForeColor = RGB(163, 45, 45)
-            li.ListSubItems(1).Bold = True
-            li.ListSubItems(2).ForeColor = RGB(163, 45, 45)
-            On Error GoTo 0
-        End If
-    Next ligne
+        ' Key technique : "ligne|colChamp" pour le goto en double-clic
+        key = "alerte_" & idx & "_" & nLigne & "_" & nColChamp
+
+        On Error Resume Next
+        Set li = lv.ListItems.Add(, key, sCle)
+        li.SubItems(1) = sChamp
+        li.SubItems(2) = sAlerte
+        ' Coloration rouge gras des alertes
+        li.ForeColor = RGB(163, 45, 45)
+        li.Bold = True
+        li.ListSubItems(1).ForeColor = RGB(163, 45, 45)
+        li.ListSubItems(1).Bold = True
+        li.ListSubItems(2).ForeColor = RGB(163, 45, 45)
+        On Error GoTo 0
+    Next it
 End Sub
 
 ' SafeCStr : conversion en chaine resistante a Null / Error / Empty.

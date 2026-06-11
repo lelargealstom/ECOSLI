@@ -13,6 +13,14 @@ Option Explicit
 Option Compare Text
 
 ' =========================================================================
+' CACHES PRIVES
+' =========================================================================
+' Cache des projets connus en ProjetSLI (BdD TRAVAIL). Chargement paresseux
+' au 1er appel, reset via SIRUS_ResetCacheProjetsSLI (a appeler apres un
+' refresh BdD ou re-import config). Cle = Nom projet en UCase trim.
+Private projetsSLI_Cache As Object   ' Scripting.Dictionary
+
+' =========================================================================
 ' API publique
 ' =========================================================================
 '
@@ -110,6 +118,16 @@ Public Function SIRUS_RegleObligatoire(ByVal sTable As String, _
             ' ATMAP si justification).
             SIRUS_RegleObligatoire = True
 
+        Case "ProjetASL|Prix repair (DEVISE du projet (SLI))_PROJETASL", _
+             "ProjetASL|Lead time REPAIR (jours)_PROJETASL"
+            ' Prix Repair + Lead time Repair : obligatoires uniquement si
+            ' le DTR est un LRU ou un SRU (les autres NodeType n ont pas
+            ' de cycle reparation - KIT, VISSERIE, ASSEMBLY, etc.).
+            ' Source : regle metier ProjetASL validee Thomas 2026-06-11.
+            Dim ntPjAsl As String
+            ntPjAsl = UCase$(Trim$(CStr(GetVal(ligne, "Node typed PROJET_PROJETASL"))))
+            SIRUS_RegleObligatoire = (ntPjAsl = "LRU" Or ntPjAsl = "SRU")
+
         Case Else
             ' Defaut : pas de regle conditionnelle definie -> False.
             ' (Les champs Obligatoire=Oui du config sont traites en amont
@@ -155,9 +173,99 @@ Public Function SIRUS_RegleAlerte(ByVal sTable As String, _
                 End If
             End If
 
+        Case "ProjetASL|PROJET_PROJETASL"
+            ' Alerte si le projet ProjetASL n existe pas dans ProjetSLI.
+            ' Critere bloquant a l envoi : impossible de creer un ProjetASL
+            ' pour un code projet inconnu en SLI (cf. SIRUS_UI_BtnEnvoyerClick).
+            ' Le blocage final est cote envoi, l alerte ici sert au radar UI.
+            Dim sProjAsl As String, dictProj As Object
+            sProjAsl = Trim$(CStr(GetVal(ligne, "PROJET_PROJETASL")))
+            If LenB(sProjAsl) > 0 Then
+                Set dictProj = SIRUS_ProjetsSLI()
+                If Not dictProj Is Nothing Then
+                    If Not dictProj.Exists(UCase$(sProjAsl)) Then
+                        SIRUS_RegleAlerte = "Projet inconnu dans ProjetSLI : import impossible"
+                    End If
+                End If
+            End If
+
         Case Else
             SIRUS_RegleAlerte = ""
     End Select
+End Function
+
+' =========================================================================
+' SIRUS_ProjetsSLI : cache des projets connus en BdD ProjetSLI
+' =========================================================================
+' Chargement paresseux au 1er appel. Renvoie un Dictionary {NomProjetUCase
+' -> Empty}. Utilise par SIRUS_RegleAlerte (ProjetASL) et par
+' SIRUS_UI_BtnEnvoyerClick (blocage envoi). Reset via la sub publique
+' SIRUS_ResetCacheProjetsSLI.
+Public Function SIRUS_ProjetsSLI() As Object
+    If projetsSLI_Cache Is Nothing Then
+        Set projetsSLI_Cache = ChargerProjetsSLI()
+    End If
+    Set SIRUS_ProjetsSLI = projetsSLI_Cache
+End Function
+
+Public Sub SIRUS_ResetCacheProjetsSLI()
+    Set projetsSLI_Cache = Nothing
+End Sub
+
+Private Function ChargerProjetsSLI() As Object
+    ' Charge tous les Nom projet de Projet_SLI$ (BdD TRAVAIL) dans un
+    ' Dictionary. Retourne Nothing si la connexion echoue (l alerte
+    ' projet inconnu sera alors silencieusement skip - on ne casse pas
+    ' l analyse).
+    '
+    ' Pourquoi Projet_SLI (et pas Projet_ASL) ?
+    ' ----------------------------------------
+    ' La validation metier est : "un ProjetASL ne peut exister que pour
+    ' un projet deja declare au niveau SLI". Projet_SLI est la table-mere
+    ' (referentiel projet), Projet_ASL est la table-fille (ligne par DTR
+    ' rattachee a un projet). C est une integrite referentielle : avant
+    ' d ajouter une ligne dans la table-fille, on verifie que la cle existe
+    ' dans la table-mere. Donc on liste les projets connus en SLI pour
+    ' bloquer toute Creation ProjetASL referencant un projet inconnu.
+    Dim dict As Object
+    Dim cnx As String
+    Dim sql As String
+    Dim bOpened As Boolean
+
+    On Error GoTo Sortie
+
+    Set dict = CreateObject("Scripting.Dictionary")
+    dict.CompareMode = 1   ' TextCompare (case insensitive)
+
+    cnx = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
+    Call Open_CONN(cnx)
+    bOpened = True
+
+    sql = "SELECT [Nom projet_PROJET SLI] FROM [Projet_SLI$] " & _
+          "WHERE [Nom projet_PROJET SLI] IS NOT NULL"
+    Call open_REQSEL(sql)
+
+    Do While Not REQSEL.EOF
+        Dim sNom As String
+        sNom = UCase$(Trim$(CStr(REQSEL.Fields(0).Value)))
+        If LenB(sNom) > 0 Then
+            If Not dict.Exists(sNom) Then dict.Add sNom, Empty
+        End If
+        REQSEL.MoveNext
+    Loop
+
+    Call Close_CONN(cnx)
+    Set ChargerProjetsSLI = dict
+    Exit Function
+
+Sortie:
+    Debug.Print "ChargerProjetsSLI erreur : " & Err.description
+    If bOpened Then
+        On Error Resume Next
+        Call Close_CONN(cnx)
+        On Error GoTo 0
+    End If
+    Set ChargerProjetsSLI = Nothing
 End Function
 
 ' =========================================================================

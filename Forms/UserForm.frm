@@ -459,66 +459,75 @@ Private Sub ListView_Produit_BeforeLabelEdit(Cancel As Integer)
 End Sub
 
 Private Sub Project_List_Change()
+' Auto-remplit les controles SLI a partir de la BdD lorsque l utilisateur
+' choisit un projet. Indispensable avant d ouvrir un ticket ATMAP (la
+' Zone Envoi SIRUS lit Project_List pour pre-remplir Sujet/Description).
+'
+' Robuste a Base = Nothing : les flows SIRUS appellent Close_CONN apres
+' leurs requetes (G_SIRUS_Regles.ChargerProjetsSLI, G_SIRUS_Generation.
+' PreRemplirDepuisBdD, etc.), ce qui ferme la connexion ouverte par
+' UserForm_Initialize. On la re-ouvre ici si besoin.
 
-Set REQSEL = CreateObject("ADODB.Recordset")
-
-'Des que le projet est modifia par l'utilisateur il faut recuperer toutes les informations sur le projet de la BDD
 Dim chk As MSForms.CheckBox
+Dim val As Variant
+Dim key As Variant
+Dim ChampControl As String
 
-'Info_Projet = DataProjet_SLI(Project_List.Value)
-'Requete table Projets SLI
-STRSEL = "SELECT * FROM [Projet_SLI$] WHERE [Nom projet_PROJET SLI] = '" & Project_List.Value & "'"
+On Error GoTo Sortie
+
+' -- Garde 1 : projet vide -> rien a faire ----------------
+If LenB(Trim$(CStr(Project_List.Value))) = 0 Then Exit Sub
+
+' -- Garde 2 : connexion BdD ouverte ----------------------
+'    Si Base a ete ferme par un Close_CONN (SIRUS et autres), on
+'    re-ouvre. Open_CONN gere idempotemment l etat ferme/ouvert.
+If Base Is Nothing Then
+    Call Open_CONN(Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile")))
+ElseIf Base.State <> 1 Then  ' adStateOpen = 1
+    Call Open_CONN(Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile")))
+End If
+
+' -- Requete projet ---------------------------------------
+STRSEL = "SELECT * FROM [Projet_SLI$] WHERE [Nom projet_PROJET SLI] = '" & _
+         Replace(CStr(Project_List.Value), "'", "''") & "'"
 Call open_REQSEL(STRSEL)
 
-' Si aucun enregistrement trouve, on sort
 If REQSEL.RecordCount = 0 Then
     MsgBox "Projet introuvable dans la base.", vbExclamation
     Exit Sub
 End If
 
-' Initialisation du mapping si non fait
+' -- Initialisation du mapping si non fait ----------------
 If Champs_ProjetsSLI Is Nothing Then Call GetChampsProjetsSLI
 
-' Positionner sur le premier enregistrement
 REQSEL.MoveFirst
 
-' Remplissage automatique des champs du formulaire
+' -- Remplissage des controles ----------------------------
 For Each key In Champs_ProjetsSLI.Keys
     ChampControl = Champs_ProjetsSLI(key)
     If Me.Controls(ChampControl) Is Nothing Then
         Debug.Print "Controle introuvable pour : " & key
     Else
-        ' Gerer les valeurs Null
         If IsNull(REQSEL.Fields(key).Value) Then
             Me.Controls(ChampControl).Value = ""
         Else
             val = REQSEL.Fields(key).Value
             If TypeName(Me.Controls(ChampControl)) = "CheckBox" Then
                 Set chk = Me.Controls(ChampControl)
-                
                 val = UCase(Trim(val))
-                
-                ' Gestion des etats
                 Select Case val
                     Case "OUI"
                         chk.Value = True
-                        chk.Enabled = True
-                        chk.BackColor = RGB(0, 200, 0) ' Vert
+                        chk.BackColor = RGB(0, 200, 0)
                     Case "NON"
                         chk.Value = False
-                        chk.Enabled = True
-                        chk.BackColor = RGB(200, 0, 0) ' Rouge
-                    Case "NA", ""
+                        chk.BackColor = RGB(200, 0, 0)
+                    Case Else  ' NA, vide, autres -> gris
                         chk.Value = False
-                        chk.Enabled = True
-                        chk.BackColor = RGB(180, 180, 180) ' Gris
-                    Case Else
-                        chk.Value = False
-                        chk.Enabled = True
-                        chk.BackColor = RGB(180, 180, 180) ' Gris par defaut
+                        chk.BackColor = RGB(180, 180, 180)
                 End Select
+                chk.Enabled = True
             Else
-                'Pour tout les autres controles (TExtBox, Combobox...)
                 If InStr(ChampControl, "Date") > 1 Then
                     Me.Controls(ChampControl).Value = Left(val, 11)
                 Else
@@ -529,6 +538,16 @@ For Each key In Champs_ProjetsSLI.Keys
     End If
 Next key
 
+' Synchroniser la description ATMAP si la Zone Envoi est deja visible
+On Error Resume Next
+Call G_SIRUS_UserForm.SIRUS_UI_ProjetListChange
+On Error GoTo 0
+
+Exit Sub
+
+Sortie:
+    MsgBox "Erreur Project_List_Change : " & Err.Description & vbCrLf & vbCrLf & _
+           "Verifier que la BdD TRAVAIL est accessible.", vbExclamation, "SIRUS"
 End Sub
 Private Sub Refresh_BDD_Button_Click()
 'Ouvre la base de donnees et ferme direct
@@ -576,9 +595,9 @@ Set wb = ThisWorkbook
 Set ws = wb.ActiveSheet
 Set ws_list = ThisWorkbook.Sheets("LISTES_DATA_CHOIX")
 
-dlignefrs = ws_list.Cells(ws.rows.count, "C").End(xlUp).Row
-dlignenode = ws_list.Cells(ws.rows.count, "B").End(xlUp).Row
-dlignerang = ws_list.Cells(ws.rows.count, "H").End(xlUp).Row
+dlignefrs = ws_list.Cells(ws_list.rows.count, "C").End(xlUp).Row
+dlignenode = ws_list.Cells(ws_list.rows.count, "B").End(xlUp).Row
+dlignerang = ws_list.Cells(ws_list.rows.count, "H").End(xlUp).Row
 
 'On rend invisible les barres de progression et tableau de valeur
 barre.Visible = False
@@ -636,6 +655,9 @@ Next i
 
 'SIRUS - configuration ListViews + alimentation Generation depuis DATA_ASL + BdD
 Call G_SIRUS_UserForm.SIRUS_InitGeneration
+
+' SIRUS Phase v2 : defaults Op=Creer, Frames caches, ComboBox Priorite peuplee
+Call G_SIRUS_UserForm.SIRUS_PhaseInit_v2
 
 ' SIRUS a etat initial NavTab type de demande
 Call SIRUS_SetType("Creation")

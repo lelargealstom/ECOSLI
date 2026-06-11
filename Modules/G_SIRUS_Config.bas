@@ -28,6 +28,25 @@ Public Const SIRUS_TBL_PROJETSLI   As String = "ProjetSLI"
 Public Const SIRUS_TBL_PROJETASL   As String = "ProjetASL"
 
 ' =========================================================================
+' SIRUS_ColonneClePourTable
+' =========================================================================
+' Renvoie le numero de colonne contenant la cle metier d une feuille SIRUS
+' selon la table. La cle est ce qui identifie unitairement la ligne pour
+' l affichage ListView Resultats et le scan ligneMax.
+'   ProjetASL : col 4 (DTR ; col 2 = Projet, col 3 = Sous Systeme)
+'   Produit   : col 3 (DTR ; col 2 = Famille Generique)
+'   ProjetSLI : col 2 (Nom projet)
+'   InfoATM, TachesATM, EMMST : col 2 (DTR)
+' Source unique de verite : modifier ici si on ajoute des champs avant la cle.
+Public Function SIRUS_ColonneClePourTable(ByVal sTable As String) As Long
+    Select Case sTable
+        Case "ProjetASL":  SIRUS_ColonneClePourTable = 4
+        Case "Produit":    SIRUS_ColonneClePourTable = 3
+        Case Else:         SIRUS_ColonneClePourTable = 2
+    End Select
+End Function
+
+' =========================================================================
 ' DEFINITION D'UN CHAMP DU CONFIG
 ' =========================================================================
 ' Cf. classe SIRUS_Champ_Config.cls (13 proprietes alignees sur le brief
@@ -742,19 +761,27 @@ End Sub
 ' =========================================================================
 ' PEUPLEMENT DU CONFIG POUR LA TABLE PROJET ASL (mise a jour PBS)
 ' =========================================================================
-' Brief v0.2 section 6.5.
-' Obligatoires : DTR, Designation PBS, Qte, Node Type, MTBF fonctionnel,
-' Lead time Spare / Repair, Testabilite.
-' Herites Produit (grises, lecture seule) : Node Type, MTBF intrinseque,
-' DVL generique.
-' Coherence forte : Nom projet ==> doit correspondre a un Projet SLI existant.
+' Spec Thomas 2026-06-11 (cf. Docs/SIRUS_REGLES.md).
+' Obligatoires : Nom projet, Sous Systeme, DTR, Designation PBS, Qte,
+' MTBF fonctionnel, Prix Spare archive, Lead Time Spare archive, Testabilite.
+' Conditionnels (si NodeType = LRU ou SRU) : Prix Repair archive, Lead Time
+' Repair archive (les autres NodeType n ont pas de cycle reparation).
+' Heritage Produit (info pre-remplie, non obligatoire) : Node Type,
+' MTBF intrinseque Projet, DVL fonctionnel HARD/SOFT.
+' Coherence forte : Nom projet ==> doit correspondre a un Projet SLI existant
+' (bloque a l envoi via SIRUS_UI_BtnEnvoyerClick / SIRUS_ProjetsASL_Inconnus).
 Private Sub PeuplerProjetASL(lo As ListObject)
     ' ColonneBdD = vrais noms BdD (cf. Champs_BDD.xlsx + diag Thomas 2026-06-09).
     ' Toutes les colonnes utiles incluses. Exclus : ID Projet (ASL) (auto),
     ' ISP TIS HORS FRANCE (archivé), Mise en qualité / Correcteur / Date de
     ' MEQ (formules Excel BdD).
 
-    ' --- Cles / identification (Ordre 10-30) -----------------
+    ' Ordre verrouille Thomas 2026-06-11 (cf. Docs/SIRUS_REGLES.md).
+    ' Note : les noms BdD (ColonneBdD) restent inchanges (lies au schema
+    ' Champs_BDD.xlsx) ; seuls les libelles humains "Champ" sont alignes
+    ' sur la nomenclature ASL ("archive", "fonctionnel", ...).
+
+    ' --- Cles / identification (Ordre 10-50) -----------------
     Call AjouterChamp(lo, "ProjetASL", "Nom projet", _
                       "PROJET_PROJETASL", 10, _
                       "Texte", "", "Oui", "", "Saisie", "", 3, _
@@ -762,7 +789,8 @@ Private Sub PeuplerProjetASL(lo As ListObject)
                       "Coherence forte : doit exister dans ProjetSLI.[Nom projet_PROJET SLI].")
     Call AjouterChamp(lo, "ProjetASL", "Sous Systeme", _
                       "Sous Système_PROJETASL", 20, _
-                      "Texte", "", "Non", "", "Saisie", "", 1, "", "")
+                      "Texte", "", "Oui", "", "Saisie", "", 2, "", _
+                      "Sous-systeme du projet (obligatoire).")
     Call AjouterChamp(lo, "ProjetASL", "DTR", "DTR_PROJETASL", 30, _
                       "Texte", "", "Oui", "", "Saisie", "", 3, "", _
                       "Identifiant unique du DTR de la PBS.")
@@ -775,7 +803,7 @@ Private Sub PeuplerProjetASL(lo As ListObject)
                       "Nombre", "", "Oui", "", "Saisie", "", 1, "", _
                       "Quantite par train.")
 
-    ' --- Saisies projet techniques (Ordre 60-110) ------------
+    ' --- Saisies projet techniques (Ordre 60-100) ------------
     Call AjouterChamp(lo, "ProjetASL", "Node Type", _
                       "Node typed PROJET_PROJETASL", 60, _
                       "Liste", "NodeType", "Non", "", "Saisie", _
@@ -792,51 +820,60 @@ Private Sub PeuplerProjetASL(lo As ListObject)
                       "MTBF fonctionnel projet (peut differer du MTBF intrinseque Produit).")
     ' Note : suffixe '_PROJET ASL' avec espace, confirme Thomas 2026-06-09
     ' (different des autres ProjetASL en '_PROJETASL' sans espace).
-    Call AjouterChamp(lo, "ProjetASL", "DVL generique HARD", _
+    Call AjouterChamp(lo, "ProjetASL", "DVL fonctionnel HARD", _
                       "DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) HARDWARE_PROJET ASL", 90, _
                       "Nombre", "", "Non", "", "Saisie", "", 0, "", _
                       "DVL Hardware specifique projet (RAM report). Suffixe BdD avec espace.")
-    Call AjouterChamp(lo, "ProjetASL", "DVL generique SOFT", _
+    Call AjouterChamp(lo, "ProjetASL", "DVL fonctionnel SOFT", _
                       "DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) SOFTWARE_PROJET ASL", 100, _
                       "Nombre", "", "Non", "", "Saisie", "", 0, "", _
                       "DVL Software specifique projet (RAM report). Suffixe BdD avec espace.")
-    Call AjouterChamp(lo, "ProjetASL", "Testabilite", _
-                      "Testabilité (DTR du BTE relatif à l'équipement sur le projet concerné)_PROJETASL", 110, _
-                      "Texte", "", "Oui", "", "Saisie", "", 1, "", _
-                      "Champ libre (n'est pas une liste).")
 
-    ' --- Lead times (Ordre 120-130) --------------------------
-    Call AjouterChamp(lo, "ProjetASL", "Lead time Spare", _
+    ' --- Prix + Lead times archive (Ordre 110-140) -----------
+    '   Prix Spare archive + Lead Time Spare archive : obligatoires (toujours).
+    '   Prix Repair archive + Lead Time Repair archive : conditionnels
+    '   (obligatoires uniquement si NodeType = LRU ou SRU). Voir G_SIRUS_Regles.
+    Call AjouterChamp(lo, "ProjetASL", "Prix Spare archive", _
+                      "Prix spare (DEVISE du projet (SLI))_PROJETASL", 110, _
+                      "Nombre", "", "Oui", "", "Saisie", "", 2, "", _
+                      "Prix SPARE archive dans la devise du projet SLI.")
+    Call AjouterChamp(lo, "ProjetASL", "Lead Time Spare archive", _
                       "Lead time SPARE (jours)_PROJETASL", 120, _
                       "Nombre", "", "Oui", "", "Saisie", "", 1, "", _
-                      "En jours.")
-    Call AjouterChamp(lo, "ProjetASL", "Lead time Repair", _
-                      "Lead time REPAIR (jours)_PROJETASL", 130, _
-                      "Nombre", "", "Oui", "", "Saisie", "", 1, "", _
-                      "En jours.")
+                      "Lead time SPARE archive en jours.")
+    Call AjouterChamp(lo, "ProjetASL", "Prix Repair archive", _
+                      "Prix repair (DEVISE du projet (SLI))_PROJETASL", 130, _
+                      "Nombre", "", "Conditionnel", "Obligatoire si NodeType LRU/SRU", _
+                      "Saisie", "", 1, "", _
+                      "Prix REPAIR archive dans la devise du projet SLI.")
+    Call AjouterChamp(lo, "ProjetASL", "Lead Time Repair archive", _
+                      "Lead time REPAIR (jours)_PROJETASL", 140, _
+                      "Nombre", "", "Conditionnel", "Obligatoire si NodeType LRU/SRU", _
+                      "Saisie", "", 1, "", _
+                      "Lead time REPAIR archive en jours.")
 
-    ' --- Prix projet (Ordre 140-170) -------------------------
-    Call AjouterChamp(lo, "ProjetASL", "Prix Repair (devise projet)", _
-                      "Prix repair (DEVISE du projet (SLI))_PROJETASL", 140, _
-                      "Nombre", "", "Non", "", "Saisie", "", 0, "", _
-                      "Prix REPAIR dans la devise du projet SLI.")
-    Call AjouterChamp(lo, "ProjetASL", "Prix Preventif (devise projet)", _
-                      "Prix préventif (DEVISE du projet (SLI))_PROJETASL", 150, _
+    ' --- Testabilite + autres prix (Ordre 150-180) -----------
+    Call AjouterChamp(lo, "ProjetASL", "Testabilite", _
+                      "Testabilité (DTR du BTE relatif à l'équipement sur le projet concerné)_PROJETASL", 150, _
+                      "Liste", "Booleen", "Oui", "", "Saisie", "", 1, "", _
+                      "Liste Oui/Non : indique si le DTR est testable sur le projet.")
+    Call AjouterChamp(lo, "ProjetASL", "Prix Preventif", _
+                      "Prix préventif (DEVISE du projet (SLI))_PROJETASL", 160, _
                       "Nombre", "", "Non", "", "Saisie", "", 0, "", _
                       "Prix preventif dans la devise du projet SLI.")
     Call AjouterChamp(lo, "ProjetASL", "Prix After Market Spare", _
-                      "Prix after market Spare_PROJETASL", 160, _
+                      "Prix after market Spare_PROJETASL", 170, _
                       "Nombre", "", "Non", "", "Saisie", "", 0, "", "")
     Call AjouterChamp(lo, "ProjetASL", "Prix After Market Repair", _
-                      "Prix after market Repair_PROJETASL", 170, _
+                      "Prix after market Repair_PROJETASL", 180, _
                       "Nombre", "", "Non", "", "Saisie", "", 0, "", "")
 
-    ' --- Divers (Ordre 180-200) ------------------------------
+    ' --- Divers (Ordre 190-200) ------------------------------
     Call AjouterChamp(lo, "ProjetASL", "STBI/DAT", _
-                      "STBI/DAT_PROJETASL", 180, _
+                      "STBI/DAT_PROJETASL", 190, _
                       "Texte", "", "Non", "", "Saisie", "", 0, "", "")
     Call AjouterChamp(lo, "ProjetASL", "LCS", _
-                      "LCS", 190, _
+                      "LCS", 200, _
                       "Texte", "", "Non", "", "Saisie", "", 0, "", _
                       "Note : nom BdD sans suffixe table.")
 End Sub

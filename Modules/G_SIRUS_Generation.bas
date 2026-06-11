@@ -186,16 +186,21 @@ Public Sub SIRUS_GenererFeuilleAnalyse(ByVal sTable As String, _
     '          et activer la protection feuille (Phase 3.1).
     Call VerrouillerEtProteger(wsCible, col)
 
-    ' -- 10. Freeze panes selon la table + activation cellule -----
-    '    Fige lignes 1-2 (entetes) + colonnes a gauche selon la table :
-    '       ProjetASL : Statut + Projet + DTR  (col 1-3, freeze a D3)
-    '       autres    : Statut + DTR/Cle        (col 1-2, freeze a C3)
+    ' -- 10. Alignement vertical centre sur toute la zone de donnees ----
+    '    Donne un rendu propre meme quand le WrapText elargit certaines
+    '    cellules (notamment la colonne Commentaires apres l analyse).
+    On Error Resume Next
+    wsCible.UsedRange.VerticalAlignment = xlCenter
+    On Error GoTo 0
+
+    ' -- 11. Freeze panes selon la table + activation cellule -----
+    '    Fige lignes 1-2 (entetes) + colonnes a gauche jusqu a la cle metier
+    '    (incluse) via SIRUS_ColonneClePourTable :
+    '       ProjetASL : Statut + Projet + Sous Systeme + DTR (col 1-4)
+    '       Produit   : Statut + Famille Generique + DTR     (col 1-3)
+    '       autres    : Statut + DTR / Nom projet            (col 1-2)
     Dim colFreeze As Long
-    If sTable = "ProjetASL" Then
-        colFreeze = 4   ' fige col 1-3
-    Else
-        colFreeze = 3   ' fige col 1-2
-    End If
+    colFreeze = SIRUS_ColonneClePourTable(sTable) + 1
     wsCible.Activate
     ActiveWindow.FreezePanes = False
     wsCible.Cells(SIRUS_LIGNE_DONNEES_DEBUT, colFreeze).Select
@@ -479,7 +484,6 @@ Private Sub PreRemplirDepuisBdD(ws As Worksheet, ByVal sTable As String, _
     Dim def As SIRUS_Champ_Config
     Dim cleColBdD As String
     Dim sNomTableSQL As String
-    Dim sSelectCols As String
     Dim sSQL As String
     Dim i As Long
     Dim ligne As Long
@@ -507,16 +511,6 @@ Private Sub PreRemplirDepuisBdD(ws As Worksheet, ByVal sTable As String, _
         Exit Sub
     End If
 
-    ' -- Construire la liste des colonnes a selectionner ---
-    ' Limite ACE OLE DB : on tronque les noms >64 chars (cf. TronquerColonneBdD).
-    sSelectCols = ""
-    For Each def In col
-        If LenB(def.ColonneBdD) > 0 Then
-            If LenB(sSelectCols) > 0 Then sSelectCols = sSelectCols & ", "
-            sSelectCols = sSelectCols & "[" & TronquerColonneBdD(def.ColonneBdD) & "]"
-        End If
-    Next def
-
     ' -- Ouvrir la connexion -------------------------------
     On Error GoTo SortieBdD
     Call Open_CONN(ChaineConnexionSIRUS)
@@ -526,9 +520,20 @@ Private Sub PreRemplirDepuisBdD(ws As Worksheet, ByVal sTable As String, _
     nbOk = 0
     nbKo = 0
 
+    ' Diagnostic : trace les colonnes du config absentes en BdD (pour aide
+    ' au cadrage des Champs_BDD.xlsx). Trace une fois par run.
+    Dim dictAbsentes As Object
+    Set dictAbsentes = CreateObject("Scripting.Dictionary")
+    dictAbsentes.CompareMode = 1
+
+    ' SELECT * : on recupere toutes les colonnes BdD existantes puis on
+    ' lit champ par champ avec tolerance aux colonnes manquantes (cas des
+    ' ??_*_a_definir et des colonnes BdD non encore creees comme
+    ' "Prix spare ..._PROJETASL" qui peut etre absente cote BdD TRAVAIL).
+    ' Plus robuste qu un SELECT explicite qui plante en bloc des qu'une
+    ' seule colonne demandee n'existe pas.
     For Each cle In vCles
-        sSQL = "SELECT " & sSelectCols & _
-               " FROM [" & sNomTableSQL & "]" & _
+        sSQL = "SELECT * FROM [" & sNomTableSQL & "]" & _
                " WHERE [" & TronquerColonneBdD(cleColBdD) & "] = '" & _
                Replace(CStr(cle), "'", "''") & "'"
         Debug.Print "PreRemplirDepuisBdD SQL : " & sSQL
@@ -546,8 +551,26 @@ Private Sub PreRemplirDepuisBdD(ws As Worksheet, ByVal sTable As String, _
                 i = 2
                 For Each def In col
                     If LenB(def.ColonneBdD) > 0 Then
+                        Dim sColTrim As String
+                        Dim vVal As Variant
+                        sColTrim = TronquerColonneBdD(def.ColonneBdD)
                         On Error Resume Next
-                        ws.Cells(ligne, i).Value = REQSEL.Fields(TronquerColonneBdD(def.ColonneBdD)).Value
+                        Err.Clear
+                        vVal = REQSEL.Fields(sColTrim).Value
+                        If Err.Number <> 0 Then
+                            ' Colonne absente cote BdD : on laisse la
+                            ' cellule vide et on trace dans Debug.Print
+                            ' (1 fois par colonne).
+                            If Not dictAbsentes.Exists(sColTrim) Then
+                                dictAbsentes.Add sColTrim, Empty
+                                Debug.Print "PreRemplirDepuisBdD : colonne BdD absente '" & sColTrim & "' (champ '" & def.Champ & "')"
+                            End If
+                            Err.Clear
+                        Else
+                            If Not IsNull(vVal) Then
+                                ws.Cells(ligne, i).Value = vVal
+                            End If
+                        End If
                         On Error GoTo SortieBdD
                     End If
                     i = i + 1
@@ -572,14 +595,19 @@ Private Sub PreRemplirDepuisBdD(ws As Worksheet, ByVal sTable As String, _
     Next cle
 
     Call Close_CONN(ChaineConnexionSIRUS)
-    Debug.Print "PreRemplirDepuisBdD : " & nbOk & " trouve(s), " & nbKo & " absent(es)."
+    Debug.Print "PreRemplirDepuisBdD : " & nbOk & " trouve(s), " & nbKo & " absent(es)" & _
+                ", " & dictAbsentes.count & " colonne(s) BdD absente(s)."
     Exit Sub
 
 SortieBdD:
+    Dim sErr As String
+    sErr = Err.description
     On Error Resume Next
     Call Close_CONN(ChaineConnexionSIRUS)
     On Error GoTo 0
-    MsgBox "Erreur lors du pre-remplissage BdD : " & Err.Description, vbCritical
+    MsgBox "Erreur lors du pre-remplissage BdD :" & vbCrLf & vbCrLf & _
+           sErr & vbCrLf & vbCrLf & _
+           "SQL en cours :" & vbCrLf & sSQL, vbCritical, "SIRUS"
 End Sub
 
 ' =========================================================================
