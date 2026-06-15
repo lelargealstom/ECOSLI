@@ -81,6 +81,37 @@ Couvre les opérations Création et Modification d'une entrée de la table BdD `
 | `MTBF fonctionnel (h) issu du RAM report projet_PROJETASL` | MTBF fonctionnel < MTBF intrinsèque Produit | `MTBF fonctionnel < MTBF intrinseque : verifier RAM report` |
 | `PROJET_PROJETASL` | Le nom de projet n'existe pas dans la table BdD `Projet_SLI$` | `Projet inconnu dans ProjetSLI : import impossible` |
 
+### Enrichissement depuis DATA_ASL (Modifier)
+
+`SIRUS_EnrichirProjetASL_DepuisDATA_ASL` (G_SIRUS_Generation) est appelée après le pré-remplissage BdD lors d'un ProjetASL Modifier. Croise la PBS du classeur projet (DATA_ASL) avec la feuille SIRUS pour overwrite les champs reflétant la PBS courante.
+
+| Champ ProjetASL (feuille SIRUS) | Colonne DATA_ASL (mapping `DATA_ASL_type`) | Source |
+|---|---|---|
+| Nom Projet | — | `Project_List.Value` (combo principale UserForm) |
+| Sous Système | `SousSysteme` | DATA_ASL |
+| DTR | `DTR_PBS` | DATA_ASL |
+| Designation PBS | `Designation_PBS` | DATA_ASL |
+| Qte | `Qte` | DATA_ASL |
+| Node Type | `NodeType` | DATA_ASL |
+| MTBF intrinsèque Projet | `MTBF_Intr` | DATA_ASL (RAM report spécifique projet CGR) |
+| MTBF fonctionnel | `MTBF_Fonct` | DATA_ASL (RAM report spécifique projet CGR) |
+| DVL fonctionnel HARD | `DureeVie_Ana_HARD` | DATA_ASL (analytique = spécifique projet) |
+| DVL fonctionnel SOFT | `DureeVie_Ana_SOFT` | DATA_ASL |
+| Lead Time Spare archive | `LeadTimeSpareCalend` | DATA_ASL (jours calendaires) |
+| Lead Time Repair archive | `LeadTimeRepairCalend` | DATA_ASL (jours calendaires) |
+| **Prix Spare archive** | cascade ↓ | (cf. ci-dessous) |
+| **Prix Repair archive** | cascade ↓ | (cf. ci-dessous) |
+| Testabilité, Prix Préventif, Prix After Market Spare/Repair, STBI/DAT, LCS | — | Saisie manuelle (pas de source DATA_ASL) |
+
+**Cascade prix Spare/Repair** (`CascadePrixDATA_ASL`, reprend la logique de `D_Providor_BreakDownStructure.RemplirPrixSpare/Repair`) :
+
+1. **Fournisseur** (`CoutSpare_AlstomFR_FRS` / `PrixRepair_Alstom_FRS`) — *Cout spare ALSTOM FRANCE FOURNISSEUR* / *Prix repair ALSTOM FOURNISSEUR*
+2. **Catalogue** (`ISP_TIS_FCS` / `PrixRepa_ISP`) — *ISP TIS FRANCE (FCS)* / *Prix repa (ISP Catalogue Répa)*
+3. **Manuel** (`PrixManuelSpare` / `PrixManuelRepair`) — *Prix Manuel Spare* / *Prix Manuel Repair*
+4. **Archive** (`PrixSpare_ProjetArchive` / `PrixRepair_ProjetArchive`) — *Prix Spare sur un projet archive* / *Prix Repair sur un projet archive*
+
+Une valeur est considérée "connue" si `IsNumeric` ET `<> 0`. La 1re source connue gagne. Si aucune n'est trouvée, la valeur déjà posée par le pré-remplissage BdD est conservée (pas d'écrasement).
+
 ### Garde-fou à l'envoi ATMAP
 
 ⚠️ **Bloquant** : `SIRUS_UI_BtnEnvoyerClick` (G_SIRUS_UserForm) refuse l'envoi du ticket si **au moins une ligne** a un projet absent de `Projet_SLI$`. MsgBox vbCritical avec la liste des projets fautifs, le ticket n'est pas créé.

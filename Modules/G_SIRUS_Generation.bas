@@ -611,6 +611,276 @@ SortieBdD:
 End Sub
 
 ' =========================================================================
+' SIRUS_EnrichirProjetASL_DepuisDATA_ASL
+' =========================================================================
+' Pour ProjetASL (Creer ou Modifier) : enrichit / complete la feuille
+' SIRUS_ProjetASL_<Op> avec les donnees de la PBS DATA_ASL du classeur
+' projet actif. Champs croises (spec Thomas 2026-06-11) :
+'   Nom Projet      <- sProjet (= Project_List.Value, identique pour
+'                       toutes les lignes)
+'   Sous Systeme    <- DATA_ASL [SOUS SYSTEME]
+'   DTR             <- DATA_ASL [DTR Reference (issue de PBS)]
+'   Designation PBS <- DATA_ASL [DESIGNATION (issue de PBS)]
+'   Qte             <- DATA_ASL [Qte]
+'   Node Type       <- DATA_ASL [Node typed (LRU/SRU...)]
+'
+' Strategie :
+'   1. Charger les lignes deja presentes dans la feuille SIRUS (cas Modifier
+'      apres pre-remplissage BdD) -> dict DTR_PBS -> ligne SIRUS.
+'   2. Iterer DATA_ASL. Pour chaque DTR :
+'        - present en SIRUS -> overwrite des 6 champs (DATA_ASL fait foi
+'          pour la photo PBS courante).
+'        - absent en SIRUS -> ajouter une nouvelle ligne en fin (cas DTR
+'          PBS qui n existe pas encore en BdD ProjetASL).
+'   3. Les autres colonnes (MTBF fct, Prix archive, etc.) restent ce que
+'      le pre-remplissage BdD a pose (ou vides pour les nouveaux DTR).
+'
+' Robustesse :
+'   - Si DATA_ASL absente / non cadrable : MsgBox + Exit (l utilisateur
+'     n a pas de PBS active, on ne touche pas).
+'   - Cols absentes en DATA_ASL (manqueOptionnel) : skip silencieux du
+'     champ correspondant.
+Public Sub SIRUS_EnrichirProjetASL_DepuisDATA_ASL(ByVal sOperation As String, _
+                                                    ByVal sProjet As String)
+    Dim wb As Workbook
+    Dim wsCible As Worksheet
+    Dim wsPBS As Worksheet
+    Dim nomFeuille As String
+
+    Set wb = ActiveWorkbook
+    If wb Is Nothing Then Exit Sub
+
+    ' -- 1. Localiser la feuille SIRUS_ProjetASL_<Op> ------
+    nomFeuille = "SIRUS_ProjetASL_" & sOperation
+    If Len(nomFeuille) > 31 Then nomFeuille = Left$(nomFeuille, 31)
+    On Error Resume Next
+    Set wsCible = wb.Worksheets(nomFeuille)
+    On Error GoTo 0
+    If wsCible Is Nothing Then
+        Debug.Print "SIRUS_EnrichirProjetASL_DepuisDATA_ASL : feuille '" & _
+                    nomFeuille & "' introuvable."
+        Exit Sub
+    End If
+
+    ' -- 2. Cadrer DATA_ASL --------------------------------
+    If Not VerifierFeuilleDATA_ASL(wb, wsPBS) Then Exit Sub
+    If Not MapColonnesDATA_ASL(wsPBS) Then Exit Sub
+    If DATA_ASL_type.DTR_PBS = 0 Then Exit Sub
+
+    ' -- 3. Trouver les cols de la feuille SIRUS par ColonneBdD (ligne 2)
+    Dim colNomProjet As Long, colSousSysteme As Long, colDTR As Long
+    Dim colDesignation As Long, colQte As Long, colNodeType As Long
+    Dim colMTBFIntr As Long, colMTBFFonct As Long
+    Dim colDVL_HARD As Long, colDVL_SOFT As Long
+    Dim colPrixSpareArch As Long, colLeadSpareArch As Long
+    Dim colPrixRepairArch As Long, colLeadRepairArch As Long
+
+    colNomProjet = TrouverColParColonneBdD(wsCible, "PROJET_PROJETASL")
+    colSousSysteme = TrouverColParColonneBdD(wsCible, "Sous Système_PROJETASL")
+    colDTR = TrouverColParColonneBdD(wsCible, "DTR_PROJETASL")
+    colDesignation = TrouverColParColonneBdD(wsCible, "Désignation_PROJETASL")
+    colQte = TrouverColParColonneBdD(wsCible, "Q PBS_PROJETASL")
+    colNodeType = TrouverColParColonneBdD(wsCible, "Node typed PROJET_PROJETASL")
+    colMTBFIntr = TrouverColParColonneBdD(wsCible, "MTBF intrinsèque Projet (h) issu du RAM report projet_PROJETASL")
+    colMTBFFonct = TrouverColParColonneBdD(wsCible, "MTBF fonctionnel (h) issu du RAM report projet_PROJETASL")
+    colDVL_HARD = TrouverColParColonneBdD(wsCible, "DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) HARDWARE_PROJET ASL")
+    colDVL_SOFT = TrouverColParColonneBdD(wsCible, "DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) SOFTWARE_PROJET ASL")
+    colPrixSpareArch = TrouverColParColonneBdD(wsCible, "Prix spare (DEVISE du projet (SLI))_PROJETASL")
+    colLeadSpareArch = TrouverColParColonneBdD(wsCible, "Lead time SPARE (jours)_PROJETASL")
+    colPrixRepairArch = TrouverColParColonneBdD(wsCible, "Prix repair (DEVISE du projet (SLI))_PROJETASL")
+    colLeadRepairArch = TrouverColParColonneBdD(wsCible, "Lead time REPAIR (jours)_PROJETASL")
+
+    If colDTR = 0 Then
+        Debug.Print "SIRUS_EnrichirProjetASL_DepuisDATA_ASL : col DTR introuvable."
+        Exit Sub
+    End If
+
+    ' -- 4. Index des lignes SIRUS existantes (DTR -> ligne) ---
+    Dim dictSIRUS As Object
+    Set dictSIRUS = CreateObject("Scripting.Dictionary")
+    dictSIRUS.CompareMode = 1
+
+    Dim ligneMaxSIRUS As Long, ligne As Long
+    ligneMaxSIRUS = wsCible.Cells(wsCible.rows.count, colDTR).End(xlUp).Row
+    For ligne = SIRUS_LIGNE_DONNEES_DEBUT To ligneMaxSIRUS
+        Dim sDTRcourant As String
+        sDTRcourant = Trim$(CStr(wsCible.Cells(ligne, colDTR).Value))
+        If LenB(sDTRcourant) > 0 Then
+            If Not dictSIRUS.Exists(sDTRcourant) Then dictSIRUS.Add sDTRcourant, ligne
+        End If
+    Next ligne
+
+    ' -- 5. Parcourir DATA_ASL et croiser -------------------
+    Dim derniereLignePBS As Long, lignePBS As Long
+    derniereLignePBS = wsPBS.Cells(wsPBS.rows.count, DATA_ASL_type.DTR_PBS).End(xlUp).Row
+
+    Dim ligneAjout As Long
+    If ligneMaxSIRUS < SIRUS_LIGNE_DONNEES_DEBUT Then
+        ligneAjout = SIRUS_LIGNE_DONNEES_DEBUT
+    Else
+        ligneAjout = ligneMaxSIRUS + 1
+    End If
+
+    Dim nbOverwrite As Long, nbAjout As Long
+    nbOverwrite = 0
+    nbAjout = 0
+
+    For lignePBS = DATA_ASL_HeaderRow + 1 To derniereLignePBS
+        Dim dtrPBS As String
+        dtrPBS = Trim$(CStr(wsPBS.Cells(lignePBS, DATA_ASL_type.DTR_PBS).Value))
+        If LenB(dtrPBS) = 0 Then GoTo NextPBS
+
+        Dim ligneCible As Long
+        If dictSIRUS.Exists(dtrPBS) Then
+            ligneCible = dictSIRUS(dtrPBS)
+            nbOverwrite = nbOverwrite + 1
+        Else
+            ligneCible = ligneAjout
+            ligneAjout = ligneAjout + 1
+            nbAjout = nbAjout + 1
+        End If
+
+        ' Nom Projet (toujours = sProjet)
+        If colNomProjet > 0 Then _
+            wsCible.Cells(ligneCible, colNomProjet).Value = sProjet
+        ' Sous Systeme
+        If colSousSysteme > 0 And DATA_ASL_type.SousSysteme > 0 Then _
+            wsCible.Cells(ligneCible, colSousSysteme).Value = _
+                wsPBS.Cells(lignePBS, DATA_ASL_type.SousSysteme).Value
+        ' DTR
+        wsCible.Cells(ligneCible, colDTR).Value = dtrPBS
+        ' Designation PBS
+        If colDesignation > 0 And DATA_ASL_type.Designation_PBS > 0 Then _
+            wsCible.Cells(ligneCible, colDesignation).Value = _
+                wsPBS.Cells(lignePBS, DATA_ASL_type.Designation_PBS).Value
+        ' Qte
+        If colQte > 0 And DATA_ASL_type.Qte > 0 Then _
+            wsCible.Cells(ligneCible, colQte).Value = _
+                wsPBS.Cells(lignePBS, DATA_ASL_type.Qte).Value
+        ' Node Type
+        If colNodeType > 0 And DATA_ASL_type.NodeType > 0 Then _
+            wsCible.Cells(ligneCible, colNodeType).Value = _
+                wsPBS.Cells(lignePBS, DATA_ASL_type.NodeType).Value
+
+        ' MTBF intrinseque Projet (RAM report specifique projet)
+        If colMTBFIntr > 0 And DATA_ASL_type.MTBF_Intr > 0 Then _
+            wsCible.Cells(ligneCible, colMTBFIntr).Value = _
+                wsPBS.Cells(lignePBS, DATA_ASL_type.MTBF_Intr).Value
+
+        ' MTBF fonctionnel (RAM report specifique projet)
+        If colMTBFFonct > 0 And DATA_ASL_type.MTBF_Fonct > 0 Then _
+            wsCible.Cells(ligneCible, colMTBFFonct).Value = _
+                wsPBS.Cells(lignePBS, DATA_ASL_type.MTBF_Fonct).Value
+
+        ' DVL fonctionnel HARD/SOFT (analytique = specifique projet CGR)
+        If colDVL_HARD > 0 And DATA_ASL_type.DureeVie_Ana_HARD > 0 Then _
+            wsCible.Cells(ligneCible, colDVL_HARD).Value = _
+                wsPBS.Cells(lignePBS, DATA_ASL_type.DureeVie_Ana_HARD).Value
+        If colDVL_SOFT > 0 And DATA_ASL_type.DureeVie_Ana_SOFT > 0 Then _
+            wsCible.Cells(ligneCible, colDVL_SOFT).Value = _
+                wsPBS.Cells(lignePBS, DATA_ASL_type.DureeVie_Ana_SOFT).Value
+
+        ' Lead time Spare/Repair archive (en jours calendaires)
+        If colLeadSpareArch > 0 And DATA_ASL_type.LeadTimeSpareCalend > 0 Then _
+            wsCible.Cells(ligneCible, colLeadSpareArch).Value = _
+                wsPBS.Cells(lignePBS, DATA_ASL_type.LeadTimeSpareCalend).Value
+        If colLeadRepairArch > 0 And DATA_ASL_type.LeadTimeRepairCalend > 0 Then _
+            wsCible.Cells(ligneCible, colLeadRepairArch).Value = _
+                wsPBS.Cells(lignePBS, DATA_ASL_type.LeadTimeRepairCalend).Value
+
+        ' Prix Spare archive : cascade Fournisseur -> Catalogue -> Manuel -> Archive
+        ' (cf. D_Providor_BreakDownStructure.RemplirPrixSpare). Une valeur
+        ' valide = IsNumeric AND <> 0.
+        If colPrixSpareArch > 0 Then
+            Dim vPrixSpare As Variant
+            vPrixSpare = CascadePrixDATA_ASL(wsPBS, lignePBS, _
+                            DATA_ASL_type.CoutSpare_AlstomFR_FRS, _
+                            DATA_ASL_type.ISP_TIS_FCS, _
+                            DATA_ASL_type.PrixManuelSpare, _
+                            DATA_ASL_type.PrixSpare_ProjetArchive)
+            If Not IsEmpty(vPrixSpare) Then _
+                wsCible.Cells(ligneCible, colPrixSpareArch).Value = vPrixSpare
+        End If
+
+        ' Prix Repair archive : meme cascade cote Repair
+        If colPrixRepairArch > 0 Then
+            Dim vPrixRepair As Variant
+            vPrixRepair = CascadePrixDATA_ASL(wsPBS, lignePBS, _
+                            DATA_ASL_type.PrixRepair_Alstom_FRS, _
+                            DATA_ASL_type.PrixRepa_ISP, _
+                            DATA_ASL_type.PrixManuelRepair, _
+                            DATA_ASL_type.PrixRepair_ProjetArchive)
+            If Not IsEmpty(vPrixRepair) Then _
+                wsCible.Cells(ligneCible, colPrixRepairArch).Value = vPrixRepair
+        End If
+
+NextPBS:
+    Next lignePBS
+
+    ' Re-appliquer l alignement vertical centre (les nouvelles lignes en
+    ' avaient besoin).
+    On Error Resume Next
+    wsCible.UsedRange.VerticalAlignment = xlCenter
+    On Error GoTo 0
+
+    Debug.Print "SIRUS_EnrichirProjetASL_DepuisDATA_ASL : " & nbOverwrite & _
+                " overwrite, " & nbAjout & " ajout(s) depuis DATA_ASL."
+End Sub
+
+' Cascade prix DATA_ASL : retourne la 1re valeur non-zero numerique parmi
+' les colonnes fournies (ordre = priorite). Reprend la regle Providor
+' (D_Providor_BreakDownStructure.RemplirPrixSpare/Repair + TrySetPrice) :
+'   Fournisseur -> Catalogue -> Manuel -> Archive
+' Une cellule est "connue" si IsNumeric ET <> 0 (zero = inconnu metier).
+' Renvoie Empty si aucune source ne donne une valeur connue (le pre-fill
+' BdD n est alors pas ecrase).
+Private Function CascadePrixDATA_ASL(ByVal wsPBS As Worksheet, _
+                                      ByVal lignePBS As Long, _
+                                      ByVal colFournisseur As Long, _
+                                      ByVal colCatalogue As Long, _
+                                      ByVal colManuel As Long, _
+                                      ByVal colArchive As Long) As Variant
+    Dim v As Variant
+
+    If colFournisseur > 0 Then
+        v = wsPBS.Cells(lignePBS, colFournisseur).Value
+        If IsNumeric(v) Then If CDbl(v) <> 0 Then CascadePrixDATA_ASL = CDbl(v): Exit Function
+    End If
+    If colCatalogue > 0 Then
+        v = wsPBS.Cells(lignePBS, colCatalogue).Value
+        If IsNumeric(v) Then If CDbl(v) <> 0 Then CascadePrixDATA_ASL = CDbl(v): Exit Function
+    End If
+    If colManuel > 0 Then
+        v = wsPBS.Cells(lignePBS, colManuel).Value
+        If IsNumeric(v) Then If CDbl(v) <> 0 Then CascadePrixDATA_ASL = CDbl(v): Exit Function
+    End If
+    If colArchive > 0 Then
+        v = wsPBS.Cells(lignePBS, colArchive).Value
+        If IsNumeric(v) Then If CDbl(v) <> 0 Then CascadePrixDATA_ASL = CDbl(v): Exit Function
+    End If
+
+    CascadePrixDATA_ASL = Empty
+End Function
+
+' Cherche la colonne d une feuille SIRUS par son ColonneBdD (entete ligne 2).
+' Renvoie 0 si introuvable. Permet une lookup tolerante a l ordre du config.
+Private Function TrouverColParColonneBdD(ByVal ws As Worksheet, _
+                                          ByVal sColBdD As String) As Long
+    Dim c As Long, lastCol As Long
+    On Error Resume Next
+    lastCol = ws.Cells(2, ws.Columns.count).End(xlToLeft).Column
+    On Error GoTo 0
+    If lastCol < 1 Then lastCol = 1
+    For c = 1 To lastCol
+        If CStr(ws.Cells(2, c).Value) = sColBdD Then
+            TrouverColParColonneBdD = c
+            Exit Function
+        End If
+    Next c
+    TrouverColParColonneBdD = 0
+End Function
+
+' =========================================================================
 ' NomTableSQL
 ' =========================================================================
 ' Mapping table logique config -> nom de table SQL Excel (entoure de [...$]).

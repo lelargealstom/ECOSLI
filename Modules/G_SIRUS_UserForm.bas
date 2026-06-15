@@ -789,10 +789,24 @@ Public Sub SIRUS_UI_BtnGenererClick()
 
         Case "Modifier"
             Dim cles As Variant
-            ' Source des cles : Combo Projet pour ProjetSLI/ProjetASL,
-            ' TextBox DTR multiligne pour les autres tables.
-            If sTable = "ProjetSLI" Or sTable = "ProjetASL" Then
-                Dim sProjet As String
+            Dim sProjet As String
+            ' Source des cles :
+            '   - ProjetASL Modifier : Project_List (combo principale en haut
+            '     du UserForm). C'est le projet sur lequel l ingenieur ASL
+            '     fait sa PBS dans ECOSLI -> on enrichit ensuite la feuille
+            '     SIRUS avec les donnees de DATA_ASL.
+            '   - ProjetSLI Modifier : Cmb_SIRUS_Projet (combo dans Frame_Modifier).
+            '   - Autres tables : TextBox DTR multiligne.
+            If sTable = "ProjetASL" Then
+                sProjet = Trim$(CStr(UserForm.Project_List.Value))
+                If LenB(sProjet) = 0 Then
+                    MsgBox "Selectionner d abord un projet dans la liste principale " & _
+                           "(Project_List) en haut du UserForm.", _
+                           vbExclamation, "SIRUS"
+                    Exit Sub
+                End If
+                cles = Array(sProjet)
+            ElseIf sTable = "ProjetSLI" Then
                 sProjet = CStr(UserForm.Cmb_SIRUS_Projet.Value)
                 If LenB(sProjet) = 0 Then
                     MsgBox "Selectionner un projet dans la liste.", vbExclamation, "SIRUS"
@@ -807,6 +821,13 @@ Public Sub SIRUS_UI_BtnGenererClick()
                 End If
             End If
             Call SIRUS_GenererFeuilleAnalyse(sTable, SIRUS_OP_MODIFIER, cles)
+            ' Pour ProjetASL Modifier : croiser ensuite avec DATA_ASL (PBS
+            ' du classeur projet actif). Overwrite des 6 champs PBS sur les
+            ' lignes deja pre-remplies par BdD + ajout des DTR de la PBS
+            ' qui n existent pas encore en BdD ProjetASL.
+            If sTable = "ProjetASL" Then
+                Call SIRUS_EnrichirProjetASL_DepuisDATA_ASL(SIRUS_OP_MODIFIER, sProjet)
+            End If
             Call SIRUS_AjouterFeuilleAuCombo("SIRUS_" & sTable & "_Modifier")
 
         Case "Extraction"
@@ -847,12 +868,15 @@ Public Sub SIRUS_UI_BtnGenererClick()
             Call SIRUS_DeverserExtractionDansSIRUS(sTable, sFichier, sLangue, sVersion)
     End Select
 
-    ' Affichage progressif : Frame Analyse devient visible (1 feuille
-    ' a ete generee). Frame Envoi reste cache tant que l analyse n a
-    ' pas atteint le seuil MeQ.
+    ' Affichage progressif (assoupli 2026-06-11) : Frame Analyse ET Frame
+    ' Envoi visibles ensemble apres Generation. Le seuil MeQ ne gate plus
+    ' la visibilite de l envoi (decision Thomas : on permet d envoyer
+    ' tout le temps pour l instant ; le blocage MeQ reviendra plus tard).
     On Error Resume Next
     UserForm.Frame_SIRUS_Analyse.Visible = True
-    UserForm.Frame_SIRUS_Envoi.Visible = False
+    UserForm.Frame_SIRUS_Envoi.Visible = True
+    UserForm.Btn_SIRUS_Envoyer.Enabled = True
+    Call SIRUS_UI_PreRemplirEnvoi
     On Error GoTo 0
 End Sub
 
@@ -945,23 +969,21 @@ Public Sub SIRUS_UI_BtnAnalyserClick()
 
     taux = SIRUS_AnalyserFeuille(sTable, sOp)
 
-    ' Resume statut + activer envoi si taux OK
+    ' Resume statut + activer envoi (gating MeQ retire pour l instant -
+    ' decision Thomas 2026-06-11 : on permet d envoyer tout le temps).
     UserForm.Lbl_SIRUS_StatutAnalyse.Caption = _
         "Taux de completude (MeQ) : " & Format(taux * 100, "0.0") & "%"
 
-    UserForm.Btn_SIRUS_Envoyer.Enabled = (taux >= 0.7)
+    UserForm.Btn_SIRUS_Envoyer.Enabled = True
 
     ' Remplir la ListView des NOK
     Call SIRUS_RemplirListViewResultats(sFeuille)
 
-    ' Affichage progressif : Frame Envoi visible si analyse OK pour
-    ' envoi (taux MeQ >= seuil).
+    ' Frame Envoi visible (deja affichee depuis Generation), MAJ recap envoi.
     On Error Resume Next
-    UserForm.Frame_SIRUS_Envoi.Visible = (taux >= 0.7)
+    UserForm.Frame_SIRUS_Envoi.Visible = True
+    Call SIRUS_UI_PreRemplirEnvoi
     On Error GoTo 0
-
-    ' Pre-remplir la Zone 3 (envoi ATMAP) si l analyse est OK pour envoyer.
-    If taux >= 0.7 Then Call SIRUS_UI_PreRemplirEnvoi
 End Sub
 
 ' -------------------------------------------------------------------------
