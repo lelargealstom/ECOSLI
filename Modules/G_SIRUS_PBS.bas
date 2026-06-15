@@ -517,6 +517,32 @@ End Function
 
 
 ' =========================================================================
+' FONCTION: NzSafeStr
+' Conversion en String resistante a Null / Empty / Error. Contrairement
+' a NzStr (F_FonctionsGlobales) qui ne gere pas Null et crash sur
+' CStr(Null) ("Utilisation incorrecte de Null"). Indispensable pour les
+' valeurs ADO BdD (cellules Excel vides renvoient Null).
+' =========================================================================
+Private Function NzSafeStr(ByVal v As Variant) As String
+    On Error Resume Next
+    If IsNull(v) Then
+        NzSafeStr = ""
+    ElseIf IsEmpty(v) Then
+        NzSafeStr = ""
+    ElseIf IsError(v) Then
+        NzSafeStr = ""
+    Else
+        NzSafeStr = CStr(v)
+    End If
+    If Err.Number <> 0 Then
+        NzSafeStr = ""
+        Err.Clear
+    End If
+    On Error GoTo 0
+End Function
+
+
+' =========================================================================
 ' FONCTION: ChargerRowsTableBdD
 ' Charge toutes les lignes d'une table BdD dans un Dictionary indexe par
 ' DTR. Chaque entree = Collection de Dictionary { ColonneBdD -> valeur }
@@ -552,12 +578,18 @@ Private Function ChargerRowsTableBdD(ByVal nomTable As String, _
     If REQSEL.EOF And REQSEL.BOF Then GoTo Sortie
 
     Do While Not REQSEL.EOF
-        dtrVal = Trim$(NzStr(REQSEL.Fields(colonneDTR).Value))
+        dtrVal = Trim$(NzSafeStr(REQSEL.Fields(colonneDTR).Value))
         If LenB(dtrVal) > 0 Then
             Set rowDict = CreateObject("Scripting.Dictionary")
             rowDict.CompareMode = vbTextCompare
             For Each f In REQSEL.Fields
-                rowDict(f.Name) = f.Value
+                ' Ne stocke jamais Null (provoque "Utilisation incorrecte
+                ' de Null" plus tard sur CStr/Trim). Vide = "".
+                If IsNull(f.Value) Then
+                    rowDict(f.Name) = ""
+                Else
+                    rowDict(f.Name) = f.Value
+                End If
             Next f
 
             If dict.Exists(dtrVal) Then
@@ -641,7 +673,7 @@ Private Function CalculerMeQDTR(ByVal dictTable As Object, _
             If bRequis Then
                 totDen = totDen + 1
                 sVal = ""
-                If row.Exists(def.ColonneBdD) Then sVal = NzStr(row(def.ColonneBdD))
+                If row.Exists(def.ColonneBdD) Then sVal = NzSafeStr(row(def.ColonneBdD))
                 If LenB(Trim$(sVal)) > 0 Then totNum = totNum + 1
             End If
 NextDef:
