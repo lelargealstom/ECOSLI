@@ -414,7 +414,7 @@ Public Sub SIRUS_RemplirListViewGeneration()
             ' affiche le texte).
             On Error Resume Next
             If nProjets > 0 Then
-                li.ToolTipText = "Projets connus (" & nProjets & ") : " & sListeProjets
+                li.ToolTipText = "Projets connus (" & nProjets & ") :" & vbLf & sListeProjets
             Else
                 li.ToolTipText = "Aucun projet connu pour ce DTR"
             End If
@@ -712,8 +712,8 @@ Private Sub ProjetsConnusPourDTR(ByVal dictTable As Object, _
             sProjet = Trim$(NzSafeStr(row("PROJET_PROJETASL")))
             If LenB(sProjet) > 0 And Not dictDistincts.Exists(sProjet) Then
                 dictDistincts(sProjet) = True
-                If LenB(sListe) > 0 Then sListe = sListe & ", "
-                sListe = sListe & sProjet
+                If LenB(sListe) > 0 Then sListe = sListe & vbLf
+                sListe = sListe & "- " & sProjet
             End If
         End If
     Next row
