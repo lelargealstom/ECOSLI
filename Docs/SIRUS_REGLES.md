@@ -133,23 +133,38 @@ Implémentation : `SIRUS_ProjetsASL_Inconnus(feuilles())` scanne la col 2 (Nom p
 
 ## MeQ Generation — ListView_Generation du UserForm
 
-La `ListView_Generation` (onglet Generation du UserForm) affiche pour chaque DTR de DATA_ASL le **% MeQ par table BdD**, calculé sur la même logique que SIRUS Envoi :
+La `ListView_Generation` (onglet Generation du UserForm) affiche pour chaque DTR de DATA_ASL :
 
-- **Source des champs** : `SIRUS_LireConfig(<table>)`.
+| Colonne | Contenu | Couleur |
+|---|---|---|
+| DTR | Identifiant PBS | — |
+| Nb projets | Nombre de projets distincts où ce DTR existe en `Projet_ASL$` | Vert si ≥ 1, rouge gras si 0 |
+| ATM - Info | % MeQ par DTR | Vert si 100%, rouge gras sinon, "Absent" si DTR absent |
+| ATM - Taches | idem (moyenne sur toutes les tâches du DTR) | idem |
+| EMMST | idem | idem |
+| Produit | idem | idem |
+
+Le tooltip de ligne (`ListItem.ToolTipText`, hover sur la cellule DTR) affiche la liste des projets connus pour ce DTR : `Projets connus (N) : ProjA, ProjB, ProjC`. MSComctlLib v6 ne supporte pas le tooltip par sub-item, donc c'est niveau ligne.
+
+### Calcul du MeQ (cols ATM-Info / ATM-Taches / EMMST / Produit)
+
+- **Source des champs** : `SIRUS_LireConfig(<table>)` (chargée 1× par table en début de remplissage, plus N× — optim 2026-06-15).
 - **Numérateur** : champs `Obligatoire = "Oui"` **remplis** + champs `Obligatoire = "Conditionnel"` dont `SIRUS_RegleObligatoire` renvoie `True` et qui sont remplis.
-- **Dénominateur** : tous les champs `Oui` + tous les Conditionnels actifs (selon la règle).
-- **Tables couvertes** : Produit, InfoATM, TachesATM, EMMST, ProjetASL (ProjetSLI hors scope).
-- **Multi-rows par DTR** (TachesATM, ou ProjetASL non filtré) : moyenne sur toutes les rows (sum num / sum den).
-- **ProjetASL** : filtré par `Project_List.Value` quand un projet est sélectionné dans la combo principale.
+- **Dénominateur** : tous les champs `Oui` + Conditionnels actifs (selon la règle).
+- **Multi-rows par DTR** (TachesATM) : moyenne pondérée (sum num / sum den) sur toutes les rows.
+- **Tables couvertes** : Produit, InfoATM, TachesATM, EMMST (ProjetSLI hors scope).
 
-Affichage :
-- **100% → vert** (RGB 0,128,0)
-- **< 100% → rouge gras** (RGB 192,0,0)
-- **DTR absent de la table BdD → "Absent" rouge gras**
+### Optimisations de performance (2026-06-15)
 
-Bouton **Rafraichir** (`SIRUS_RafraichirListViewGeneration`) à actionner après changement de projet pour refresh ProjetASL.
+- `SIRUS_LireConfig` chargée **5 fois au total** (1× par table) au lieu de 5×N (N = nombre de DTR) — économie majeure pour N>50.
+- `SELECT` ciblé : ne charge que les colonnes du config `Source = "Saisie"` (en excluant les placeholders `??_*_a_definir`). EMMST passe de ~50 colonnes à ~15. Fallback automatique `SELECT *` si une colonne du config n'est pas alignée avec la BdD (trace `Debug.Print`).
+- Helper `NzSafeStr` pour gérer les `Null` ADO sans crash `CStr(Null)`.
 
-Implémentation : `G_SIRUS_PBS.ChargerRowsTableBdD` + `CalculerMeQDTR` + `AjouterSubItemMeQ` (5 requêtes `SELECT *` une seule fois par appel, dictionnaires Scripting.Dictionary case-insensitive).
+### Refresh
+
+Bouton **Rafraichir** (`SIRUS_RafraichirListViewGeneration`) à actionner après changement de PBS ou modification BdD. Pas de refresh automatique sur `Project_List_Change` (le compte de projets ne dépend pas du projet sélectionné depuis qu'on a viré le filtre).
+
+Implémentation : `G_SIRUS_PBS.ChargerRowsTableBdD_Optim` + `CalculerMeQDTR_Optim` + `ProjetsConnusPourDTR` + `AjouterSubItemMeQ` / `AjouterSubItemNbProjets`.
 
 ## Tables non encore documentées
 

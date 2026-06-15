@@ -362,21 +362,27 @@ Public Sub SIRUS_RemplirListViewGeneration()
     If Not MapColonnesDATA_ASL(wsPBS) Then Exit Sub
     If DATA_ASL_type.DTR_PBS = 0 Then Exit Sub
 
-    ' Caches rows BdD - une seule requete SELECT * par table.
-    ' Cle DTR du SELECT WHERE / index : 'DTR' pour Produit$, 'DTR_<TABLE>'
-    ' pour les autres. Filtre projet applique sur ProjetASL si Project_List
-    ' est renseigne (sinon toutes les lignes -> moyenne sur tous les projets).
+    ' Caches config SIRUS par table - lus UNE SEULE FOIS au lieu de
+    ' 5 x N (perf : evite N x 5 lectures de la feuille SIRUS_Config).
+    Dim cfgProjetASL As Collection, cfgInfoATM As Collection
+    Dim cfgTachesATM As Collection, cfgEMMST As Collection, cfgProduit As Collection
     If SIRUS_LookupDTR_Active Then
-        Dim sProjetCourant As String
-        On Error Resume Next
-        sProjetCourant = Trim$(CStr(UserForm.Project_List.Value))
-        On Error GoTo 0
-        Set dictProjetASL_Rows = ChargerRowsTableBdD("Projet_ASL$", "DTR_PROJETASL", _
-                                                    "PROJET_PROJETASL", sProjetCourant)
-        Set dictInfoATM_Rows = ChargerRowsTableBdD("Info_ATM$", "DTR_INFOATM")
-        Set dictTachesATM_Rows = ChargerRowsTableBdD("Taches_ATM$", "DTR_TACHEATM")
-        Set dictEMMST_Rows = ChargerRowsTableBdD("EMMST$", "DTR_EMMST")
-        Set dictProduit_Rows = ChargerRowsTableBdD("Produit$", "DTR")
+        Set cfgProjetASL = SIRUS_LireConfig("ProjetASL")
+        Set cfgInfoATM = SIRUS_LireConfig("InfoATM")
+        Set cfgTachesATM = SIRUS_LireConfig("TachesATM")
+        Set cfgEMMST = SIRUS_LireConfig("EMMST")
+        Set cfgProduit = SIRUS_LireConfig("Produit")
+    End If
+
+    ' Caches rows BdD - une seule requete SELECT (cible) par table.
+    ' ProjetASL : pas de filtre projet (on veut le count global de projets
+    ' connus par DTR, cf. nouvelle colonne "N projets" ci-dessous).
+    If SIRUS_LookupDTR_Active Then
+        Set dictProjetASL_Rows = ChargerRowsTableBdD_Optim("Projet_ASL$", "DTR_PROJETASL", cfgProjetASL, "PROJET_PROJETASL")
+        Set dictInfoATM_Rows = ChargerRowsTableBdD_Optim("Info_ATM$", "DTR_INFOATM", cfgInfoATM)
+        Set dictTachesATM_Rows = ChargerRowsTableBdD_Optim("Taches_ATM$", "DTR_TACHEATM", cfgTachesATM)
+        Set dictEMMST_Rows = ChargerRowsTableBdD_Optim("EMMST$", "DTR_EMMST", cfgEMMST)
+        Set dictProduit_Rows = ChargerRowsTableBdD_Optim("Produit$", "DTR", cfgProduit)
     End If
 
     derniereLigne = wsPBS.Cells(wsPBS.rows.count, DATA_ASL_type.DTR_PBS).End(xlUp).Row
@@ -391,14 +397,33 @@ Public Sub SIRUS_RemplirListViewGeneration()
         Set li = lv.ListItems.Add(, , dtr)
         nbAjoutees = nbAjoutees + 1
 
-        ' Cols 2 a 6 : % MeQ par DTR pour chaque table BdD si lookup actif.
-        ' Vert si 100%, rouge sinon. "Absent" si aucune row pour ce DTR.
+        ' Col 2 : ProjetASL = nombre de projets distincts ou ce DTR existe
+        '         en BdD (au lieu d'un % MeQ). La liste des projets est
+        '         affichee en tooltip de ligne (ListItem.ToolTipText).
+        ' Cols 3 a 6 : % MeQ par DTR pour les 4 autres tables BdD.
+        '              Vert 100%, rouge sinon, "Absent" si pas de row.
         If SIRUS_LookupDTR_Active Then
-            Call AjouterSubItemMeQ(li, CalculerMeQDTR(dictProjetASL_Rows, dtr, "ProjetASL"))
-            Call AjouterSubItemMeQ(li, CalculerMeQDTR(dictInfoATM_Rows, dtr, "InfoATM"))
-            Call AjouterSubItemMeQ(li, CalculerMeQDTR(dictTachesATM_Rows, dtr, "TachesATM"))
-            Call AjouterSubItemMeQ(li, CalculerMeQDTR(dictEMMST_Rows, dtr, "EMMST"))
-            Call AjouterSubItemMeQ(li, CalculerMeQDTR(dictProduit_Rows, dtr, "Produit"))
+            Dim nProjets As Long
+            Dim sListeProjets As String
+            Call ProjetsConnusPourDTR(dictProjetASL_Rows, dtr, nProjets, sListeProjets)
+            Call AjouterSubItemNbProjets(li, nProjets)
+
+            ' Tooltip de ligne avec la liste des projets (ListItem.ToolTipText
+            ' est niveau ligne, pas par cellule -- MSComctlLib v6 ne supporte
+            ' pas le tooltip par sub-item. Hover sur la 1re cellule (DTR)
+            ' affiche le texte).
+            On Error Resume Next
+            If nProjets > 0 Then
+                li.ToolTipText = "Projets connus (" & nProjets & ") : " & sListeProjets
+            Else
+                li.ToolTipText = "Aucun projet connu pour ce DTR"
+            End If
+            On Error GoTo 0
+
+            Call AjouterSubItemMeQ(li, CalculerMeQDTR_Optim(dictInfoATM_Rows, dtr, "InfoATM", cfgInfoATM))
+            Call AjouterSubItemMeQ(li, CalculerMeQDTR_Optim(dictTachesATM_Rows, dtr, "TachesATM", cfgTachesATM))
+            Call AjouterSubItemMeQ(li, CalculerMeQDTR_Optim(dictEMMST_Rows, dtr, "EMMST", cfgEMMST))
+            Call AjouterSubItemMeQ(li, CalculerMeQDTR_Optim(dictProduit_Rows, dtr, "Produit", cfgProduit))
         Else
             Call AjouterSubItemColore(li, "", False)
             Call AjouterSubItemColore(li, "", False)
@@ -543,19 +568,24 @@ End Function
 
 
 ' =========================================================================
-' FONCTION: ChargerRowsTableBdD
-' Charge toutes les lignes d'une table BdD dans un Dictionary indexe par
-' DTR. Chaque entree = Collection de Dictionary { ColonneBdD -> valeur }
-' (une Collection car certaines tables ont plusieurs lignes par DTR :
-' TachesATM N taches, ProjetASL N projets si non filtre).
+' FONCTION: ChargerRowsTableBdD_Optim (version optimisee)
+' Charge les lignes d'une table BdD dans un Dictionary indexe par DTR.
+' Chaque entree = Collection de Dictionary { ColonneBdD -> valeur }.
 '
-' Optionnel : filtre WHERE [sFilterColonne] = 'sFilterValeur' (utilise pour
-' restreindre ProjetASL au projet courant via Project_List).
+' Optimisation perf : ne SELECT que les colonnes utiles (la cle DTR, les
+' fields Saisie du config + colonnes "extras" pour les regles condition-
+' nelles et la liste des projets ProjetASL). Au lieu d'un SELECT * qui
+' transfere ~50 colonnes pour EMMST, on reduit aux ~10-15 utiles.
+'
+' configCol  : la Collection SIRUS_LireConfig(table) pre-chargee. Utilisee
+'              pour deduire la liste des colonnes a SELECT.
+' sExtraCol  : nom d'une colonne supplementaire a inclure (ex.
+'              "PROJET_PROJETASL" pour ProjetASL meme si non obligatoire).
 ' =========================================================================
-Private Function ChargerRowsTableBdD(ByVal nomTable As String, _
-                                      ByVal colonneDTR As String, _
-                                      Optional ByVal sFilterColonne As String = "", _
-                                      Optional ByVal sFilterValeur As String = "") As Object
+Private Function ChargerRowsTableBdD_Optim(ByVal nomTable As String, _
+                                            ByVal colonneDTR As String, _
+                                            ByVal configCol As Collection, _
+                                            Optional ByVal sExtraCol As String = "") As Object
     Dim dict As Object
     Dim sql As String
     Dim dtrVal As String
@@ -563,17 +593,54 @@ Private Function ChargerRowsTableBdD(ByVal nomTable As String, _
     Dim col As Collection
     Dim f As Object
 
+    Dim def As SIRUS_Champ_Config
+    Dim dictCols As Object
+    Dim sCols As String
+    Dim sColTrim As String
+
     Set dict = CreateObject("Scripting.Dictionary")
     dict.CompareMode = vbTextCompare
 
-    sql = "SELECT * FROM [" & nomTable & "]"
-    If LenB(sFilterColonne) > 0 And LenB(sFilterValeur) > 0 Then
-        sql = sql & " WHERE [" & sFilterColonne & "] = '" & _
-              Replace(sFilterValeur, "'", "''") & "'"
+    ' -- Construire la liste des colonnes a selectionner ----
+    '    Tous les fields Saisie du config + cle DTR + extra eventuel.
+    '    Dictionnaire pour eviter doublons.
+    Set dictCols = CreateObject("Scripting.Dictionary")
+    dictCols.CompareMode = vbTextCompare
+    dictCols(colonneDTR) = True
+    If LenB(sExtraCol) > 0 Then dictCols(sExtraCol) = True
+    If Not configCol Is Nothing Then
+        For Each def In configCol
+            If LenB(def.ColonneBdD) > 0 And def.Source = "Saisie" Then
+                ' Skip placeholders ??_*_a_definir (n'existent pas en BdD).
+                If Left$(def.ColonneBdD, 3) <> "??_" Then
+                    sColTrim = def.ColonneBdD
+                    If Not dictCols.Exists(sColTrim) Then dictCols(sColTrim) = True
+                End If
+            End If
+        Next def
     End If
 
-    On Error GoTo Sortie
+    Dim k As Variant
+    For Each k In dictCols.Keys
+        If LenB(sCols) > 0 Then sCols = sCols & ", "
+        sCols = sCols & "[" & CStr(k) & "]"
+    Next k
+
+    If LenB(sCols) = 0 Then sCols = "*"
+    sql = "SELECT " & sCols & " FROM [" & nomTable & "]"
+
+    ' Tentative 1 : SELECT cible. Fallback SELECT * si une colonne est
+    ' rejetee par ACE (ex. nom BdD non aligne avec config).
+    On Error Resume Next
     Call open_REQSEL(sql)
+    If Err.Number <> 0 Then
+        Debug.Print "[" & nomTable & "] SELECT cible echoue (" & Err.description & "), fallback SELECT *"
+        Err.Clear
+        On Error GoTo Sortie
+        Call open_REQSEL("SELECT * FROM [" & nomTable & "]")
+    Else
+        On Error GoTo Sortie
+    End If
     If REQSEL Is Nothing Then GoTo Sortie
     If REQSEL.EOF And REQSEL.BOF Then GoTo Sortie
 
@@ -605,32 +672,90 @@ Private Function ChargerRowsTableBdD(ByVal nomTable As String, _
 
 Sortie:
     If Err.Number <> 0 Then
-        Debug.Print "[" & nomTable & "] ChargerRowsTableBdD : " & Err.description
+        Debug.Print "[" & nomTable & "] ChargerRowsTableBdD_Optim : " & Err.description
     End If
     On Error Resume Next
     If Not REQSEL Is Nothing Then If REQSEL.State = 1 Then REQSEL.Close
     On Error GoTo 0
-    Set ChargerRowsTableBdD = dict
+    Set ChargerRowsTableBdD_Optim = dict
 End Function
 
 
 ' =========================================================================
-' FONCTION: CalculerMeQDTR
-' Calcule le % MeQ d'un DTR pour une table BdD donnee, base sur la
-' configuration SIRUS (champs Obligatoire="Oui" + Conditionnel evalue
-' via SIRUS_RegleObligatoire).
+' FONCTION: ProjetsConnusPourDTR
+' Pour la colonne ProjetASL : compte les projets distincts dans Projet_ASL$
+' ou ce DTR existe, et construit une chaine "ProjA, ProjB, ProjC" pour
+' affichage en tooltip de ligne.
+' Renvoie nProjets (ByRef) et sListe (ByRef).
+' =========================================================================
+Private Sub ProjetsConnusPourDTR(ByVal dictTable As Object, _
+                                  ByVal dtr As String, _
+                                  ByRef nProjets As Long, _
+                                  ByRef sListe As String)
+    Dim row As Object
+    Dim rows As Collection
+    Dim sProjet As String
+    Dim dictDistincts As Object
+
+    nProjets = 0
+    sListe = ""
+
+    If dictTable Is Nothing Then Exit Sub
+    If Not dictTable.Exists(dtr) Then Exit Sub
+    Set rows = dictTable(dtr)
+
+    Set dictDistincts = CreateObject("Scripting.Dictionary")
+    dictDistincts.CompareMode = vbTextCompare
+
+    For Each row In rows
+        If row.Exists("PROJET_PROJETASL") Then
+            sProjet = Trim$(NzSafeStr(row("PROJET_PROJETASL")))
+            If LenB(sProjet) > 0 And Not dictDistincts.Exists(sProjet) Then
+                dictDistincts(sProjet) = True
+                If LenB(sListe) > 0 Then sListe = sListe & ", "
+                sListe = sListe & sProjet
+            End If
+        End If
+    Next row
+
+    nProjets = dictDistincts.count
+End Sub
+
+
+' =========================================================================
+' SUB: AjouterSubItemNbProjets
+' Ajoute un ListSubItem affichant le nombre de projets connus :
+'   nProjets = 0  -> "0" en rouge gras
+'   nProjets >= 1 -> "N" en vert
+' =========================================================================
+Private Sub AjouterSubItemNbProjets(li As MSComctlLib.ListItem, ByVal nProjets As Long)
+    Dim lsi As MSComctlLib.ListSubItem
+    Set lsi = li.ListSubItems.Add(, , CStr(nProjets))
+    If nProjets >= 1 Then
+        lsi.ForeColor = RGB(0, 128, 0)
+    Else
+        lsi.ForeColor = RGB(192, 0, 0)
+        lsi.Bold = True
+    End If
+End Sub
+
+
+' =========================================================================
+' FONCTION: CalculerMeQDTR_Optim (version optimisee)
+' Recoit la configCol pre-chargee (au lieu d'appeler SIRUS_LireConfig
+' a chaque DTR : economie 5 x N -> 5 appels au total).
 '
 ' Renvoie :
 '   -1   si DTR absent de la table (a afficher "Absent")
 '   0..1 sinon (a multiplier par 100 pour pourcentage)
 '
-' Pour les tables a plusieurs rows par DTR (TachesATM, ProjetASL multi-
-' projets si non filtre), moyenne (somme numerateurs / somme denominateurs)
-' sur toutes les rows -- privilege les rows lourdes en obligatoires.
+' Pour les tables a plusieurs rows par DTR (TachesATM), moyenne (somme
+' numerateurs / somme denominateurs) sur toutes les rows.
 ' =========================================================================
-Private Function CalculerMeQDTR(ByVal dictTable As Object, _
-                                 ByVal dtr As String, _
-                                 ByVal sTable As String) As Double
+Private Function CalculerMeQDTR_Optim(ByVal dictTable As Object, _
+                                       ByVal dtr As String, _
+                                       ByVal sTable As String, _
+                                       ByVal configCol As Collection) As Double
     Dim col As Collection
     Dim def As SIRUS_Champ_Config
     Dim row As Object
@@ -640,17 +765,18 @@ Private Function CalculerMeQDTR(ByVal dictTable As Object, _
     Dim bRequis As Boolean
 
     If dictTable Is Nothing Then
-        CalculerMeQDTR = -1
+        CalculerMeQDTR_Optim = -1
         Exit Function
     End If
     If Not dictTable.Exists(dtr) Then
-        CalculerMeQDTR = -1
+        CalculerMeQDTR_Optim = -1
         Exit Function
     End If
 
-    Set col = SIRUS_LireConfig(sTable)
+    Set col = configCol
+    If col Is Nothing Then Set col = SIRUS_LireConfig(sTable)
     If col.count = 0 Then
-        CalculerMeQDTR = -1
+        CalculerMeQDTR_Optim = -1
         Exit Function
     End If
 
@@ -681,11 +807,11 @@ NextDef:
     Next row
 
     If totDen > 0 Then
-        CalculerMeQDTR = totNum / totDen
+        CalculerMeQDTR_Optim = totNum / totDen
     Else
         ' Aucune obligation -> considere 100% (cas tables sans champ
         ' obligatoire pour ce DTR dans le config).
-        CalculerMeQDTR = 1
+        CalculerMeQDTR_Optim = 1
     End If
 End Function
 

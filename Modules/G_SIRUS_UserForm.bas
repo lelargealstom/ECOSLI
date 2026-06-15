@@ -79,7 +79,7 @@ Public Sub SIRUS_ConfigListViewGeneration()
 
     ' -- Creer les colonnes avec largeurs ------------------
     lv.ColumnHeaders.Add , , "DTR", 80
-    lv.ColumnHeaders.Add , , "Projet_ASL", 70
+    lv.ColumnHeaders.Add , , "Nb projets", 70
     lv.ColumnHeaders.Add , , "ATM - Info", 70
     lv.ColumnHeaders.Add , , "ATM - Taches", 80
     lv.ColumnHeaders.Add , , "EMMST", 60
