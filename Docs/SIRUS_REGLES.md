@@ -61,7 +61,8 @@ Couvre les opérations Création et Modification d'une entrée de la table BdD `
 | MTBF fonctionnel | 2 |
 | Prix Spare archive | 2 |
 | Lead Time Spare archive | 1 |
-| Testabilite (liste Oui/Non) | 1 |
+
+Testabilité (liste Oui/Non) reste en saisie possible mais **non obligatoire** (décision 2026-06-15) — n'entre pas dans le calcul MeQ Generation ni dans le MeQ SIRUS d'envoi ATMAP.
 
 ### Champs conditionnels (`Obligatoire = "Conditionnel"`)
 
@@ -129,6 +130,26 @@ Implémentation : `SIRUS_ProjetsASL_Inconnus(feuilles())` scanne la col 2 (Nom p
 - Colonne Commentaires (dernière) : auto-remplie par l'analyse — 1 alerte = texte simple, N alertes = liste à puces (`- alerte\n- alerte\n...` avec WrapText).
 
 ---
+
+## MeQ Generation — ListView_Generation du UserForm
+
+La `ListView_Generation` (onglet Generation du UserForm) affiche pour chaque DTR de DATA_ASL le **% MeQ par table BdD**, calculé sur la même logique que SIRUS Envoi :
+
+- **Source des champs** : `SIRUS_LireConfig(<table>)`.
+- **Numérateur** : champs `Obligatoire = "Oui"` **remplis** + champs `Obligatoire = "Conditionnel"` dont `SIRUS_RegleObligatoire` renvoie `True` et qui sont remplis.
+- **Dénominateur** : tous les champs `Oui` + tous les Conditionnels actifs (selon la règle).
+- **Tables couvertes** : Produit, InfoATM, TachesATM, EMMST, ProjetASL (ProjetSLI hors scope).
+- **Multi-rows par DTR** (TachesATM, ou ProjetASL non filtré) : moyenne sur toutes les rows (sum num / sum den).
+- **ProjetASL** : filtré par `Project_List.Value` quand un projet est sélectionné dans la combo principale.
+
+Affichage :
+- **100% → vert** (RGB 0,128,0)
+- **< 100% → rouge gras** (RGB 192,0,0)
+- **DTR absent de la table BdD → "Absent" rouge gras**
+
+Bouton **Rafraichir** (`SIRUS_RafraichirListViewGeneration`) à actionner après changement de projet pour refresh ProjetASL.
+
+Implémentation : `G_SIRUS_PBS.ChargerRowsTableBdD` + `CalculerMeQDTR` + `AjouterSubItemMeQ` (5 requêtes `SELECT *` une seule fois par appel, dictionnaires Scripting.Dictionary case-insensitive).
 
 ## Tables non encore documentées
 

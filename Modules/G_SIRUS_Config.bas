@@ -855,8 +855,10 @@ Private Sub PeuplerProjetASL(lo As ListObject)
     ' --- Testabilite + autres prix (Ordre 150-180) -----------
     Call AjouterChamp(lo, "ProjetASL", "Testabilite", _
                       "Testabilité (DTR du BTE relatif à l'équipement sur le projet concerné)_PROJETASL", 150, _
-                      "Liste", "Booleen", "Oui", "", "Saisie", "", 1, "", _
-                      "Liste Oui/Non : indique si le DTR est testable sur le projet.")
+                      "Liste", "Booleen", "Non", "", "Saisie", "", 0, "", _
+                      "Liste Oui/Non : indique si le DTR est testable sur le projet. " & _
+                      "Non obligatoire (decision 2026-06-15) : la testabilite " & _
+                      "n est pas un critere bloquant pour la MeQ Generation.")
     Call AjouterChamp(lo, "ProjetASL", "Prix Preventif", _
                       "Prix préventif (DEVISE du projet (SLI))_PROJETASL", 160, _
                       "Nombre", "", "Non", "", "Saisie", "", 0, "", _

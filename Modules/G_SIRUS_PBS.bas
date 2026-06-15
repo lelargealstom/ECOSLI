@@ -73,12 +73,17 @@ Public DATA_ASL_HeaderRow As Long          ' Ligne d'entete de DATA_ASL (auto-de
 ' Permet de couper le lookup BdD sans toucher au code de remplissage.
 Public SIRUS_LookupDTR_Active As Boolean
 
-' Caches DTR par table BdD - charges une fois par appel.
-Private dictProjetASL As Object
-Private dictInfoATM   As Object
-Private dictTachesATM As Object
-Private dictEMMST     As Object
-Private dictProduit   As Object
+' Caches rows par table BdD - charges une fois par appel.
+' Structure : Dictionary { DTR (UCase trim) -> Collection of Dictionary
+'                          { ColonneBdD -> valeur } }.
+' Une Collection par DTR car certaines tables ont plusieurs lignes par DTR
+' (cas TachesATM : N taches par DTR ; ProjetASL : N projets par DTR si non
+' filtre). Permet la moyenne MeQ sur toutes les lignes.
+Private dictProjetASL_Rows As Object
+Private dictInfoATM_Rows   As Object
+Private dictTachesATM_Rows As Object
+Private dictEMMST_Rows     As Object
+Private dictProduit_Rows   As Object
 
 
 ' =========================================================================
@@ -307,11 +312,11 @@ End Function
 ' Alimente la ListView_Generation du UserForm avec, pour chaque DTR de
 ' la PBS du classeur actif :
 '   Col 1  : DTR
-'   Col 2  : Projet_ASL - "OUI" si DTR present dans Projet_ASL$, "NON" sinon
-'   Col 3  : ATM-Info   - "OK"  si DTR present dans Info_ATM$
-'   Col 4  : ATM-Tache  - "OK"  si DTR present dans Taches_ATM$
-'   Col 5  : EMMST      - "OK"  si DTR present dans EMMST$
-'   Col 6  : Produit    - "OK"  si DTR present dans Produit$
+'   Col 2  : Projet_ASL - % MeQ (vert 100% / rouge < 100% / "Absent" si pas de row)
+'   Col 3  : ATM-Info   - % MeQ
+'   Col 4  : ATM-Tache  - % MeQ (moyenne sur toutes les taches du DTR)
+'   Col 5  : EMMST      - % MeQ
+'   Col 6  : Produit    - % MeQ
 '   Col 7  : Qualite Prix Spare
 '   Col 8  : Source Ecart Spare
 '   Col 9  : Source Manque Spare
@@ -319,16 +324,19 @@ End Function
 '   Col 11 : Source Ecart Repair
 '   Col 12 : Source Manque Repair
 '
+' MeQ = champs Obligatoire="Oui" remplis / champs Obligatoire="Oui" attendus,
+' + Conditionnels evalues via SIRUS_RegleObligatoire (G_SIRUS_Regles).
+' Source : SIRUS_LireConfig(<table>) pour la liste des champs.
 ' Source : feuille DATA_ASL du ActiveWorkbook au moment de l'appel.
 ' Suppose la connexion BdD ouverte (cf. UserForm_Initialize).
 '
 ' Requetes SQL emises (une par lookup, executees une seule fois par appel
-' puis cachees en Dictionary pour test d'appartenance en O(1)) :
-'   1. SELECT [DTR]            FROM [Projet_ASL$]
-'   2. SELECT [DTR_INFOATM]    FROM [Info_ATM$]
-'   3. SELECT [DTR_TACHEATM]   FROM [Taches_ATM$]
-'   4. SELECT [DTR_EMMST]      FROM [EMMST$]
-'   5. SELECT [DTR]            FROM [Produit$]
+' puis cachees en Dictionary de rows pour calcul MeQ) :
+'   1. SELECT * FROM [Projet_ASL$]
+'   2. SELECT * FROM [Info_ATM$]
+'   3. SELECT * FROM [Taches_ATM$]
+'   4. SELECT * FROM [EMMST$]
+'   5. SELECT * FROM [Produit$]
 ' =========================================================================
 Public Sub SIRUS_RemplirListViewGeneration()
 
@@ -354,15 +362,21 @@ Public Sub SIRUS_RemplirListViewGeneration()
     If Not MapColonnesDATA_ASL(wsPBS) Then Exit Sub
     If DATA_ASL_type.DTR_PBS = 0 Then Exit Sub
 
-    ' Caches DTR BdD - une seule requete par table, chargee si Lookup actif.
-    ' Colonne DTR : 'DTR' pour Produit$ et Projet_ASL$ (en realite
-    ' Projet_ASL$ a 'DTR_PROJETASL'), sinon 'DTR_<TABLE>'.
+    ' Caches rows BdD - une seule requete SELECT * par table.
+    ' Cle DTR du SELECT WHERE / index : 'DTR' pour Produit$, 'DTR_<TABLE>'
+    ' pour les autres. Filtre projet applique sur ProjetASL si Project_List
+    ' est renseigne (sinon toutes les lignes -> moyenne sur tous les projets).
     If SIRUS_LookupDTR_Active Then
-        Set dictProjetASL = ChargerSetDTR_BdD("Projet_ASL$", "DTR_PROJETASL")
-        Set dictInfoATM = ChargerSetDTR_BdD("Info_ATM$", "DTR_INFOATM")
-        Set dictTachesATM = ChargerSetDTR_BdD("Taches_ATM$", "DTR_TACHEATM")
-        Set dictEMMST = ChargerSetDTR_BdD("EMMST$", "DTR_EMMST")
-        Set dictProduit = ChargerSetDTR_BdD("Produit$", "DTR")
+        Dim sProjetCourant As String
+        On Error Resume Next
+        sProjetCourant = Trim$(CStr(UserForm.Project_List.Value))
+        On Error GoTo 0
+        Set dictProjetASL_Rows = ChargerRowsTableBdD("Projet_ASL$", "DTR_PROJETASL", _
+                                                    "PROJET_PROJETASL", sProjetCourant)
+        Set dictInfoATM_Rows = ChargerRowsTableBdD("Info_ATM$", "DTR_INFOATM")
+        Set dictTachesATM_Rows = ChargerRowsTableBdD("Taches_ATM$", "DTR_TACHEATM")
+        Set dictEMMST_Rows = ChargerRowsTableBdD("EMMST$", "DTR_EMMST")
+        Set dictProduit_Rows = ChargerRowsTableBdD("Produit$", "DTR")
     End If
 
     derniereLigne = wsPBS.Cells(wsPBS.rows.count, DATA_ASL_type.DTR_PBS).End(xlUp).Row
@@ -377,14 +391,14 @@ Public Sub SIRUS_RemplirListViewGeneration()
         Set li = lv.ListItems.Add(, , dtr)
         nbAjoutees = nbAjoutees + 1
 
-        ' Cols 2 a 6 : presence OUI/NON dans les 5 tables BdD si lookup actif.
-        ' Vert si OUI, rouge si NON.
+        ' Cols 2 a 6 : % MeQ par DTR pour chaque table BdD si lookup actif.
+        ' Vert si 100%, rouge sinon. "Absent" si aucune row pour ce DTR.
         If SIRUS_LookupDTR_Active Then
-            Call AjouterSubItemColore(li, IIf(SetContient(dictProjetASL, dtr), "OUI", "NON"), True)
-            Call AjouterSubItemColore(li, IIf(SetContient(dictInfoATM, dtr), "OUI", "NON"), True)
-            Call AjouterSubItemColore(li, IIf(SetContient(dictTachesATM, dtr), "OUI", "NON"), True)
-            Call AjouterSubItemColore(li, IIf(SetContient(dictEMMST, dtr), "OUI", "NON"), True)
-            Call AjouterSubItemColore(li, IIf(SetContient(dictProduit, dtr), "OUI", "NON"), True)
+            Call AjouterSubItemMeQ(li, CalculerMeQDTR(dictProjetASL_Rows, dtr, "ProjetASL"))
+            Call AjouterSubItemMeQ(li, CalculerMeQDTR(dictInfoATM_Rows, dtr, "InfoATM"))
+            Call AjouterSubItemMeQ(li, CalculerMeQDTR(dictTachesATM_Rows, dtr, "TachesATM"))
+            Call AjouterSubItemMeQ(li, CalculerMeQDTR(dictEMMST_Rows, dtr, "EMMST"))
+            Call AjouterSubItemMeQ(li, CalculerMeQDTR(dictProduit_Rows, dtr, "Produit"))
         Else
             Call AjouterSubItemColore(li, "", False)
             Call AjouterSubItemColore(li, "", False)
@@ -500,6 +514,177 @@ Private Function SetContient(ByVal dict As Object, ByVal dtr As String) As Boole
     If Len(dtr) = 0 Then Exit Function
     SetContient = dict.Exists(dtr)
 End Function
+
+
+' =========================================================================
+' FONCTION: ChargerRowsTableBdD
+' Charge toutes les lignes d'une table BdD dans un Dictionary indexe par
+' DTR. Chaque entree = Collection de Dictionary { ColonneBdD -> valeur }
+' (une Collection car certaines tables ont plusieurs lignes par DTR :
+' TachesATM N taches, ProjetASL N projets si non filtre).
+'
+' Optionnel : filtre WHERE [sFilterColonne] = 'sFilterValeur' (utilise pour
+' restreindre ProjetASL au projet courant via Project_List).
+' =========================================================================
+Private Function ChargerRowsTableBdD(ByVal nomTable As String, _
+                                      ByVal colonneDTR As String, _
+                                      Optional ByVal sFilterColonne As String = "", _
+                                      Optional ByVal sFilterValeur As String = "") As Object
+    Dim dict As Object
+    Dim sql As String
+    Dim dtrVal As String
+    Dim rowDict As Object
+    Dim col As Collection
+    Dim f As Object
+
+    Set dict = CreateObject("Scripting.Dictionary")
+    dict.CompareMode = vbTextCompare
+
+    sql = "SELECT * FROM [" & nomTable & "]"
+    If LenB(sFilterColonne) > 0 And LenB(sFilterValeur) > 0 Then
+        sql = sql & " WHERE [" & sFilterColonne & "] = '" & _
+              Replace(sFilterValeur, "'", "''") & "'"
+    End If
+
+    On Error GoTo Sortie
+    Call open_REQSEL(sql)
+    If REQSEL Is Nothing Then GoTo Sortie
+    If REQSEL.EOF And REQSEL.BOF Then GoTo Sortie
+
+    Do While Not REQSEL.EOF
+        dtrVal = Trim$(NzStr(REQSEL.Fields(colonneDTR).Value))
+        If LenB(dtrVal) > 0 Then
+            Set rowDict = CreateObject("Scripting.Dictionary")
+            rowDict.CompareMode = vbTextCompare
+            For Each f In REQSEL.Fields
+                rowDict(f.Name) = f.Value
+            Next f
+
+            If dict.Exists(dtrVal) Then
+                Set col = dict(dtrVal)
+            Else
+                Set col = New Collection
+                dict.Add dtrVal, col
+            End If
+            col.Add rowDict
+        End If
+        REQSEL.MoveNext
+    Loop
+
+Sortie:
+    If Err.Number <> 0 Then
+        Debug.Print "[" & nomTable & "] ChargerRowsTableBdD : " & Err.description
+    End If
+    On Error Resume Next
+    If Not REQSEL Is Nothing Then If REQSEL.State = 1 Then REQSEL.Close
+    On Error GoTo 0
+    Set ChargerRowsTableBdD = dict
+End Function
+
+
+' =========================================================================
+' FONCTION: CalculerMeQDTR
+' Calcule le % MeQ d'un DTR pour une table BdD donnee, base sur la
+' configuration SIRUS (champs Obligatoire="Oui" + Conditionnel evalue
+' via SIRUS_RegleObligatoire).
+'
+' Renvoie :
+'   -1   si DTR absent de la table (a afficher "Absent")
+'   0..1 sinon (a multiplier par 100 pour pourcentage)
+'
+' Pour les tables a plusieurs rows par DTR (TachesATM, ProjetASL multi-
+' projets si non filtre), moyenne (somme numerateurs / somme denominateurs)
+' sur toutes les rows -- privilege les rows lourdes en obligatoires.
+' =========================================================================
+Private Function CalculerMeQDTR(ByVal dictTable As Object, _
+                                 ByVal dtr As String, _
+                                 ByVal sTable As String) As Double
+    Dim col As Collection
+    Dim def As SIRUS_Champ_Config
+    Dim row As Object
+    Dim rows As Collection
+    Dim totNum As Double, totDen As Double
+    Dim sVal As String
+    Dim bRequis As Boolean
+
+    If dictTable Is Nothing Then
+        CalculerMeQDTR = -1
+        Exit Function
+    End If
+    If Not dictTable.Exists(dtr) Then
+        CalculerMeQDTR = -1
+        Exit Function
+    End If
+
+    Set col = SIRUS_LireConfig(sTable)
+    If col.count = 0 Then
+        CalculerMeQDTR = -1
+        Exit Function
+    End If
+
+    Set rows = dictTable(dtr)
+
+    For Each row In rows
+        For Each def In col
+            ' Skip champs sans ColonneBdD (info pure, heritages)
+            If LenB(def.ColonneBdD) = 0 Then GoTo NextDef
+            ' Skip champs Auto / Herite (pas saisis cote BdD)
+            If def.Source = "Auto" Or def.Source = "Herite" Then GoTo NextDef
+
+            bRequis = (def.Obligatoire = "Oui")
+            If Not bRequis Then
+                If def.Obligatoire = "Conditionnel" Then
+                    bRequis = SIRUS_RegleObligatoire(sTable, def.ColonneBdD, row)
+                End If
+            End If
+
+            If bRequis Then
+                totDen = totDen + 1
+                sVal = ""
+                If row.Exists(def.ColonneBdD) Then sVal = NzStr(row(def.ColonneBdD))
+                If LenB(Trim$(sVal)) > 0 Then totNum = totNum + 1
+            End If
+NextDef:
+        Next def
+    Next row
+
+    If totDen > 0 Then
+        CalculerMeQDTR = totNum / totDen
+    Else
+        ' Aucune obligation -> considere 100% (cas tables sans champ
+        ' obligatoire pour ce DTR dans le config).
+        CalculerMeQDTR = 1
+    End If
+End Function
+
+
+' =========================================================================
+' SUB: AjouterSubItemMeQ
+' Ajoute un ListSubItem au ListItem avec affichage % MeQ + coloration :
+'   meq < 0  -> "Absent" rouge gras
+'   meq = 1  -> "100%"   vert
+'   sinon    -> "XX%"    rouge
+' =========================================================================
+Private Sub AjouterSubItemMeQ(li As MSComctlLib.ListItem, ByVal meq As Double)
+    Dim lsi As MSComctlLib.ListSubItem
+    Dim sTexte As String
+    Dim lCouleur As Long
+
+    If meq < 0 Then
+        sTexte = "Absent"
+        lCouleur = RGB(192, 0, 0)
+    ElseIf meq >= 0.9999 Then
+        sTexte = "100%"
+        lCouleur = RGB(0, 128, 0)
+    Else
+        sTexte = Format$(meq * 100, "0") & "%"
+        lCouleur = RGB(192, 0, 0)
+    End If
+
+    Set lsi = li.ListSubItems.Add(, , sTexte)
+    lsi.ForeColor = lCouleur
+    If lCouleur = RGB(192, 0, 0) Then lsi.Bold = True
+End Sub
 
 
 ' =========================================================================
