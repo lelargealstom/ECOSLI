@@ -6,6 +6,180 @@ Format : `[Date] — Auteur — Périmètre`, puis liste des changements par mod
 
 ---
 
+## 2026-06-11 → 2026-06-25 — Sessions Claude Code (avec Thomas LE LARGE)
+
+Sprint 1 SIRUS — recette end-to-end Produit Créer + ProjetASL Modifier validés. Refonte complète des règles métier ProjetASL, mapping VBN/IMP ATMAP, MeQ Generation par table avec affichage % puis nombre de projets, croisement DATA_ASL pour ProjetASL Modifier, cadrage de la suite (industrialisation + refonte DATA_ASL).
+
+### Phase 5 ATMAP — Split numérotation + date estimée + workflow documenté
+
+- **Numérotation séparée SP** : `Numero_ticket` = `VBN_NN` auto-incrémenté (parse `VBN_<n>` sur les 500 derniers tickets, max+1) ; `Numero_Import` = `IMP-YYYY-NNN` (extrait du sujet). Régression `ChercherMaxNumeroImport` corrigée : le parsing tapait encore sur `Numero_ticket` au lieu de `Numero_Import` après le split.
+- `CreateTicketREST` accepte 2 paramètres optionnels supplémentaires : `numeroImport` (champ SP `Numero_Import`) et `dateEstimee` (format ISO `yyyy-mm-ddT00:00:00Z`, champ SP `Date_estimee`).
+- **Date estimée** = aujourd'hui + N jours selon priorité (1/3/5 pour High/Medium/Low). Helper centralisé `SIRUS_JoursTraitementSelonPriorite(priorite)` + `SIRUS_DateEstimeeISO(priorite)` dans `G_SIRUS_ATMAP`. Une seule source de vérité utilisée à la fois par `SIRUS_UI_PrioriteChange` (texte Attentes UI) et `SIRUS_UI_BtnEnvoyerClick` (champ SP).
+- `Docs/SIRUS_WORKFLOW.md` (nouveau) : 4 statuts (Nouveau / En cours / Refusé / Résolu terminal), transitions autorisées, mapping création ticket SIRUS → champs SharePoint, 3 flows Power Automate proposés (Refus, Résolu, Retard sur Date_estimee).
+
+### Fix Project_List_Change : guard Base = Nothing
+
+`Project_List_Change` plantait régulièrement avec "Object variable not set" parce que les flows SIRUS (`ChargerProjetsSLI`, `PreRemplirDepuisBdD`...) appellent `Close_CONN` après leurs requêtes, ce qui met la connexion globale `Base` à `Nothing`. Le handler tape ensuite sur une connexion fermée.
+
+- Guard `If Base Is Nothing Or Base.State <> 1` → re-`Open_CONN(CONNEXION_EXCEL_BDD_TRAVAIL)` à la volée
+- `On Error GoTo Sortie` + MsgBox propre au lieu de crash UserForm
+- Sync auto `SIRUS_UI_ProjetListChange` si Zone Envoi visible
+- Escape des apostrophes dans la valeur projet
+
+### Refonte ListView_SIRUS_Resultats : 1 ligne par alerte
+
+- Avant : 1 ligne par DTR avec toutes les alertes concaténées par `|` dans la colonne Alertes.
+- Après : 1 ligne par alerte avec 3 colonnes **Cle / Champ / Alertes**, rouge gras.
+- `sirusAlertes` (collection module-level dans `G_SIRUS_Analyse`) alimentée par `EvaluerChampLigne` lors de l'analyse (`Array(cle, champ, alerte, ligne, colChamp)`).
+- `SIRUS_UI_LvResultatsDblClick` parse la `key` ListView pour `Goto` directement sur la cellule fautive (ligne + colonne).
+- Cle table-aware : DTR pour Produit/InfoATM/TachesATM/EMMST/ProjetASL, Nom projet pour ProjetSLI.
+
+### Colonne Commentaires auto-remplie par l'analyse
+
+`SIRUS_AnalyserFeuille` écrit désormais le détail des alertes dans la colonne `_commentaires` (col N+2 de la feuille SIRUS) :
+- 1 alerte → texte simple
+- N alertes → liste à puces `- alerte1` + vbLf + `- alerte2` + ... avec `WrapText = True`
+- Localisation dynamique via `TrouverColonneCommentaires` (scan ligne 2 pour le marqueur `_commentaires`)
+- Helper `FormaterAlertesCommentaire(sStatutLigne, nAlertes)` + helper `NzSafeStr` pour gérer les `Null` ADO.
+
+### UserForm_Initialize : SIRUS_PhaseInit_v2 wiré
+
+L'appel manquait : `Opt_SIRUS_Creer.Value = True`, frames cachés et ComboBox Priorité (High/Medium/Low en `fmStyleDropDownList`) n'étaient pas initialisés au démarrage.
+
+### Helper centralisé SIRUS_ColonneClePourTable
+
+Nouvelle Public Function dans `G_SIRUS_Config` qui renvoie le numéro de colonne contenant la clé métier d'une feuille SIRUS selon la table :
+- ProjetASL → col 4 (DTR ; col 2 = Projet, col 3 = Sous Système)
+- Produit → col 3 (DTR ; col 2 = Famille Générique)
+- Autres → col 2 (DTR ou Nom projet)
+
+Utilisé par `SIRUS_AnalyserFeuille` (ligneMax + sCle), `SIRUS_CompterLignesFeuille`, `SIRUS_GenererFeuilleAnalyse` (colFreeze = colCle + 1), `SIRUS_RemplirListViewResultats`.
+
+### Refonte complète ProjetASL (config + règles + layout)
+
+- **Ordre verrouillé Thomas 2026-06-11** : 21 colonnes dans l'ordre Statut / Nom Projet / Sous Système / DTR / Designation PBS / Qte / Node Type / MTBF Intr / MTBF Fct / DVL fonctionnel HARD / DVL fonctionnel SOFT / Prix Spare archive / Lead Time Spare archive / Prix Repair archive / Lead Time Repair archive / Testabilite / Prix Preventif / Prix After Market Spare / Prix After Market Repair / STBI/DAT / LCS / Commentaires.
+- **Renommages** : DVL générique HARD/SOFT → DVL fonctionnel HARD/SOFT. Lead time Spare → Lead Time Spare archive (idem Repair). Prix Spare (devise projet) → Prix Spare archive.
+- **Obligatoires Oui** : Nom Projet, Sous Système, DTR, Designation PBS, Qte, MTBF fct, Prix Spare archive, Lead Time Spare archive (Testabilité passée à Non le 2026-06-15).
+- **Obligatoires Conditionnels (NodeType LRU/SRU)** : Prix Repair archive, Lead Time Repair archive (logique métier validée — KIT/VISSERIE/ASSEMBLY n'ont pas de cycle réparation).
+- **Testabilité** : `TypeChamp = "Liste"`, `ListeSource = "Booleen"` (dropdown Oui/Non). Puis Obligatoire passée à "Non" le 2026-06-15 (n'est plus critère bloquant).
+- **Ajout `Prix Spare archive`** (Ordre 110) : nouveau champ obligatoire qui n'existait pas auparavant. Nom BdD supposé `Prix spare (DEVISE du projet (SLI))_PROJETASL` (à vérifier en BdD).
+- **Layout** : col 1-4 figées (Statut + Projet + Sous Système + DTR), `VerticalAlignment = xlCenter` sur toute la zone.
+- **Cle métier (ListView Resultats, colCle, freeze, scan ligneMax)** : col 4 (DTR) pour ProjetASL.
+
+### Phase 2.1 — Règles métier ProjetASL
+
+`G_SIRUS_Regles.bas` étendu :
+- Cases `Prix repair (DEVISE du projet (SLI))_PROJETASL` + `Lead time REPAIR (jours)_PROJETASL` → obligatoires si NodeType IN (LRU, SRU).
+- `MTBF fonctionnel` : règle "toujours True" (validation post-CGR).
+- `PROJET_PROJETASL` : nouvelle règle alerte "Projet inconnu dans ProjetSLI : import impossible". Lookup via cache module-level `projetsSLI_Cache` (Dictionary chargé une fois depuis BdD TRAVAIL), API publique `SIRUS_ProjetsSLI()` + `SIRUS_ResetCacheProjetsSLI()`.
+
+### Garde-fou envoi ATMAP : projet inconnu en ProjetSLI
+
+`SIRUS_UI_BtnEnvoyerClick` bloque l'envoi si **au moins un projet** des feuilles `SIRUS_ProjetASL_*` n'existe pas dans `Projet_SLI$`. MsgBox vbCritical avec la liste des projets inconnus + Exit Sub. Helper `SIRUS_ProjetsASL_Inconnus(feuilles)` scanne la col 2 (Nom projet) de chaque feuille ProjetASL et croise avec le cache `SIRUS_ProjetsSLI`. Critère d'intégrité référentielle Table-mère ProjetSLI → Table-fille ProjetASL.
+
+### PreRemplirDepuisBdD robuste
+
+Modification de la stratégie SELECT dans `G_SIRUS_Generation.PreRemplirDepuisBdD` :
+- Avant : `SELECT [col1], [col2], ..., [colN]` — plantait si une seule colonne n'existait pas en BdD (cas des `??_*_a_definir` et de nouveaux champs comme Prix Spare).
+- Après : `SELECT * FROM table WHERE [cleCol] = ...` puis lecture champ-par-champ tolérante. Colonnes manquantes tracées en `Debug.Print` avec compteur. MsgBox d'erreur enrichi avec le SQL en cas de plantage.
+
+### Affichage progressif assoupli — Frame Analyse + Envoi ensemble
+
+Décision 2026-06-11 : pour la phase de test, on permet l'envoi tout le temps (plus de gating MeQ ≥ 70%). Le blocage MeQ reviendra plus tard.
+- `SIRUS_UI_BtnGenererClick` : Frame Analyse + Frame Envoi visibles ensemble dès la Generation, `Btn_SIRUS_Envoyer.Enabled = True`, `SIRUS_UI_PreRemplirEnvoi` appelée à la Generation (plus à l'Analyse).
+- `SIRUS_UI_BtnAnalyserClick` : ne gate plus la visibilité de l'envoi.
+
+### Croisement DATA_ASL pour ProjetASL Modifier
+
+Pour ProjetASL Modifier : la source du projet n'est plus `Cmb_SIRUS_Projet` (combo dans Frame_Modifier) mais **`Project_List.Value`** (combo principale en haut du UserForm — celle où l'ingénieur ASL choisit son projet ECOSLI). Après le pré-remplissage BdD, `SIRUS_EnrichirProjetASL_DepuisDATA_ASL` overwrite les champs PBS depuis DATA_ASL :
+
+| Champ SIRUS | Source DATA_ASL |
+|---|---|
+| Nom Projet | `Project_List.Value` (constante pour toutes lignes) |
+| Sous Système | `SousSysteme` |
+| DTR | `DTR_PBS` |
+| Designation PBS | `Designation_PBS` |
+| Qte | `Qte` |
+| Node Type | `NodeType` |
+| MTBF intrinsèque Projet | `MTBF_Intr` |
+| MTBF fonctionnel | `MTBF_Fonct` |
+| DVL fonctionnel HARD | `DureeVie_Ana_HARD` |
+| DVL fonctionnel SOFT | `DureeVie_Ana_SOFT` |
+| Lead Time Spare archive | `LeadTimeSpareCalend` |
+| Lead Time Repair archive | `LeadTimeRepairCalend` |
+| Prix Spare archive | cascade Fournisseur → Catalogue → Manuel → Archive (helper `CascadePrixDATA_ASL` reprend la règle Providor `RemplirPrixSpare`) |
+| Prix Repair archive | idem côté Repair |
+
+DTRs présents en DATA_ASL mais absents de la BdD ProjetASL → nouvelles lignes ajoutées en fin (utile pour compléter la BdD au fur et à mesure).
+
+Helpers privés `TrouverColParColonneBdD(ws, sColBdD)` (lookup col SIRUS par ColonneBdD en ligne 2) + `CascadePrixDATA_ASL` (1re valeur `IsNumeric AND <> 0` parmi 4 colonnes priorisées).
+
+### Phase 6.2 amorcée — Refonte ListView_Generation : MeQ par table BdD
+
+Refonte complète de `SIRUS_RemplirListViewGeneration` (G_SIRUS_PBS) :
+- Remplacement de l'affichage OUI/NON par **pourcentage MeQ** par DTR pour chacune des 4 tables BdD (Produit, InfoATM, TachesATM, EMMST). ProjetASL traité différemment (voir ci-dessous). ProjetSLI hors scope.
+- **Couleurs** : 100% vert, < 100% rouge gras, "Absent" rouge gras si DTR pas en BdD.
+- Calcul basé sur `SIRUS_LireConfig(table)` + `SIRUS_RegleObligatoire(table, colBdD, ligne)` : num = champs Oui remplis + Conditionnels actifs remplis, den = tous les Oui + Conditionnels évalués `True`.
+- **Multi-rows par DTR** (TachesATM) : moyenne pondérée (sum num / sum den) sur toutes les rows.
+- **Col ProjetASL = nombre de projets distincts** où ce DTR existe en BdD `Projet_ASL$` (au lieu d'un MeQ). Vert si ≥ 1, rouge gras si 0.
+- **Tooltip de ligne** (`ListItem.ToolTipText`) : `Projets connus (N) :` + liste avec `- ProjA` + vbLf + `- ProjB` + ... (MSComctlLib v6 ne supporte pas le tooltip par sub-item, donc tooltip de ligne entière, hover sur la cellule DTR).
+- Refactor dicts module-level `dictXxx_Rows` (au lieu de `dictXxx` = set de DTRs) : `Dictionary { DTR_UCase → Collection of Dictionary { ColonneBdD → val } }`.
+
+### Optimisations performance Generation
+
+- **`SIRUS_LireConfig` cachée** par table en début de remplissage : 5 appels au lieu de 5×N (économie majeure pour N>50 DTRs).
+- **SELECT ciblé** : ne charge que les colonnes `Source = "Saisie"` du config + clé DTR + extra (PROJET_PROJETASL pour ProjetASL). EMMST passe de ~50 colonnes à ~15. Exclut les placeholders `??_*_a_definir`.
+- **Fallback SELECT \*** si la requête ciblée échoue (col config non alignée avec BdD réelle) — tolérance + trace `Debug.Print`.
+- Fonctions renommées `ChargerRowsTableBdD_Optim` / `CalculerMeQDTR_Optim` reçoivent la `configCol` pré-chargée.
+
+### Null safety dans ChargerRowsTableBdD
+
+Symptôme : pop-up `[EMMST$] ChargerRowsTableBdD : Utilisation incorrecte de Null`, idem `[Produit$]`. Cause : `NzStr` (F_FonctionsGlobales) fait `CStr(v)` sans gérer Null → crash sur les cellules vides ADO. Fix : helper local `NzSafeStr` (guard IsNull/IsEmpty/IsError) + ne jamais stocker Null dans le rowDict (remplacé par "").
+
+### UserForm : bouton minimize + maximize natifs (API user32)
+
+`Forms/UserForm.frm` : bloc API ajouté en tête du code-behind.
+- Declare `FindWindow_API`, `GetWindowLong_API`, `SetWindowLong_API`, `DrawMenuBar_API` avec double définition `#If VBA7` pour compat Excel 32 / 64 bit.
+- Sub `UI_ActiverBoutonMinimize` ajoute les flags `WS_MINIMIZEBOX` + `WS_MAXIMIZEBOX` au style de la fenêtre (classe `ThunderDFrame`).
+- Appel dans `UserForm_Initialize` après `SIRUS_PhaseInit_v2`.
+- Tolérant : `On Error Resume Next` autour de l'API — si `FindWindow` échoue, les boutons ne sont pas ajoutés mais le UserForm fonctionne.
+- Note : pas de `UserForm_Resize` adaptatif → maximisation laisse du vide en bas/droite. Refonte layout adaptatif à programmer plus tard si besoin.
+
+### Cadrage technique — Refonte DATA_ASL (audit + décisions)
+
+Audit complet via Explore agent sur l'usage des 40 colonnes `DATA_ASL_Col` à travers l'add-in :
+- **20 colonnes safe à retirer** (jamais consommées hors PBS) : Designation_BdD, HardSoft (obsolète depuis B_ATM_V1 calcul BdD), NTI, RefPlan, MTBF_Gen, TxDef_Gen, DureeTacheCorrPrev_Gen_HARD, TxDef_Fonct, DureeTacheCorrPrev_Ana_HARD, UniteMaintCorrective, DureeVie_Gen_HARD, DureeVie_Gen_SOFT, DureeTachePrev_Gen_SOFT, DureeTachePrev_Ana_SOFT, UniteMaintPreventive, CoutTotal, ISP_TIS_Calc, CoutSpare_FRS_NotISP, LeadTimeSpare_FRS, CoutRepair_FRS_NotISP, LeadTimeRepair_FRS.
+- **12 colonnes critiques à re-router** avant retrait : tDTR, tDES_PBS, tDES_MEF, tSS, tQTE, tNodeType, tMTBF_Intr, tMTBF_fct, tDureevie_Ana_HARD/SOFT, tPrix_FRS_Spare/Repair, tPrix_Cat_Spare/Repair, tPrix_Manuel_Spare/Repair, tPrix_SpareProjet_Archive, tPrix_RepairProjet_Archive (lues par D_Providor_Main + B_ATM_Main + C_EMMST_Main).
+- **Challenge UI** : MSFlexGrid écarté définitivement (référence ActiveX `mshflxgd.ocx` introuvable sur poste Alstom verrouillé + retiré officiellement Microsoft 2008 + pas de download propre). Worksheet `SIRUS_Generation_Vue` retenue (zero dépendance, pattern déjà adopté avec `Btn_SIRUS_EditerFeuille`).
+- **Cible validée** : bouton "Rafraichir DATA_ASL" dans le UserForm qui pull depuis BdD via ADODB et écrit en valeurs pures les 24 colonnes "issues BdD" (plus de formules `=RECHERCHEX` à liens externes SharePoint fragiles). Compatibilité descendante 100% Providor/ATM/EMMST (les modules continuent à lire DATA_ASL inchangée). À implémenter en prochaine session.
+
+### Docs créées / mises à jour
+
+- **`Docs/SIRUS_WORKFLOW.md`** (nouveau) : statuts ATMAP, transitions, mapping création ticket, flows Power Automate à mettre en place.
+- **`Docs/SIRUS_REGLES.md`** (nouveau) : règles ProjetASL (obligatoires, conditionnels, alertes, garde-fou envoi, layout, mapping DATA_ASL → ProjetASL avec cascade prix Providor, section MeQ Generation avec tableau colonnes ListView + couleurs + optim perf documentées). Template à étendre pour les autres tables.
+
+### Décisions verrouillées
+
+- **Testabilité non obligatoire** (2026-06-15) : `PoidsMeQ = 0`, `Obligatoire = "Non"`. N'entre plus dans le MeQ Generation ni dans le MeQ envoi SIRUS.
+- **ProjetASL Modifier** : source projet = `Project_List.Value` (combo principale UserForm), plus `Cmb_SIRUS_Projet`.
+- **Cascade prix Spare/Repair** (DATA_ASL → ProjetASL archive) : Fournisseur → Catalogue → Manuel → Archive (reprend exactement la règle `D_Providor_BreakDownStructure.RemplirPrixSpare/Repair`).
+- **Affichage progressif** : Frame Analyse + Envoi visibles ensemble dès la Generation (gating MeQ retiré temporairement).
+- **Cle ProjetASL** : col 4 (DTR), pas col 3 (Sous Système).
+- **Refonte DATA_ASL** : bouton Rafraichir (valeurs ADODB pures, garde la structure 40 col) plutôt que retrait physique (qui nécessiterait re-routage Providor/ATM/EMMST). Phase B "retrait physique" reportée.
+
+### Reste à faire (prochaine session)
+
+- **Bouton Rafraichir DATA_ASL** (Étape 1) : module `G_PBS_Refresh.bas` + `Btn_Rafraichir_DATA_ASL` dans la page Generation + feuille trace `_RefreshLog`. Bloquants à clarifier : structure de `SnapShotPrix` (clé composite ? Date max ?) + mapping libellé DATA_ASL → table BdD pour prix Catalogue/Fournisseur. Possibilité : passe diagnostique auto qui scanne les formules existantes pour inférer le mapping.
+- Sprint 1 — Test Extraction ATM BaWu POOL (non terminé).
+- Phase 2.1 — Enrichir règles métier InfoATM / EMMST / ProjetSLI.
+- Phase 3.2 — Snapshot Modifier (feuille `_Snap` veryHidden + diff dans PJ ATMAP).
+- Phase 6.1 — Journal historique (feuille `SIRUS_Historique`).
+- Phase 6.2 — Paramètres globaux (`G_SIRUS_Parametres.bas`).
+- Phase 6.3 — `Docs/SIRUS_RECETTE.md` distribuable aux ingés ASL.
+- Vue Worksheet `SIRUS_Generation_Vue` (long terme, après stabilisation).
+
+---
+
 ## 2026-06-10 — Session Claude Code (avec Thomas LE LARGE)
 
 Session très chargée — refonte complète du pipeline SIRUS (Phases 2 → 5), refonte de la génération ATM V1 (HARD/SOFT pilotée par BdD, sommaire consolidé, remapping SOFT), refonte tolérante de l'extraction ATM, et bouclage du workflow UI end-to-end.

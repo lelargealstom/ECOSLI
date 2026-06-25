@@ -92,9 +92,9 @@ Le module `G_SIRUS_PBS` cadre la feuille `DATA_ASL` du classeur actif via `MapCo
 - Si une critique est introuvable → MsgBox récapitulatif + abandon du remplissage.
 - Si une optionnelle est introuvable → `Debug.Print` seulement, le remplissage continue.
 
-## Pipeline SIRUS complet (mis à jour 2026-06-10)
+## Pipeline SIRUS complet (mis à jour 2026-06-25)
 
-Le pipeline SIRUS est désormais **end-to-end** : Génération → Saisie → Analyse → Envoi ATMAP.
+Le pipeline SIRUS est désormais **end-to-end** : Génération → Saisie → Analyse → Envoi ATMAP. Recette Sprint 1 validée pour Produit Créer + ProjetASL Modifier (Extraction ATM reste à tester).
 
 ### Modules SIRUS
 
@@ -107,9 +107,9 @@ Le pipeline SIRUS est désormais **end-to-end** : Génération → Saisie → An
 | `G_SIRUS_Analyse.bas` | Phase 2 : `SIRUS_AnalyserFeuille(table, op)` parcourt la feuille, applique les règles, écrit Statut col 1 + commentaire de cellule. Renvoie taux MeQ. |
 | `G_SIRUS_Extraction.bas` | Phase 4 entrée A : `SIRUS_DeverserExtractionDansSIRUS` orchestre Main_Extraction_Params + mapping colonnes brutes → SIRUS via ligne 2 (ColonneBdD). |
 | `E_Extraction_ATM_Tolerant.bas` | Extraction ATM par détection libellés (cartouche + headers tableau) avec fallback positions. Logique métier conservée (DTR=Left(13), HARD/SOFT=Right(4), prefix REPLACE EN, Version="A1"). |
-| `G_SIRUS_ATMAP.bas` | Phase 5 : API REST SharePoint pour ATMAP_TICKETS. Wrappers publics + `SIRUS_NumeroTicketSuivant` (auto-incrément IMP-YYYY-00X via GET avec passage d'année), `SIRUS_ConstruirePJ`, `SIRUS_AttacherFichierAuTicket`. |
-| `G_SIRUS_UserForm.bas` | UI Workflow 3 zones (Génération / Analyse / Envoi) avec affichage progressif des Frames, ComboBox auto-remplie pour les feuilles SIRUS_*, handlers `SIRUS_UI_*` avec préfixe distinct de l'API métier. |
-| `G_SIRUS_PBS.bas` | Cadrage `DATA_ASL` + ListView Generation (lookup BdD, qualité prix Spare/Repair). |
+| `G_SIRUS_ATMAP.bas` | Phase 5 : API REST SharePoint pour ATMAP_TICKETS. Split numérotation : `SIRUS_NumeroVBNSuivant` (`VBN_NN` auto-incrémenté → `Numero_ticket`) + `SIRUS_NumeroTicketSuivant` (`IMP-YYYY-NNN` → `Numero_Import`). `SIRUS_DateEstimeeISO(priorite)` + helper `SIRUS_JoursTraitementSelonPriorite` (1/3/5 j). `SIRUS_ConstruirePJ`, `SIRUS_AttacherFichierAuTicket`. |
+| `G_SIRUS_UserForm.bas` | UI Workflow 3 zones (Génération / Analyse / Envoi). Frames Analyse + Envoi visibles ensemble dès la Génération (décision 2026-06-11 : gating MeQ retiré pour phase de test). Handlers `SIRUS_UI_*`. Garde-fou envoi : `SIRUS_ProjetsASL_Inconnus` bloque si projet ProjetASL absent de ProjetSLI. |
+| `G_SIRUS_PBS.bas` | Cadrage `DATA_ASL` + ListView Generation avec **% MeQ par table** (Produit/InfoATM/TachesATM/EMMST) calculé via `SIRUS_LireConfig` + `SIRUS_RegleObligatoire`. Col ProjetASL = **nombre de projets distincts** + tooltip de ligne avec liste des projets. SELECT ciblé sur colonnes Saisie + cache config 5× (au lieu 5×N). Helper `NzSafeStr` null-safe pour ADO. |
 
 ### Workflow utilisateur
 
@@ -132,11 +132,20 @@ Le pipeline SIRUS est désormais **end-to-end** : Génération → Saisie → An
 
 - **Col 1** = Statut (verrouillé, écrit par moteur d'analyse, fond vert OK / rouge NOK + commentaire de cellule avec détail)
 - **Col 2..N+1** = Champs config (selon `Ordre` croissant, marqueurs ` *` rouge si Obligatoire, ` (*)` rouge si Conditionnel)
-- **Col N+2** = Commentaires (déverrouillé, saisie libre user)
+- **Col N+2** = Commentaires (auto-rempli par l'analyse : 1 alerte = texte simple, N alertes = liste à puces `- alerte` + vbLf, WrapText)
 - **Ligne 1** = Libellé humain (gras, fond bleu clair, hauteur 45 avec wrap)
 - **Ligne 2** = ColonneBdD technique (masquée, sert d'index pour le moteur)
 - **Lignes 3+** = Données
-- **Freeze panes** : col 1-2 par défaut, col 1-3 pour ProjetASL
+- **Freeze panes** (table-aware via `SIRUS_ColonneClePourTable`) :
+  - ProjetASL : col 1-4 (Statut + Projet + Sous Système + DTR)
+  - Produit : col 1-3 (Statut + Famille Générique + DTR)
+  - Autres : col 1-2 (Statut + DTR / Nom projet)
+- **VerticalAlignment** : `xlCenter` sur toute la zone de données
+
+### UX UserForm (mise à jour 2026-06-25)
+
+- **Boutons minimize + maximize natifs** sur la barre de titre du UserForm (API `user32.SetWindowLong` dans `Forms/UserForm.frm`, compat Excel 32/64 bit via `#If VBA7`). Permet le va-et-vient PBS ↔ UserForm comme une fenêtre Windows standard.
+- **`Project_List_Change`** : guard `Base Is Nothing` → re-`Open_CONN` à la volée si la connexion ADO globale a été fermée par un flow SIRUS.
 
 ## Évolutions à venir (non figées)
 

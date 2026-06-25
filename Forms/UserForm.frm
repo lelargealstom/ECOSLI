@@ -17,6 +17,69 @@ Attribute VB_Exposed = False
 Option Explicit
 Public chemin As String
 Public userpath
+
+' =========================================================================
+' API Windows : bouton "minimiser" natif sur la barre de titre du UserForm
+' =========================================================================
+' Par defaut, les UserForms VBA sont crees avec WS_CAPTION mais sans
+' WS_MINIMIZEBOX -> pas de bouton minimize visible.
+' On modifie le style de la fenetre via SetWindowLong pour ajouter
+' WS_MINIMIZEBOX. Compatible Excel 32-bit (VBA6) et 64-bit (VBA7).
+'
+' Comportement utilisateur : clic sur le bouton ↘ minimise le UserForm
+' dans la barre des taches Windows. Clic sur l icone Excel re-affiche.
+' Indispensable pour le va-et-vient PBS / UserForm (consultation
+' DATA_ASL pendant la generation Generation/Rafraichir).
+#If VBA7 Then
+    Private Declare PtrSafe Function FindWindow_API Lib "user32" Alias "FindWindowA" _
+        (ByVal lpClassName As String, ByVal lpWindowName As String) As LongPtr
+    Private Declare PtrSafe Function GetWindowLong_API Lib "user32" Alias "GetWindowLongA" _
+        (ByVal hWnd As LongPtr, ByVal nIndex As Long) As Long
+    Private Declare PtrSafe Function SetWindowLong_API Lib "user32" Alias "SetWindowLongA" _
+        (ByVal hWnd As LongPtr, ByVal nIndex As Long, ByVal dwNewLong As Long) As Long
+    Private Declare PtrSafe Function DrawMenuBar_API Lib "user32" Alias "DrawMenuBar" _
+        (ByVal hWnd As LongPtr) As Long
+#Else
+    Private Declare Function FindWindow_API Lib "user32" Alias "FindWindowA" _
+        (ByVal lpClassName As String, ByVal lpWindowName As String) As Long
+    Private Declare Function GetWindowLong_API Lib "user32" Alias "GetWindowLongA" _
+        (ByVal hWnd As Long, ByVal nIndex As Long) As Long
+    Private Declare Function SetWindowLong_API Lib "user32" Alias "SetWindowLongA" _
+        (ByVal hWnd As Long, ByVal nIndex As Long, ByVal dwNewLong As Long) As Long
+    Private Declare Function DrawMenuBar_API Lib "user32" Alias "DrawMenuBar" _
+        (ByVal hWnd As Long) As Long
+#End If
+
+Private Const GWL_STYLE      As Long = -16
+Private Const WS_MINIMIZEBOX As Long = &H20000
+Private Const WS_MAXIMIZEBOX As Long = &H10000
+
+' Active les boutons "minimiser" et "maximiser" natifs sur la barre de
+' titre du UserForm. A appeler dans UserForm_Initialize. Tolerant : si
+' FindWindow echoue (autre langue Office, classe renommee), les boutons
+' ne sont pas ajoutes mais aucun crash.
+'
+' Note : le maximize sans UserForm_Resize laissera du vide a droite/bas
+' (les controles ont une position absolue, ne suivent pas). Refonte
+' layout adaptatif a programmer dans un second temps si necessaire.
+Private Sub UI_ActiverBoutonMinimize()
+    #If VBA7 Then
+        Dim hWndForm As LongPtr
+    #Else
+        Dim hWndForm As Long
+    #End If
+    Dim lStyle As Long
+
+    On Error Resume Next
+    hWndForm = FindWindow_API("ThunderDFrame", UserForm.Caption)
+    If hWndForm = 0 Then Exit Sub
+
+    lStyle = GetWindowLong_API(hWndForm, GWL_STYLE)
+    SetWindowLong_API hWndForm, GWL_STYLE, lStyle Or WS_MINIMIZEBOX Or WS_MAXIMIZEBOX
+    DrawMenuBar_API hWndForm
+    On Error GoTo 0
+End Sub
+
 Private Sub ATM_Option_Click()
 
 V1_Option.Visible = True
@@ -659,6 +722,10 @@ Call G_SIRUS_UserForm.SIRUS_InitGeneration
 ' SIRUS Phase v2 : defaults Op=Creer, Frames caches, ComboBox Priorite peuplee
 Call G_SIRUS_UserForm.SIRUS_PhaseInit_v2
 
+' UX : ajouter le bouton minimize natif sur la barre de titre du UserForm
+' (API user32.SetWindowLong). UX style fenetre Windows / navigateur.
+Call UI_ActiverBoutonMinimize
+
 ' SIRUS a etat initial NavTab type de demande
 Call SIRUS_SetType("Creation")
 
@@ -684,5 +751,3 @@ For i = 2 To dlignerang
 Next i
 
 End Sub
-
-

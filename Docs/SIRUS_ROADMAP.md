@@ -1,53 +1,76 @@
 # SIRUS — Roadmap de développement
 
 > Plan d'avancement du module **SIRUS** dans `ECOSLI.xlam`.
-> Document vivant : à jour des décisions prises en sessions de dev jusqu'au **2026-06-10**.
+> Document vivant : à jour des décisions prises en sessions de dev jusqu'au **2026-06-25**.
 > Référence : brief v0.2 (voir aussi `Docs/CHANGELOG.md` pour l'historique détaillé).
 
 ---
 
-## État global (mis à jour 2026-06-10)
+## État global (mis à jour 2026-06-25)
 
 | Phase | Périmètre | État | Module(s) |
 |---|---|:---:|---|
 | 0 — Socle config | `SIRUS_Config` + `SIRUS_Champ_Config` (~158 champs sur 6 tables) | ✅ | `G_SIRUS_Config.bas`, `SIRUS_Champ_Config.cls` |
 | 0 bis — Listes en code | `SIRUS_GetListe(cle)` + 8 listes (ajout `MotifNA`) | ✅ | `G_SIRUS_Listes.bas` |
-| 1 — Générateur de feuille | `SIRUS_GenererFeuilleAnalyse(table, op, [cles])` + diag BdD + Extraction | ✅ | `G_SIRUS_Generation.bas` |
-| 2 — Moteur d'analyse | `G_SIRUS_Regles` + `SIRUS_AnalyserFeuille` MVP | ✅ | `G_SIRUS_Regles.bas`, `G_SIRUS_Analyse.bas` |
-| 2.1 — Enrichir règles | Couvrir EMMST/InfoATM/ProjetSLI (au-delà des 10 règles MVP) | 🔴 | à enrichir |
+| 0 ter — Helper col cle | `SIRUS_ColonneClePourTable(sTable)` source unique de vérité table-aware | ✅ | `G_SIRUS_Config.bas` |
+| 1 — Générateur de feuille | `SIRUS_GenererFeuilleAnalyse(table, op, [cles])` + diag BdD + Extraction + SELECT * tolérant | ✅ | `G_SIRUS_Generation.bas` |
+| 2 — Moteur d'analyse | `G_SIRUS_Regles` + `SIRUS_AnalyserFeuille` MVP + Collection `sirusAlertes` + Commentaires bullets | ✅ | `G_SIRUS_Regles.bas`, `G_SIRUS_Analyse.bas` |
+| 2.1 — Enrichir règles | Couvrir EMMST/InfoATM/ProjetSLI (au-delà des MVP) | 🔴 | à enrichir |
 | 3.1 — Verrouillage cellules | `VerrouillerEtProteger` + UserInterfaceOnly + DrawingObjects | ✅ | `G_SIRUS_Generation.bas` |
 | 3.2 — Snapshot Modifier | Feuille `_Snap` veryHidden + diff dans PJ ATMAP | 🔴 | à créer |
-| 3.3 — Radar UserForm | ListView NOK + lignes rouges + double-clic goto | ✅ | `G_SIRUS_UserForm.bas` |
+| 3.3 — Radar UserForm | ListView NOK 1 ligne/alerte (Cle/Champ/Alerte) + double-clic goto cellule fautive précise | ✅ | `G_SIRUS_UserForm.bas` |
 | 4 entrée A — Extraction | ATM/EMMST → feuilles SIRUS via livrable | ✅ | `G_SIRUS_Extraction.bas`, `E_Extraction_ATM_Tolerant.bas` |
+| 4 entrée A bis — Enrichissement DATA_ASL | ProjetASL Modifier : croisement DATA_ASL avec cascade prix (Fournisseur→Catalogue→Manuel→Archive) | ✅ | `G_SIRUS_Generation.bas` |
 | 4 entrée B — Détection écarts PBS | `SIRUS_DetecterEcartsPBS()` | 🔴 | à créer |
-| 5 — Envoi ATMAP | PJ normalisée + auto-numéro + ticket + upload | ✅ | `G_SIRUS_ATMAP.bas` |
+| 5 — Envoi ATMAP | `Numero_ticket=VBN_NN` + `Numero_Import=IMP-YYYY-NNN` + `Date_estimee` selon priorité + workflow 4 statuts documenté | ✅ | `G_SIRUS_ATMAP.bas`, `Docs/SIRUS_WORKFLOW.md` |
+| 5.1 — Garde-fou intégrité ProjetSLI/ProjetASL | Blocage envoi si projet ProjetASL inconnu en ProjetSLI (cache `SIRUS_ProjetsSLI`) | ✅ | `G_SIRUS_Regles.bas`, `G_SIRUS_UserForm.bas` |
+| 6.0 — ListView Generation MeQ % | Pourcentage MeQ par table + Conditionnels + cache 5x SIRUS_LireConfig + SELECT ciblé + col ProjetASL = count + tooltip multi-lignes | ✅ | `G_SIRUS_PBS.bas` |
 | 6.1 — Journal historique | Feuille `SIRUS_Historique` veryHidden | 🔴 | à créer |
 | 6.2 — Paramètres | `G_SIRUS_Parametres` (seuils, mots de passe, IDs ATMAP) | 🔴 | à créer |
 | 6.3 — Recette | `Docs/SIRUS_RECETTE.md` plan de tests par phase | 🔴 | à créer |
+| 6.4 — Refonte DATA_ASL | Bouton "Rafraichir DATA_ASL" → ADODB pull → cellules valeurs pures (tuer liens externes SharePoint) | 🟡 | cadré, à coder |
+| 6.5 — Vue Generation Worksheet | Feuille `SIRUS_Generation_Vue` avec freeze panes + conditional formatting (alternative ListView) | 🔴 | reporté |
+| 6.6 — Refonte ListView par MSFlexGrid | Écarté définitivement : ActiveX `mshflxgd.ocx` indisponible Alstom + retiré Microsoft | ❌ | écarté |
+| UX 1 — Boutons minimize + maximize natifs | API `user32.SetWindowLong` sur la barre de titre du UserForm | ✅ | `Forms/UserForm.frm` |
 
-Légende : ✅ fait — 🟡 partiel — 🔴 à faire.
+Légende : ✅ fait — 🟡 partiel/cadré — 🔴 à faire — ❌ écarté.
 
 ## Plan d'action (sprints proposés, par ordre de valeur)
 
-### Sprint 1 — Stabilisation Phase 5 (1 session)
-- Test end-to-end Produit Créer (5 DTR) avec envoi ATMAP réel.
-- Test Modifier ProjetASL (multi-DTR pré-rempli) + envoi.
-- Test Extraction ATM BaWu POOL : déversement → analyse → envoi (1 PJ avec 2 feuilles).
-- Ajustements UI / fix erreurs détectées.
+### Sprint 1 — Stabilisation Phase 5 (statut : ✅ Produit Créer + ProjetASL Modifier validés)
+- ✅ Test end-to-end Produit Créer (5 DTR) avec envoi ATMAP réel.
+- ✅ Test Modifier ProjetASL (multi-DTR pré-rempli + croisement DATA_ASL) + envoi.
+- 🔴 Test Extraction ATM BaWu POOL : déversement → analyse → envoi (1 PJ avec 2 feuilles). Non terminé.
+- ✅ Ajustements UI / fix erreurs détectées (refonte ProjetASL complète, mapping VBN/IMP, MeQ Generation, etc.).
 
-### Sprint 2 — Enrichir configs InfoATM/TachesATM/EMMST (1 session)
-- Le déversement Extraction ignore actuellement ~50% des colonnes brutes (Désignation ATM, Localisation, Commentaire, Version, Tps analytiques, etc.) car absentes du config SIRUS.
-- Refondre `PeuplerInfoATM` / `PeuplerTachesATM` / `PeuplerEMMST` pour couvrir 100% des colonnes brutes (cf. MsgBox diagnostic du déversement).
+### Sprint 1 bis — Refonte DATA_ASL (priorité haute — bouton Rafraichir)
+- Module nouveau `G_PBS_Refresh.bas` avec `SIRUS_RafraichirDATA_ASL(ws)` qui pré-fetch ADODB sur Produit, Projet_ASL filtré par projet courant, SnapShotPrix avec MAX(Date) pré-agrégé, Catalogue/Fournisseur.
+- Bouton `Btn_Rafraichir_DATA_ASL` dans la page Generation du UserForm.
+- Écriture en valeurs pures dans les 24 colonnes "issues BdD" → tue les formules `=RECHERCHEX(https://...)` fragiles aux migrations SharePoint / version BdD / repositionnement colonnes.
+- Feuille trace `_RefreshLog` (audit).
+- Bloquants à clarifier avec Thomas avant code : structure de `SnapShotPrix` + mapping libellé DATA_ASL → table BdD pour Catalogue/Fournisseur. Option : passe diagnostique auto qui scanne les formules existantes pour inférer le mapping.
+- **Compatibilité descendante 100%** : DATA_ASL garde sa structure 40 colonnes, Providor/ATM/EMMST continuent de lire les cellules comme avant. Pas de re-routage nécessaire.
 
-### Sprint 3 — Phase 3.2 Snapshot + Phase 2.1 Règles (1-2 sessions)
-- Phase 3.2 : feuille `SIRUS_<Table>_Modifier_Snap` (`veryHidden`) avec snapshot BdD lors du pré-remplissage. À l'envoi ATMAP, diff `ValeurActuelle / NouvelleValeur` injecté dans la PJ.
-- Phase 2.1 : enrichir `G_SIRUS_Regles` avec les ~20 règles métier restantes (EMMST, InfoATM, ProjetSLI complètes).
+### Sprint 2 — Phase 2.1 Enrichir règles métier (1 session)
+- Compléter `G_SIRUS_Regles.bas` pour les 3 tables actuellement vides :
+  - **InfoATM** : Plan, Réparabilité, Poids, Temps générique (cohérence + obligatoires conditionnels).
+  - **EMMST** : Date péremption obligatoire si Réutilisable=Non, Outillage spécifique transport si Poids > seuil.
+  - **ProjetSLI** : interlocuteurs DL obligatoires selon scope.
+- Tout en dur (`Select Case Table|ColonneBdD`), pas de mini-langage.
 
-### Sprint 4 — Phase 4 entrée B + Phase 6 (1-2 sessions)
-- Phase 4 entrée B : `SIRUS_DetecterEcartsPBS()` — scan `DATA_ASL` à la génération des livrables, détecte les DTR absents en BdD. Bouton "Ouvrir SIRUS pour corriger".
-- Phase 6.1 : feuille `SIRUS_Historique` (veryHidden dans le `.xlam`) qui trace Date / Demandeur / Table / Op / DTR / TicketID / MeQ.
-- Phase 6.2 : paramètres globaux centralisés (seuil MeQ, mot de passe protection, outilID ATMAP, ATMAP_BASE_URL).
-- Phase 6.3 : `Docs/SIRUS_RECETTE.md` plan de tests par phase.
+### Sprint 3 — Phase 3.2 Snapshot Modifier (1 session)
+- Lors du pré-remplissage BdD (Modifier), créer une feuille jumelle `SIRUS_<Table>_<Op>_Snap` (`veryHidden`) avec la copie des valeurs originales.
+- À l'envoi ATMAP, comparer ligne par ligne et produire le diff `ColonneBdD | ValeurActuelle | NouvelleValeur` injecté dans la PJ — c'est ce qui aide le Data Owner à voir ce qui change.
+
+### Sprint 4 — Phase 6 Industrialisation (2-3 sessions)
+- **6.1** : feuille `SIRUS_Historique` (veryHidden dans le `.xlam`) qui trace Date / Demandeur / Table / Op / DTRs / TicketID / NumeroImport / MeQ.
+- **6.2** : module `G_SIRUS_Parametres.bas` centralisant les seuils MeQ, mot de passe protection feuilles, outilID ATMAP, ATMAP_BASE_URL.
+- **6.3** : `Docs/SIRUS_RECETTE.md` plan de tests par phase, distribuable aux ingés ASL Alstom pour validation locale.
+- **4 entrée B** : `SIRUS_DetecterEcartsPBS()` — scan `DATA_ASL` à la génération des livrables, détecte les DTR absents en BdD. Bouton "Ouvrir SIRUS pour corriger".
+
+### Sprint 5 — UI long terme (optionnel, après stabilisation)
+- Vue Generation Worksheet `SIRUS_Generation_Vue` (freeze panes natif, conditional formatting, commentaires multi-lignes). Remplace progressivement la ListView_Generation. Pattern déjà adopté avec `Btn_SIRUS_EditerFeuille`.
+- `UserForm_Resize` adaptatif (positionnement contrôles en fonction de la taille) pour exploiter le bouton Maximiser ajouté en UX 1.
 
 ---
 
