@@ -521,6 +521,17 @@ Private Sub ListView_Produit_BeforeLabelEdit(Cancel As Integer)
 
 End Sub
 
+' =========================================================================
+' Bouton Rafraichir Data PBS (a cote de Project_List)
+' =========================================================================
+' Cable au CommandButton Btn_Rafraichir_DataPBS du UserForm (a ajouter
+' manuellement dans le VBE Designer). Lance le Refresh DATA_ASL via
+' ADODB sur le classeur projet actif. Le projet courant est lu depuis
+' Project_List dans la sub publique SIRUS_RafraichirDATA_ASL.
+Private Sub Btn_Rafraichir_DataPBS_Click()
+    Call G_PBS_Refresh.SIRUS_RafraichirDATA_ASL
+End Sub
+
 Private Sub Project_List_Change()
 ' Auto-remplit les controles SLI a partir de la BdD lorsque l utilisateur
 ' choisit un projet. Indispensable avant d ouvrir un ticket ATMAP (la

@@ -1,6 +1,8 @@
 # DATA_ASL — Spec du template figé (Sprint 1 bis)
 
-Spec validée Thomas 2026-06-25. Référence pour figer la feuille DATA_ASL dans `Templates/ECOSLI.xlsm` avant d'implémenter le bouton **Rafraichir DATA_ASL** côté add-in.
+Spec validée Thomas 2026-06-25 + livré 2026-06-26. Template figé : `Templates/ECOSLI_DATA_ASL.xlsx` (et script PowerShell de génération : `Templates/_build_template.ps1` + patch `Templates/_patch_template_v2.ps1`).
+
+> **Statut** : ✅ Sprint 1 bis fonctionnellement complet. Refresh end-to-end validé avec DTRs numériques (8600xxx) ET alphanumériques (DTRxxxxxx, ATXyyyyy). Voir `CHANGELOG.md` entrée 2026-06-25 → 2026-06-26 pour le détail des modifs et du point dur **bypass ADO** (bug Microsoft ACE OLE DB sur .xlsb mixed-type).
 
 > **Objectif global** : tuer toutes les formules à liens externes SharePoint dans DATA_ASL. Toutes les colonnes "issues BdD" sont remplies par le code VBA via ADODB (cliqué via bouton Rafraichir). DATA_ASL ne contient plus que :
 > - Colonnes **saisie ASL** (vert) : remplies par l'ingénieur

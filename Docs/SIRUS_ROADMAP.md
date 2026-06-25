@@ -28,7 +28,7 @@
 | 6.1 — Journal historique | Feuille `SIRUS_Historique` veryHidden | 🔴 | à créer |
 | 6.2 — Paramètres | `G_SIRUS_Parametres` (seuils, mots de passe, IDs ATMAP) | 🔴 | à créer |
 | 6.3 — Recette | `Docs/SIRUS_RECETTE.md` plan de tests par phase | 🔴 | à créer |
-| 6.4 — Refonte DATA_ASL | Bouton "Rafraichir DATA_ASL" → ADODB pull → cellules valeurs pures (tuer liens externes SharePoint) | 🟡 | cadré, à coder |
+| 6.4 — Refonte DATA_ASL | Bouton "Rafraichir Data PBS" dans UserForm → ADODB pull + lecture Excel directe SnapShotPrix → cellules valeurs pures (tuer liens externes SharePoint) | ✅ | `G_PBS_Refresh.bas`, `Templates/ECOSLI_DATA_ASL.xlsx` |
 | 6.5 — Vue Generation Worksheet | Feuille `SIRUS_Generation_Vue` avec freeze panes + conditional formatting (alternative ListView) | 🔴 | reporté |
 | 6.6 — Refonte ListView par MSFlexGrid | Écarté définitivement : ActiveX `mshflxgd.ocx` indisponible Alstom + retiré Microsoft | ❌ | écarté |
 | UX 1 — Boutons minimize + maximize natifs | API `user32.SetWindowLong` sur la barre de titre du UserForm | ✅ | `Forms/UserForm.frm` |

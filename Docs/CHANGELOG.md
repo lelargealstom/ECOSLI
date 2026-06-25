@@ -6,6 +6,128 @@ Format : `[Date] — Auteur — Périmètre`, puis liste des changements par mod
 
 ---
 
+## 2026-06-25 → 2026-06-26 — Sprint 1 bis : Bouton Rafraichir DATA_ASL
+
+Sprint 1 bis livré : refonte complète du flow d'alimentation de DATA_ASL. Plus aucun lien externe SharePoint (les formules `=XLOOKUP(https://...)` fragiles aux migrations sont remplacées par un bouton **"Rafraichir Data PBS"** dans le UserForm qui pull les données via ADODB / lecture Excel directe).
+
+### Template figé `Templates/ECOSLI_DATA_ASL.xlsx`
+
+- **41 colonnes** dans l'ordre verrouillé Thomas (5 blocs : Identification PBS / Générique / RAM / Maintenance / Prix).
+- **Logo Alstom** + titre fusionné + bandeau identité (lignes 1-2 zone réservée).
+- **Cellules nommées** `DATA_ASL_PROJET` (I1) et `DATA_ASL_DERNIERE_MAJ` (I2) auto-remplies au Refresh.
+- **Légende code couleur** : vert saisie ASL / rouge Refresh BdD / bleu calcul local / gris constante.
+- **Coefficients ligne 2** : `AB2 = 1,0557` (Prix Spare calculé), `AK2 = 2`, `AL2 = 1,17` (Cout Alstom Spare), `AM2 = 1,75` (Prix Alstom Repair).
+- **Labels coefficients ligne 1** (italique gris pour clarté).
+- **ListObject `Providor`** conservé (couvre A4:AO + dernière ligne, style `TableStyleLight2`). Nom intact pour compat downstream `D_Providor_Main` / `B_ATM_Main` / `C_EMMST_Main`.
+- **Freeze panes** : ligne 4 + cols A-D (4 premières colonnes visibles au scroll horizontal).
+- **41 formats cellules** par type (DTR=Texte, MTBF/DVL/LeadTime=Entier, Tx défaillance=Scientifique, Durées tâches=0.000, Prix=#,##0.00).
+- **15 commentaires** sur les entêtes clés (tooltip Excel au hover).
+- **Mise en forme conditionnelle** : 18 cellules Refresh vides → fond orange clair "À rafraichir".
+- **Protection feuille + workbook** : mdp `LGM69000`, `UserInterfaceOnly=True` (VBA peut écrire en Refresh, l'user uniquement dans les 12 cellules vertes saisie ASL). `Structure=True` côté workbook (pas de suppression/ajout/renommage de feuilles).
+- **Bouton du template retiré** : déplacé dans le UserForm pour une UX unifiée et éviter les soucis de résolution macro `'ECOSLI.xlam'!Sub`.
+- Script PowerShell `Templates/_build_template.ps1` (génération initiale) + `Templates/_patch_template_v2.ps1` (ajout formules locales NTI col I + Durée SOFT gen col W, suppression bouton template).
+
+### Module `Modules/G_PBS_Refresh.bas` (nouveau, ~1200 lignes)
+
+Point d'entrée public : `SIRUS_RafraichirDATA_ASL([wbParam])` câblé au bouton **`Btn_Rafraichir_DataPBS`** ajouté dans le UserForm (à côté de `Project_List`).
+
+**6 sub-routines par bloc / source** :
+1. `RafraichirDepuisProduit` — Désignation BdD, Node typed, Réf plan, MTBF générique, DVL HARD/SOFT générique (cols E, G, J, M, S, U) via `[Produit$]`.
+2. `RafraichirHARDSOFT` — agrégat `[Taches_ATM$]` → BOTH/HARD/SOFT/"" (col H).
+3. `RafraichirDepuisInfoATM` — Temps générique HARD (col P) + SUM Temps analytique HARD/SOFT (cols Q et X) via `[Info_ATM$]`.
+4. `RafraichirConstantes` — "PH" (col R) et "Y" (col Y) en dur.
+5. `RafraichirPrixCatalogue` — **lecture Excel directe** (bypass ADO, cf. ci-dessous) sur feuille `Produit_SnapShotPrix` avec cascade DIS → FCS → AUTRE.
+6. `RafraichirPrixArchive` — AVG `[Projet_ASL$]` avec exclusion projet courant (cols AN, AO).
+
+**Cascade prix Spare/Repair** (décision Thomas 2026-06-26) :
+- Priorité 1 : `Ref Catalogue` contient `D&IS Catalogue` (préfix UCase + InStr)
+- Priorité 2 : `Ref Catalogue` contient `FCS`
+- Priorité 3 : tout autre catalogue (PROVIDOR, AGATE MEDIA, etc.)
+- Pour chaque combinaison `(DTR × Type × Catégorie)`, on retient la ligne avec MAX(Date Source).
+- À l'écriture, on prend DIS si dispo, sinon FCS, sinon AUTRE. La colonne **`Ref Source Spare/Repair`** affiche le `Ref Catalogue` du choix retenu (traçabilité).
+- Exception : `Prix FCS` (col Z) reste **strictement** FCS (sinon le nom n'a plus de sens).
+
+**Bypass ADO pour SnapShotPrix** (point dur résolu en session) :
+- **Bug Microsoft ACE OLE DB sur .xlsb** : quand une colonne contient des types mixtes (numérique + alphanumérique), ACE scanne les 8 premières lignes pour deviner le type. Si elles sont toutes Double, ACE catégorise la colonne entière comme Double → toutes les valeurs String plus loin sont retournées **NULL silencieusement** (pas d'erreur). Le cast `[DTR] & ''` ne suffit pas (scan TypeGuessRows précède l'évaluation des expressions). `MaxScanRows=0` déprécié sur ACE 16.0+, registry `TypeGuessRows=0` nécessite admin.
+- **Solution** : pour `Produit_SnapShotPrix` uniquement, on ouvre le fichier `.xlsb` directement dans Excel via `Application.Workbooks.Open(... ReadOnly=True)` et on lit la feuille en bulk array (`Range.Value`). Lecture native Excel = tous les types préservés, plus rapide qu'ADO ligne par ligne.
+- Helpers ajoutés : `ExtraireCheminBdD()` (parse `CONNEXION_EXCEL_BDD_TRAVAIL`) + `TrouverColParLibelle(ws, sLibelle)` (lookup `Range.Find` case-insensitive).
+- Détection si la BdD est déjà ouverte chez l'utilisateur (`For Each wb In Application.Workbooks`) → ne pas la refermer si oui.
+- Pour les autres tables (Produit, Info_ATM, Taches_ATM, Projet_ASL), ADO continue de marcher avec le cast `[col_DTR] & '' AS DTR_str` qui prévient le problème dans la majorité des cas (les 8 premières lignes contiennent assez de variété).
+
+**Helpers transverses** :
+- `ChargerDtrsPBS(lo)` : dict `{ DTR_UC → row_index DataBodyRange }`.
+- `LireProjetCourant()` : depuis `UserForm.Project_List.Value`.
+- `EcrireCellulesProjetDate(wb, sProjet)` : remplit `DATA_ASL_PROJET` et `DATA_ASL_DERNIERE_MAJ`.
+- `TracerRefreshLog(wb, sProjet, nbDtrs, duree)` : feuille `_RefreshLog` veryHidden, append Date / Projet / nbDTR / Durée / Utilisateur.
+- `DeProtegerFeuille` / `ProtegerFeuille` (mdp `LGM69000`, `UserInterfaceOnly=True`).
+- `GetFieldSafe` / `NzS` / `NzD` / `ChoisirCascade` (cascade DIS → FCS → AUTRE).
+
+**5 Subs de diagnostic** ajoutées (à exécuter dans le VBE pour debug futur) :
+- `Test_DumpFeuillesBdD` : liste toutes les tables/feuilles visibles par ADO dans la BdD TRAVAIL.
+- `Test_DumpSnapShotPrix` : schéma de la table + 5 premières lignes.
+- `Test_DistinctRefCatalogue` : couples `(Type, Ref Catalogue)` distincts avec nb d'occurrences.
+- `Test_CompterPatternsDTR` : classification DTRs par pattern (numérique pur / DTRxxxxx / ATXxxxxx / autre alpha).
+- `Test_RafraichirPrixDryRun` : dry-run de la logique prix sur un DTR donné (modifier la constante `TEST_DTR`).
+
+### `Forms/UserForm.frm` — handler bouton
+
+Nouveau handler ajouté :
+```vba
+Private Sub Btn_Rafraichir_DataPBS_Click()
+    Call G_PBS_Refresh.SIRUS_RafraichirDATA_ASL
+End Sub
+```
+
+Le bouton physique `Btn_Rafraichir_DataPBS` est à ajouter manuellement dans le VBE Designer (à côté de `Project_List`) — les contrôles ActiveX/MSForms vivent dans le binaire `.frx`, pas dans le `.frm`.
+
+### Décisions verrouillées
+
+- **Le bouton de Refresh vit dans le UserForm**, plus dans le template Excel. Plus simple à gérer (pas de résolution macro `'ECOSLI.xlam'!Sub` cross-workbook), UX cohérente avec le reste (Project_List + boutons SIRUS).
+- **DATA_ASL conserve sa structure 40 colonnes** (renommée 41 avec Ref Source Spare/Repair). Le ListObject `Providor` est préservé pour la compat 100% Providor/ATM/EMMST.
+- **Cascade DIS → FCS → AUTRE** pour les prix Catalogue (Spare et Repair). Strict FCS pour Prix FCS.
+- **Bypass ADO** pour SnapShotPrix uniquement (les autres tables continuent en ADO).
+- **Projet courant exclu de la moyenne archive** (col AN/AO) : `WHERE [PROJET_PROJETASL] <> '<projet>'`.
+- **Constantes** "PH" / "Y" écrites en dur par le Refresh (cols R/Y).
+- **Cellules nommées** `DATA_ASL_PROJET` / `DATA_ASL_DERNIERE_MAJ` : préférables aux coordonnées en dur côté VBA.
+
+### Workflow utilisateur (Sprint 1 bis end-to-end)
+
+```
+1. L'ingé ASL ouvre son fichier projet ECOSLI_DATA_ASL.xlsx (template)
+2. Saisit les colonnes vertes : DTR, Designation PBS, Sous Système, Qte,
+   MTBF intr/fct, DVL HARD/SOFT spec, Cout/LeadTime FOURNISSEUR
+3. Ctrl+W → UserForm ECOSLI
+4. Sélectionne son projet dans Project_List
+5. Clic bouton "Rafraichir Data PBS"
+   → Lecture des DTRs de DATA_ASL
+   → 4 requêtes ADODB (Produit, Taches_ATM, Info_ATM, Projet_ASL)
+   → 1 lecture Excel directe (Produit_SnapShotPrix)
+   → Écriture en valeurs pures des 20 colonnes Refresh
+   → Constantes PH/Y posées en R/Y
+   → Cellules I1/I2 auto-remplies (projet + date)
+   → Trace _RefreshLog
+   → MsgBox final "N DTR(s) traité(s) en X.X s"
+6. L'ingé peut ensuite générer ATM / EMMST / Providor (qui lisent DATA_ASL
+   inchangée — zéro impact downstream)
+```
+
+### Docs ajoutées / mises à jour
+
+- `Docs/DATA_ASL_TEMPLATE.md` (créé session précédente) : spec figée du template, conservé pour référence.
+- `Docs/CHANGELOG.md` : cette entrée.
+
+### Reste à faire (prochaines sessions)
+
+- Aligner `MapColonnesDATA_ASL` dans `G_SIRUS_PBS.bas` avec les renommages du template (`Cout total` → `Prix FCS`, `ISP TIS FRANCE (calculé)` → `Prix Spare Calculé`, `ISP TIS FRANCE (FCS)` → `Prix Spare Catalogue`, `Prix repa (ISP Catalogue Répa)` → `Prix Repair Catalogue`). Sinon la ListView_Generation cherche encore les anciens noms.
+- Migration legacy : routine `PurgerLiensExternesDATA_ASL` distribuée via `A_2_ModUpdate` au démarrage si version PBS < seuil (pour les classeurs projets anciens déployés chez les autres ingés ASL).
+- Retirer les Subs `Test_*` du module `G_PBS_Refresh` une fois le code stabilisé (ou les déplacer dans un module séparé `_Tests.bas`).
+- Sprint 1 — Test Extraction ATM BaWu POOL (toujours non terminé).
+- Phase 2.1 — Enrichir règles InfoATM / EMMST / ProjetSLI.
+- Phase 3.2 — Snapshot Modifier.
+- Phase 6 — Industrialisation (Historique, Paramètres, Recette).
+
+---
+
 ## 2026-06-11 → 2026-06-25 — Sessions Claude Code (avec Thomas LE LARGE)
 
 Sprint 1 SIRUS — recette end-to-end Produit Créer + ProjetASL Modifier validés. Refonte complète des règles métier ProjetASL, mapping VBN/IMP ATMAP, MeQ Generation par table avec affichage % puis nombre de projets, croisement DATA_ASL pour ProjetASL Modifier, cadrage de la suite (industrialisation + refonte DATA_ASL).

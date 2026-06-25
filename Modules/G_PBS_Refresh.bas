@@ -233,7 +233,17 @@ Private Sub RafraichirDepuisProduit(ByVal lo As ListObject, ByVal dictDtrs As Ob
     cnx = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
     On Error GoTo Sortie
     Call Open_CONN(cnx)
-    Call open_REQSEL("SELECT * FROM [Produit$]")
+    ' SELECT explicit + cast DTR en String via "& ''" (force ACE OLE DB
+    ' a retourner les DTRs alphanumeriques meme si les 8 premieres lignes
+    ' sont numeriques).
+    Call open_REQSEL("SELECT [DTR] & '' AS DTR_str, " & _
+                     "[Désignation_PRODUIT], " & _
+                     "[Node type Produit (LRU/SRU…)_PRODUIT], " & _
+                     "[Drawing number], " & _
+                     "[MTBF intrinsèque Produit (h) issu de la datasheet _PRODUIT], " & _
+                     "[Durée de vie générique Produit HARDWARE (année)_PRODUIT], " & _
+                     "[Durée de vie générique Produit (année) SOFTWARE _PRODUIT] " & _
+                     "FROM [Produit$]")
 
     If REQSEL Is Nothing Then GoTo Sortie
     If REQSEL.EOF And REQSEL.BOF Then GoTo Sortie
@@ -246,7 +256,7 @@ Private Sub RafraichirDepuisProduit(ByVal lo As ListObject, ByVal dictDtrs As Ob
     Set colDVLSoftGen = lo.ListColumns(COL_DVL_SOFT_GEN).DataBodyRange
 
     Do While Not REQSEL.EOF
-        sDTR = Trim$(NzS(GetFieldSafe(REQSEL, "DTR")))
+        sDTR = Trim$(NzS(GetFieldSafe(REQSEL, "DTR_str")))
         If LenB(sDTR) > 0 Then
             sUC = UCase$(sDTR)
             If dictDtrs.Exists(sUC) Then
@@ -283,7 +293,8 @@ Private Sub RafraichirHARDSOFT(ByVal lo As ListObject, ByVal dictDtrs As Object)
     cnx = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
     On Error GoTo Sortie
     Call Open_CONN(cnx)
-    Call open_REQSEL("SELECT [DTR_TACHEATM], [HARD/SOFT] FROM [Taches_ATM$]")
+    ' Cast DTR en String (cf. note dans RafraichirDepuisProduit)
+    Call open_REQSEL("SELECT [DTR_TACHEATM] & '' AS DTR_str, [HARD/SOFT] FROM [Taches_ATM$]")
 
     If REQSEL Is Nothing Then GoTo Sortie
     If REQSEL.EOF And REQSEL.BOF Then GoTo Sortie
@@ -292,7 +303,7 @@ Private Sub RafraichirHARDSOFT(ByVal lo As ListObject, ByVal dictDtrs As Object)
     dictAgreg.CompareMode = vbTextCompare
 
     Do While Not REQSEL.EOF
-        sDTR = Trim$(NzS(REQSEL.Fields("DTR_TACHEATM").Value))
+        sDTR = Trim$(NzS(REQSEL.Fields("DTR_str").Value))
         sHS = UCase$(Trim$(NzS(REQSEL.Fields("HARD/SOFT").Value)))
         If LenB(sDTR) > 0 Then
             sUC = UCase$(sDTR)
@@ -301,11 +312,15 @@ Private Sub RafraichirHARDSOFT(ByVal lo As ListObject, ByVal dictDtrs As Object)
                 existing = ""
                 If dictAgreg.Exists(sUC) Then existing = CStr(dictAgreg(sUC))
                 If sHS = "HARD" Then
-                    If existing = "" Then dictAgreg(sUC) = "H" _
-                    ElseIf existing = "S" Then dictAgreg(sUC) = "HS"
+                    Select Case existing
+                        Case "":  dictAgreg(sUC) = "H"
+                        Case "S": dictAgreg(sUC) = "HS"
+                    End Select
                 ElseIf sHS = "SOFT" Then
-                    If existing = "" Then dictAgreg(sUC) = "S" _
-                    ElseIf existing = "H" Then dictAgreg(sUC) = "HS"
+                    Select Case existing
+                        Case "":  dictAgreg(sUC) = "S"
+                        Case "H": dictAgreg(sUC) = "HS"
+                    End Select
                 End If
             End If
         End If
@@ -355,7 +370,8 @@ Private Sub RafraichirDepuisInfoATM(ByVal lo As ListObject, ByVal dictDtrs As Ob
     cnx = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
     On Error GoTo Sortie
     Call Open_CONN(cnx)
-    Call open_REQSEL("SELECT [DTR_INFOATM], [HARD/SOFT], " & _
+    ' Cast DTR en String (cf. note dans RafraichirDepuisProduit)
+    Call open_REQSEL("SELECT [DTR_INFOATM] & '' AS DTR_str, [HARD/SOFT], " & _
                      "[Temps générique de la tâche_INFOATM], " & _
                      "[Temps analytique cumulé de la tache_INFOATM] " & _
                      "FROM [Info_ATM$]")
@@ -371,7 +387,7 @@ Private Sub RafraichirDepuisInfoATM(ByVal lo As ListObject, ByVal dictDtrs As Ob
     dictAnaSoft.CompareMode = vbTextCompare
 
     Do While Not REQSEL.EOF
-        sDTR = Trim$(NzS(REQSEL.Fields("DTR_INFOATM").Value))
+        sDTR = Trim$(NzS(REQSEL.Fields("DTR_str").Value))
         sHS = UCase$(Trim$(NzS(REQSEL.Fields("HARD/SOFT").Value)))
         If LenB(sDTR) > 0 Then
             sUC = UCase$(sDTR)
@@ -465,70 +481,130 @@ End Sub
 '                                  col AF (Ref Source Repair),
 '                                  col AG (Lead Time REPAIR)
 Private Sub RafraichirPrixCatalogue(ByVal lo As ListObject, ByVal dictDtrs As Object)
-    Dim cnx As String
+    ' Cascade categorie de catalogue (decision Thomas 2026-06-26) :
+    '   1. D&IS Catalogue  -> categorie "DIS"
+    '   2. FCS             -> categorie "FCS"
+    '   3. Autres          -> categorie "AUTRE"
+    ' Pour chaque DTR x Type (Spare/Repair), on retient le meilleur de
+    ' chaque categorie (MAX Date Source). A l ecriture, on prend DIS si
+    ' present, sinon FCS, sinon AUTRE. Le "Prix FCS" reste strictement
+    ' FCS uniquement (sinon le nom n a plus de sens).
+    '
+    ' IMPORTANT : on N UTILISE PAS ADODB pour cette table. Le bug Microsoft
+    ' ACE OLE DB sur .xlsb avec colonne DTR mixed-type (numerique +
+    ' alphanumerique) fait que les valeurs alphanumeriques sont retournees
+    ' comme NULL (le scan TypeGuessRows precede l evaluation des expressions
+    ' donc meme '[DTR] & '''' ne suffit pas). On bypass en ouvrant le
+    ' fichier .xlsb dans Excel en read-only et en lisant la feuille en
+    ' bulk array.
+    Dim sCheminBdD As String
+    Dim wbBdD As Workbook, wb As Workbook
+    Dim wsBdD As Worksheet
+    Dim arr As Variant
+    Dim ligne As Long, derLigne As Long
+    ' Note : pas de "cDate" (collision avec fonction VBA CDate), ni "cType"
+    ' (collision avec mot-cle Type). On prefixe avec colIdx pour clarte.
+    Dim colIdxDTR As Long, colIdxType As Long, colIdxRef As Long
+    Dim colIdxDate As Long, colIdxPrix As Long, colIdxLT As Long
+    Dim maxCol As Long
     Dim sDTR As String, sUC As String, sType As String, sRefCat As String
-    Dim sTypeRefUC As String
+    Dim sCategorie As String, sKeyCat As String
     Dim vDate As Variant, vPrix As Variant, vLT As Variant
-    Dim dictBest As Object  ' { DTR_UC|"SPARE_FCS"|... -> Array(date, prix, ref, lt) }
+    Dim dictBest As Object
     Dim key As Variant
-    Dim ligne As Long
+    Dim ligneCell As Long
+    Dim wasOpen As Boolean
 
-    cnx = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
     On Error GoTo Sortie
-    Call Open_CONN(cnx)
-    Call open_REQSEL("SELECT [DTR], [Type], [Ref Catalogue], [Date Source], [Prix], [LeadTime] " & _
-                     "FROM [SnapShotPrix$]")
 
-    If REQSEL Is Nothing Then GoTo Sortie
-    If REQSEL.EOF And REQSEL.BOF Then GoTo Sortie
+    sCheminBdD = ExtraireCheminBdD()
+    If LenB(sCheminBdD) = 0 Then Exit Sub
+
+    ' Ne pas refermer la BdD si elle etait deja ouverte chez l utilisateur
+    wasOpen = False
+    For Each wb In Application.Workbooks
+        If LCase$(wb.FullName) = LCase$(sCheminBdD) Then
+            Set wbBdD = wb
+            wasOpen = True
+            Exit For
+        End If
+    Next wb
+
+    If wbBdD Is Nothing Then
+        Set wbBdD = Application.Workbooks.Open(sCheminBdD, _
+            UpdateLinks:=0, ReadOnly:=True, Notify:=False, IgnoreReadOnlyRecommended:=True)
+    End If
+
+    Set wsBdD = wbBdD.Worksheets("Produit_SnapShotPrix")
+
+    ' Mapper les colonnes par libelle de la ligne 1
+    colIdxDTR = TrouverColParLibelle(wsBdD, "DTR")
+    colIdxType = TrouverColParLibelle(wsBdD, "Type")
+    colIdxRef = TrouverColParLibelle(wsBdD, "Ref Catalogue")
+    colIdxDate = TrouverColParLibelle(wsBdD, "Date Source")
+    colIdxPrix = TrouverColParLibelle(wsBdD, "Prix")
+    colIdxLT = TrouverColParLibelle(wsBdD, "LeadTime")
+    If colIdxDTR = 0 Or colIdxType = 0 Or colIdxRef = 0 Then GoTo CleanupBdD
+
+    ' Lire tout en bulk dans un array 2D (bien plus rapide que cell-by-cell)
+    derLigne = wsBdD.Cells(wsBdD.rows.count, colIdxDTR).End(xlUp).Row
+    If derLigne < 2 Then GoTo CleanupBdD
+    maxCol = Application.WorksheetFunction.Max(colIdxDTR, colIdxType, colIdxRef, _
+                                                colIdxDate, colIdxPrix, colIdxLT)
+    arr = wsBdD.Range(wsBdD.Cells(2, 1), wsBdD.Cells(derLigne, maxCol)).Value
 
     Set dictBest = CreateObject("Scripting.Dictionary")
     dictBest.CompareMode = vbTextCompare
 
-    Do While Not REQSEL.EOF
-        sDTR = Trim$(NzS(REQSEL.Fields("DTR").Value))
+    For ligne = 1 To UBound(arr, 1)
+        sDTR = Trim$(NzS(arr(ligne, colIdxDTR)))
+        ' BdD peut stocker les DTR numeriques en Double (.0 a stripper)
+        If Right$(sDTR, 2) = ".0" Then sDTR = Left$(sDTR, Len(sDTR) - 2)
         If LenB(sDTR) > 0 Then
             sUC = UCase$(sDTR)
             If dictDtrs.Exists(sUC) Then
-                sType = UCase$(Trim$(NzS(REQSEL.Fields("Type").Value)))
-                sRefCat = UCase$(NzS(REQSEL.Fields("Ref Catalogue").Value))
-                vDate = REQSEL.Fields("Date Source").Value
-                vPrix = REQSEL.Fields("Prix").Value
-                vLT = REQSEL.Fields("LeadTime").Value
+                sType = UCase$(Trim$(NzS(arr(ligne, colIdxType))))
+                sRefCat = UCase$(NzS(arr(ligne, colIdxRef)))
+                vDate = arr(ligne, colIdxDate)
+                vPrix = arr(ligne, colIdxPrix)
+                vLT = arr(ligne, colIdxLT)
 
-                sTypeRefUC = ""
-                If sType = "SPARE" Then
-                    If InStr(1, sRefCat, "D&IS CATALOGUE", vbTextCompare) > 0 Then
-                        sTypeRefUC = "SPARE_DIS"
-                    ElseIf InStr(1, sRefCat, "FCS", vbTextCompare) > 0 Then
-                        sTypeRefUC = "SPARE_FCS"
-                    End If
-                ElseIf sType = "REPAIR" Then
-                    If InStr(1, sRefCat, "D&IS CATALOGUE", vbTextCompare) > 0 Then
-                        sTypeRefUC = "REPAIR_DIS"
-                    End If
+                ' Categoriser la Ref Catalogue
+                sCategorie = "AUTRE"
+                If InStr(1, sRefCat, "D&IS CATALOGUE", vbTextCompare) > 0 Then
+                    sCategorie = "DIS"
+                ElseIf InStr(1, sRefCat, "FCS", vbTextCompare) > 0 Then
+                    sCategorie = "FCS"
                 End If
 
-                If LenB(sTypeRefUC) > 0 And IsDate(vDate) Then
-                    Dim k As String
-                    k = sUC & "|" & sTypeRefUC
+                ' On ne stocke que les types Spare/Repair avec Date valide
+                If (sType = "SPARE" Or sType = "REPAIR") And IsDate(vDate) Then
+                    sKeyCat = sUC & "|" & sType & "_" & sCategorie
                     Dim conserver As Boolean
                     conserver = True
-                    If dictBest.Exists(k) Then
+                    If dictBest.Exists(sKeyCat) Then
                         Dim prev As Variant
-                        prev = dictBest(k)
+                        prev = dictBest(sKeyCat)
                         If CDate(prev(0)) >= CDate(vDate) Then conserver = False
                     End If
                     If conserver Then
-                        dictBest(k) = Array(vDate, vPrix, REQSEL.Fields("Ref Catalogue").Value, vLT)
+                        dictBest(sKeyCat) = Array(vDate, vPrix, arr(ligne, colIdxRef), vLT)
                     End If
                 End If
             End If
         End If
-        REQSEL.MoveNext
-    Loop
+    Next ligne
 
-    ' Ecriture des 6 colonnes
+CleanupBdD:
+    ' Fermer la BdD UNIQUEMENT si on l a ouverte dans cette Sub
+    If Not wasOpen And Not wbBdD Is Nothing Then
+        wbBdD.Close SaveChanges:=False
+        Set wbBdD = Nothing
+    End If
+
+    If dictBest Is Nothing Then GoTo Sortie
+
+    ' Ecriture des 7 colonnes Prix
     Dim colZ As Range, colAA As Range, colAC As Range, colAD As Range
     Dim colAE As Range, colAF As Range, colAG As Range
     Set colZ = lo.ListColumns(COL_PRIX_FCS).DataBodyRange
@@ -539,41 +615,91 @@ Private Sub RafraichirPrixCatalogue(ByVal lo As ListObject, ByVal dictDtrs As Ob
     Set colAF = lo.ListColumns(COL_REF_SOURCE_REPAIR).DataBodyRange
     Set colAG = lo.ListColumns(COL_LEAD_TIME_REPAIR).DataBodyRange
 
+    Dim choix As Variant
     For Each key In dictDtrs.Keys
         ligne = CLng(dictDtrs(key))
-        ' Prix FCS
+
+        ' --- Prix FCS (col Z) : STRICT FCS, pas de cascade -----
         If dictBest.Exists(key & "|SPARE_FCS") Then
             colZ.Cells(ligne, 1).Value = dictBest(key & "|SPARE_FCS")(1)
         Else
             colZ.Cells(ligne, 1).Value = Empty
         End If
-        ' Prix Spare Catalogue + Ref + LT
-        If dictBest.Exists(key & "|SPARE_DIS") Then
-            colAA.Cells(ligne, 1).Value = dictBest(key & "|SPARE_DIS")(1)
-            colAC.Cells(ligne, 1).Value = dictBest(key & "|SPARE_DIS")(2)
-            colAD.Cells(ligne, 1).Value = dictBest(key & "|SPARE_DIS")(3)
+
+        ' --- Prix Spare Catalogue + Ref + LT (AA/AC/AD) :
+        '     cascade DIS -> FCS -> AUTRE
+        choix = ChoisirCascade(dictBest, key, "SPARE")
+        If IsArray(choix) Then
+            colAA.Cells(ligne, 1).Value = choix(1)
+            colAC.Cells(ligne, 1).Value = choix(2)
+            colAD.Cells(ligne, 1).Value = choix(3)
         Else
             colAA.Cells(ligne, 1).Value = Empty
             colAC.Cells(ligne, 1).Value = Empty
             colAD.Cells(ligne, 1).Value = Empty
         End If
-        ' Prix Repair Catalogue + Ref + LT
-        If dictBest.Exists(key & "|REPAIR_DIS") Then
-            colAE.Cells(ligne, 1).Value = dictBest(key & "|REPAIR_DIS")(1)
-            colAF.Cells(ligne, 1).Value = dictBest(key & "|REPAIR_DIS")(2)
-            colAG.Cells(ligne, 1).Value = dictBest(key & "|REPAIR_DIS")(3)
+
+        ' --- Prix Repair Catalogue + Ref + LT (AE/AF/AG) :
+        '     cascade DIS -> FCS -> AUTRE
+        choix = ChoisirCascade(dictBest, key, "REPAIR")
+        If IsArray(choix) Then
+            colAE.Cells(ligne, 1).Value = choix(1)
+            colAF.Cells(ligne, 1).Value = choix(2)
+            colAG.Cells(ligne, 1).Value = choix(3)
         Else
             colAE.Cells(ligne, 1).Value = Empty
             colAF.Cells(ligne, 1).Value = Empty
             colAG.Cells(ligne, 1).Value = Empty
         End If
     Next key
+    Exit Sub
 
 Sortie:
+    ' Fallback cleanup en cas d erreur avant CleanupBdD
     On Error Resume Next
-    Call Close_CONN(cnx)
+    If Not wasOpen And Not wbBdD Is Nothing Then wbBdD.Close SaveChanges:=False
     On Error GoTo 0
 End Sub
+
+' Helper : extrait le chemin du fichier BdD depuis CONNEXION_EXCEL_BDD_TRAVAIL.
+' Format attendu : "Provider=...;Data Source=<chemin>;Extended Properties=..."
+Private Function ExtraireCheminBdD() As String
+    Dim cnx As String
+    Dim posDS As Long, posEnd As Long
+    cnx = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
+    posDS = InStr(1, cnx, "Data Source=", vbTextCompare)
+    If posDS = 0 Then Exit Function
+    posDS = posDS + Len("Data Source=")
+    posEnd = InStr(posDS, cnx, ";")
+    If posEnd = 0 Then posEnd = Len(cnx) + 1
+    ExtraireCheminBdD = Mid$(cnx, posDS, posEnd - posDS)
+End Function
+
+' Helper : trouve la colonne dans la ligne 1 de ws par libelle (case-insensitive).
+' Renvoie 0 si non trouve.
+Private Function TrouverColParLibelle(ByVal ws As Worksheet, ByVal sLibelle As String) As Long
+    Dim cell As Range
+    On Error Resume Next
+    Set cell = ws.Rows(1).Find(What:=sLibelle, LookIn:=xlValues, LookAt:=xlWhole, MatchCase:=False)
+    If Not cell Is Nothing Then TrouverColParLibelle = cell.Column
+    On Error GoTo 0
+End Function
+
+' Cascade DIS -> FCS -> AUTRE pour un (DTR, Type) donne.
+' Renvoie Array(date, prix, ref, lt) du meilleur candidat dispo, ou
+' Empty si aucune categorie n a de donnees.
+Private Function ChoisirCascade(ByVal dictBest As Object, _
+                                 ByVal keyDTR As Variant, _
+                                 ByVal sType As String) As Variant
+    Dim k As String
+    k = CStr(keyDTR) & "|" & sType & "_DIS"
+    If dictBest.Exists(k) Then ChoisirCascade = dictBest(k) : Exit Function
+    k = CStr(keyDTR) & "|" & sType & "_FCS"
+    If dictBest.Exists(k) Then ChoisirCascade = dictBest(k) : Exit Function
+    k = CStr(keyDTR) & "|" & sType & "_AUTRE"
+    If dictBest.Exists(k) Then ChoisirCascade = dictBest(k) : Exit Function
+    ChoisirCascade = Empty
+End Function
 
 ' =========================================================================
 ' BLOC 6 : RAFRAICHIR LES PRIX ARCHIVE depuis Projet_ASL$
@@ -598,7 +724,8 @@ Private Sub RafraichirPrixArchive(ByVal lo As ListObject, ByVal dictDtrs As Obje
     cnx = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
     On Error GoTo Sortie
     Call Open_CONN(cnx)
-    Call open_REQSEL("SELECT [DTR_PROJETASL], [PROJET_PROJETASL], " & _
+    ' Cast DTR en String (cf. note dans RafraichirDepuisProduit)
+    Call open_REQSEL("SELECT [DTR_PROJETASL] & '' AS DTR_str, [PROJET_PROJETASL], " & _
                      "[ISP TIS HORS FRANCE (archivé)], " & _
                      "[Prix repair (DEVISE du projet (SLI))_PROJETASL] " & _
                      "FROM [Projet_ASL$]")
@@ -616,7 +743,7 @@ Private Sub RafraichirPrixArchive(ByVal lo As ListObject, ByVal dictDtrs As Obje
     dictRepairCnt.CompareMode = vbTextCompare
 
     Do While Not REQSEL.EOF
-        sDTR = Trim$(NzS(REQSEL.Fields("DTR_PROJETASL").Value))
+        sDTR = Trim$(NzS(REQSEL.Fields("DTR_str").Value))
         sProjet = Trim$(NzS(REQSEL.Fields("PROJET_PROJETASL").Value))
         If LenB(sDTR) > 0 And UCase$(sProjet) <> UCase$(sProjetCourant) Then
             sUC = UCase$(sDTR)
@@ -782,4 +909,317 @@ End Function
 Public Sub SIRUS_ResetCacheRefresh()
     ' Pas de cache module-level dans cette version (rechargement complet
     ' a chaque clic). Stub pour symetrie API future.
+End Sub
+
+' =========================================================================
+' DIAGNOSTIC : lister les feuilles / tables de la BdD TRAVAIL
+' =========================================================================
+' A executer manuellement dans le VBE (F5) pour verifier le nom EXACT de
+' la feuille SnapShotPrix dans la BdD. Output dans la fenetre Immediate
+' (Ctrl+G dans VBE).
+Public Sub Test_DumpFeuillesBdD()
+    Dim cnx As String
+    Dim cn As Object
+    Dim rs As Object
+
+    cnx = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
+    On Error GoTo Sortie
+
+    Set cn = CreateObject("ADODB.Connection")
+    cn.Open cnx
+    Set rs = cn.OpenSchema(20)   ' adSchemaTables = 20
+
+    Debug.Print String(60, "=")
+    Debug.Print "TABLES / FEUILLES de la BdD TRAVAIL"
+    Debug.Print String(60, "=")
+    Do While Not rs.EOF
+        Debug.Print "  [" & rs.Fields("TABLE_TYPE").Value & "] " & _
+                    rs.Fields("TABLE_NAME").Value
+        rs.MoveNext
+    Loop
+
+    rs.Close
+    cn.Close
+    Exit Sub
+
+Sortie:
+    Debug.Print "Erreur Test_DumpFeuillesBdD : " & Err.description
+    On Error Resume Next
+    If Not rs Is Nothing Then If rs.State = 1 Then rs.Close
+    If Not cn Is Nothing Then If cn.State = 1 Then cn.Close
+    On Error GoTo 0
+End Sub
+
+' =========================================================================
+' DIAGNOSTIC : patterns de DTR dans Produit_SnapShotPrix
+' Classifie chaque DTR par forme : "Numerique pur" (8600xxx), "DTRxxxxx",
+' "ATXxxxxx", "Autre alphanumerique". Compte le total et donne 5 exemples
+' par categorie.
+' =========================================================================
+Public Sub Test_CompterPatternsDTR()
+    Dim cnx As String
+    Dim sDTR As String, sCat As String
+    Dim dictCount As Object, dictExamples As Object
+    Dim key As Variant
+
+    cnx = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
+    On Error GoTo Sortie
+    Call Open_CONN(cnx)
+    ' Cast DTR en String pour recuperer aussi les DTR alphanumeriques
+    Call open_REQSEL("SELECT DISTINCT [DTR] & '' AS DTR_str FROM [Produit_SnapShotPrix$]")
+
+    If REQSEL Is Nothing Then GoTo Sortie
+    If REQSEL.EOF And REQSEL.BOF Then GoTo Sortie
+
+    Set dictCount = CreateObject("Scripting.Dictionary")
+    Set dictExamples = CreateObject("Scripting.Dictionary")
+    dictCount.CompareMode = vbTextCompare
+    dictExamples.CompareMode = vbTextCompare
+
+    Do While Not REQSEL.EOF
+        sDTR = Trim$(NzS(REQSEL.Fields("DTR_str").Value))
+        If Right$(sDTR, 2) = ".0" Then sDTR = Left$(sDTR, Len(sDTR) - 2)
+        If LenB(sDTR) > 0 Then
+            sCat = ""
+            If IsNumeric(sDTR) Then
+                sCat = "Numerique pur"
+            ElseIf UCase$(Left$(sDTR, 3)) = "DTR" Then
+                sCat = "DTRxxxxx"
+            ElseIf UCase$(Left$(sDTR, 3)) = "ATX" Then
+                sCat = "ATXxxxxx"
+            Else
+                sCat = "Autre alphanumerique"
+            End If
+            If dictCount.Exists(sCat) Then
+                dictCount(sCat) = CLng(dictCount(sCat)) + 1
+            Else
+                dictCount.Add sCat, 1
+                dictExamples.Add sCat, ""
+            End If
+            If Len(CStr(dictExamples(sCat))) < 200 Then
+                dictExamples(sCat) = CStr(dictExamples(sCat)) & sDTR & " ; "
+            End If
+        End If
+        REQSEL.MoveNext
+    Loop
+
+    Debug.Print String(60, "=")
+    Debug.Print "Patterns DTR distincts dans Produit_SnapShotPrix"
+    Debug.Print String(60, "=")
+    For Each key In dictCount.Keys
+        Debug.Print Format$(CLng(dictCount(key)), "00000") & " x  [" & key & "]"
+        Debug.Print "       Exemples : " & dictExamples(key)
+    Next key
+
+Sortie:
+    If Err.Number <> 0 Then Debug.Print "ERREUR : " & Err.description
+    On Error Resume Next
+    Call Close_CONN(cnx)
+    On Error GoTo 0
+End Sub
+
+' =========================================================================
+' DIAGNOSTIC : dry-run de RafraichirPrixCatalogue sur UN DTR donne.
+' Affiche TOUTES les lignes SnapShotPrix matchant le DTR, avec :
+'   - leur Type / Ref Catalogue / Prix / Date Source
+'   - le verdict du filtre VBA (SPARE_DIS / SPARE_FCS / REPAIR_DIS / skip)
+'   - la ligne finalement retenue par categorie (MAX Date Source)
+' Modifier la constante TEST_DTR pour tester avec ton DTR connu.
+' =========================================================================
+Public Sub Test_RafraichirPrixDryRun()
+    Const TEST_DTR As String = "8600361"   ' <-- modifier ici si besoin
+    Dim cnx As String
+    Dim sDTR As String, sType As String, sRefCat As String, sTypeRefUC As String
+    Dim vDate As Variant, vPrix As Variant, vLT As Variant
+    Dim dictBest As Object
+    Dim key As Variant
+    Dim nbLignesDTR As Long, nbMatchFiltre As Long
+
+    cnx = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
+    On Error GoTo Sortie
+    Call Open_CONN(cnx)
+    ' Cast DTR en String (cf. note RafraichirDepuisProduit)
+    Call open_REQSEL("SELECT [DTR] & '' AS DTR_str, [Type], [Prix], [LeadTime], " & _
+                     "[Ref Catalogue], [Date Source] FROM [Produit_SnapShotPrix$]")
+
+    If REQSEL Is Nothing Then GoTo Sortie
+    If REQSEL.EOF And REQSEL.BOF Then GoTo Sortie
+
+    Set dictBest = CreateObject("Scripting.Dictionary")
+    dictBest.CompareMode = vbTextCompare
+
+    Debug.Print String(60, "=")
+    Debug.Print "Dry-run RafraichirPrixCatalogue pour DTR = " & TEST_DTR
+    Debug.Print String(60, "=")
+
+    Do While Not REQSEL.EOF
+        ' Normaliser le DTR (BdD peut etre Double, .0 a stripper)
+        sDTR = Trim$(NzS(REQSEL.Fields("DTR_str").Value))
+        If Right$(sDTR, 2) = ".0" Then sDTR = Left$(sDTR, Len(sDTR) - 2)
+
+        If sDTR = TEST_DTR Then
+            nbLignesDTR = nbLignesDTR + 1
+            sType = UCase$(Trim$(NzS(REQSEL.Fields("Type").Value)))
+            sRefCat = UCase$(NzS(REQSEL.Fields("Ref Catalogue").Value))
+            vDate = REQSEL.Fields("Date Source").Value
+            vPrix = REQSEL.Fields("Prix").Value
+            vLT = REQSEL.Fields("LeadTime").Value
+
+            sTypeRefUC = ""
+            If sType = "SPARE" Then
+                If InStr(1, sRefCat, "D&IS CATALOGUE", vbTextCompare) > 0 Then
+                    sTypeRefUC = "SPARE_DIS"
+                ElseIf InStr(1, sRefCat, "FCS", vbTextCompare) > 0 Then
+                    sTypeRefUC = "SPARE_FCS"
+                End If
+            ElseIf sType = "REPAIR" Then
+                If InStr(1, sRefCat, "D&IS CATALOGUE", vbTextCompare) > 0 Then
+                    sTypeRefUC = "REPAIR_DIS"
+                End If
+            End If
+
+            Debug.Print "  [" & sType & "] '" & REQSEL.Fields("Ref Catalogue").Value & _
+                        "'  Prix=" & NzS(vPrix) & "  Date=" & NzS(vDate) & _
+                        "  IsDate=" & IsDate(vDate) & _
+                        "  -> " & IIf(sTypeRefUC = "", "(skip)", sTypeRefUC)
+
+            If LenB(sTypeRefUC) > 0 And IsDate(vDate) Then
+                nbMatchFiltre = nbMatchFiltre + 1
+                Dim k As String
+                k = sTypeRefUC
+                Dim conserver As Boolean
+                conserver = True
+                If dictBest.Exists(k) Then
+                    Dim prev As Variant
+                    prev = dictBest(k)
+                    If CDate(prev(0)) >= CDate(vDate) Then conserver = False
+                End If
+                If conserver Then
+                    dictBest(k) = Array(vDate, vPrix, REQSEL.Fields("Ref Catalogue").Value, vLT)
+                End If
+            End If
+        End If
+        REQSEL.MoveNext
+    Loop
+
+    Debug.Print String(60, "-")
+    Debug.Print "Total lignes BdD pour " & TEST_DTR & " : " & nbLignesDTR
+    Debug.Print "Lignes matchant un filtre (D&IS/FCS) : " & nbMatchFiltre
+    Debug.Print "Lignes retenues (max Date par categorie) : " & dictBest.count
+    Debug.Print String(60, "-")
+    Debug.Print "Lignes retenues :"
+    For Each key In dictBest.Keys
+        Debug.Print "  " & key & "  ->  Date=" & dictBest(key)(0) & _
+                    "  Prix=" & dictBest(key)(1) & _
+                    "  Ref='" & dictBest(key)(2) & "'" & _
+                    "  LT=" & dictBest(key)(3)
+    Next key
+
+Sortie:
+    If Err.Number <> 0 Then Debug.Print "ERREUR : " & Err.description
+    On Error Resume Next
+    Call Close_CONN(cnx)
+    On Error GoTo 0
+End Sub
+
+' =========================================================================
+' DIAGNOSTIC : liste les valeurs distinctes de [Ref Catalogue] dans
+' Produit_SnapShotPrix avec nb d occurrences par (Type, Ref Catalogue).
+' Permet de connaitre les VRAIS libelles de catalogue presents en BdD.
+' =========================================================================
+Public Sub Test_DistinctRefCatalogue()
+    Dim cnx As String
+    Dim dict As Object
+    Dim sType As String, sRef As String, sKey As String
+    Dim key As Variant
+    Dim total As Long
+
+    cnx = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
+    On Error GoTo Sortie
+    Call Open_CONN(cnx)
+    Call open_REQSEL("SELECT [Type], [Ref Catalogue] FROM [Produit_SnapShotPrix$]")
+
+    If REQSEL Is Nothing Then GoTo Sortie
+    If REQSEL.EOF And REQSEL.BOF Then GoTo Sortie
+
+    Set dict = CreateObject("Scripting.Dictionary")
+    dict.CompareMode = vbTextCompare
+
+    Do While Not REQSEL.EOF
+        sType = NzS(REQSEL.Fields("Type").Value)
+        sRef = NzS(REQSEL.Fields("Ref Catalogue").Value)
+        sKey = "[" & sType & "]  " & sRef
+        If dict.Exists(sKey) Then
+            dict(sKey) = CLng(dict(sKey)) + 1
+        Else
+            dict.Add sKey, 1
+        End If
+        total = total + 1
+        REQSEL.MoveNext
+    Loop
+
+    Debug.Print String(60, "=")
+    Debug.Print "Couples (Type, Ref Catalogue) distincts dans Produit_SnapShotPrix"
+    Debug.Print "Total rows scannees : " & total & "  -  Couples distincts : " & dict.count
+    Debug.Print String(60, "=")
+    For Each key In dict.Keys
+        Debug.Print Format$(CLng(dict(key)), "0000") & " x  " & key
+    Next key
+
+Sortie:
+    On Error Resume Next
+    Call Close_CONN(cnx)
+    On Error GoTo 0
+End Sub
+
+' =========================================================================
+' DIAGNOSTIC : dump des colonnes + 5 premieres lignes de Produit_SnapShotPrix
+' =========================================================================
+' A executer manuellement dans le VBE (F5). Output dans Immediate.
+' Permet de voir le vrai schema (noms de colonnes, types) et le format
+' des valeurs reelles pour Type, Ref Catalogue, etc.
+Public Sub Test_DumpSnapShotPrix()
+    Dim cnx As String
+    Dim f As Object
+    Dim i As Long
+
+    cnx = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
+    On Error GoTo Sortie
+    Call Open_CONN(cnx)
+    Call open_REQSEL("SELECT * FROM [Produit_SnapShotPrix$]")
+
+    If REQSEL Is Nothing Then
+        Debug.Print "REQSEL = Nothing (la requete a echoue)"
+        GoTo Sortie
+    End If
+
+    Debug.Print String(60, "=")
+    Debug.Print "Schema de [Produit_SnapShotPrix$] :"
+    Debug.Print String(60, "=")
+    For Each f In REQSEL.Fields
+        Debug.Print "  '" & f.Name & "'  (Type ADO=" & f.Type & ")"
+    Next f
+
+    If REQSEL.EOF And REQSEL.BOF Then
+        Debug.Print "(RecordSet vide)"
+        GoTo Sortie
+    End If
+
+    Debug.Print String(60, "-")
+    Debug.Print "5 PREMIERES LIGNES :"
+    Debug.Print String(60, "-")
+    i = 0
+    Do While Not REQSEL.EOF And i < 5
+        Debug.Print "--- Ligne " & (i + 1) & " ---"
+        For Each f In REQSEL.Fields
+            Debug.Print "  " & f.Name & " = '" & NzS(f.Value) & "'"
+        Next f
+        REQSEL.MoveNext
+        i = i + 1
+    Loop
+
+Sortie:
+    On Error Resume Next
+    Call Close_CONN(cnx)
+    On Error GoTo 0
 End Sub
