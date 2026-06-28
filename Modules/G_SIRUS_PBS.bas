@@ -47,11 +47,13 @@ Public Type DATA_ASL_Col
     DureeVie_Ana_SOFT             As Long
     DureeTachePrev_Ana_SOFT       As Long
     UniteMaintPreventive          As Long
-    CoutTotal                     As Long
-    ISP_TIS_FCS                   As Long
-    ISP_TIS_Calc                  As Long
+    PrixFCS                       As Long
+    PrixSpareCatalogue            As Long
+    PrixSpareCalcule              As Long
+    RefSourceSpare                As Long
     LeadTimeSpareCalend           As Long
-    PrixRepa_ISP                  As Long
+    PrixRepairCatalogue           As Long
+    RefSourceRepair               As Long
     LeadTimeRepairCalend          As Long
     CoutSpare_FRS_NotISP          As Long
     LeadTimeSpare_FRS             As Long
@@ -59,8 +61,6 @@ Public Type DATA_ASL_Col
     LeadTimeRepair_FRS            As Long
     CoutSpare_AlstomFR_FRS        As Long
     PrixRepair_Alstom_FRS         As Long
-    PrixManuelSpare               As Long
-    PrixManuelRepair              As Long
     PrixSpare_ProjetArchive       As Long
     PrixRepair_ProjetArchive      As Long
 End Type
@@ -162,71 +162,70 @@ Public Function MapColonnesDATA_ASL(ByVal ws As Worksheet) As Boolean
         ' --- Identification --------------------------------------------------
         .DTR_PBS = TrouverColonne(ws, "DTR Reference (issue de PBS)", True, manqueCritique, manqueOptionnel)
         .Designation_PBS = TrouverColonne(ws, "DESIGNATION (issue de PBS)", False, manqueCritique, manqueOptionnel)
-        .Designation_BdD = TrouverColonne(ws, "DESIGNATION (issue de BdD)", False, manqueCritique, manqueOptionnel)
-        .Designation_Providor = TrouverColonne(ws, _
-            "DESIGNATION (mise en forme pour copier dans Providor : construite " & ChrW(224) & _
-            " partir de celle de la PBS et de la d" & ChrW(233) & _
-            "signation issue de BdD (ORCHESTRA)))", _
-            False, manqueCritique, manqueOptionnel)
-        .SousSysteme = TrouverColonne(ws, _
-            "SOUS SYST" & ChrW(200) & "ME (copi" & ChrW(233) & "s de la PBS et classifi" & _
-            ChrW(233) & "s selon g" & ChrW(233) & "n" & ChrW(233) & "riques)", _
-            False, manqueCritique, manqueOptionnel)
+        .Designation_BdD = TrouverColonne(ws, "DESIGNATION (issue BdD)", False, manqueCritique, manqueOptionnel)
+        .Designation_Providor = TrouverColonne(ws, "DESIGNATION (Providor)", False, manqueCritique, manqueOptionnel)
+        .SousSysteme = TrouverColonne(ws, "SOUS SYST" & ChrW(200) & "ME", False, manqueCritique, manqueOptionnel)
         .Qte = TrouverColonne(ws, "Qte", False, manqueCritique, manqueOptionnel)
         .NodeType = TrouverColonne(ws, "Node typed (LRU/SRU" & ChrW(8230) & ")", False, manqueCritique, manqueOptionnel)
         .HardSoft = TrouverColonne(ws, "HARD/SOFT", False, manqueCritique, manqueOptionnel)
         .NTI = TrouverColonne(ws, "NTI", False, manqueCritique, manqueOptionnel)
-        .RefPlan = TrouverColonne(ws, "r" & ChrW(233) & "f du plan d'ensemble (issue de la BdD)", False, manqueCritique, manqueOptionnel)
+        .RefPlan = TrouverColonne(ws, "R" & ChrW(233) & "f plan ensemble", False, manqueCritique, manqueOptionnel)
 
         ' --- RAM -------------------------------------------------------------
-        .MTBF_Gen = TrouverColonne(ws, "MTBF g" & ChrW(233) & "n" & ChrW(233) & "rique (offre et PGR)", False, manqueCritique, manqueOptionnel)
-        .TxDef_Gen = TrouverColonne(ws, "Tx d" & ChrW(233) & "ffaillance g" & ChrW(233) & "n" & ChrW(233) & "rique", False, manqueCritique, manqueOptionnel)
+        .MTBF_Gen = TrouverColonne(ws, "MTBF g" & ChrW(233) & "n" & ChrW(233) & "rique (offre+PGR)", False, manqueCritique, manqueOptionnel)
+        .TxDef_Gen = TrouverColonne(ws, "Tx d" & ChrW(233) & "faillance g" & ChrW(233) & "n" & ChrW(233) & "rique", False, manqueCritique, manqueOptionnel)
         .DureeTacheCorrPrev_Gen_HARD = TrouverColonne(ws, _
-            "Dur" & ChrW(233) & "e de la t" & ChrW(226) & "che corrective et pr" & ChrW(233) & _
-            "ventive g" & ChrW(233) & "n" & ChrW(233) & "rique (offre et PGR) HARDWARE", _
+            "Dur" & ChrW(233) & "e t" & ChrW(226) & "che correctif+pr" & ChrW(233) & _
+            "ventif HARD g" & ChrW(233) & "n" & ChrW(233) & "rique", _
             False, manqueCritique, manqueOptionnel)
-        .MTBF_Intr = TrouverColonne(ws, "MTBF intrins" & ChrW(232) & "que (RAM report specifique projet (CGR))", False, manqueCritique, manqueOptionnel)
-        .MTBF_Fonct = TrouverColonne(ws, "MTBF fonctionnel (RAM report specifique projet (CGR))", False, manqueCritique, manqueOptionnel)
-        .TxDef_Fonct = TrouverColonne(ws, "Tx d" & ChrW(233) & "ffaillance fonctionnel", False, manqueCritique, manqueOptionnel)
+        .MTBF_Intr = TrouverColonne(ws, "MTBF intrins" & ChrW(232) & "que RAM Report sp" & ChrW(233) & "cifique", False, manqueCritique, manqueOptionnel)
+        .MTBF_Fonct = TrouverColonne(ws, "MTBF fonctionnel RAM Report sp" & ChrW(233) & "cifique", False, manqueCritique, manqueOptionnel)
+        .TxDef_Fonct = TrouverColonne(ws, "Tx d" & ChrW(233) & "faillance fonctionnel", False, manqueCritique, manqueOptionnel)
         .DureeTacheCorrPrev_Ana_HARD = TrouverColonne(ws, _
-            "Dur" & ChrW(233) & "e de la t" & ChrW(226) & "che corrective et pr" & ChrW(233) & _
-            "ventive analytique (CGR) HARDWARE", _
+            "Dur" & ChrW(233) & "e t" & ChrW(226) & "che correctif+pr" & ChrW(233) & _
+            "ventif HARD analytique", _
             False, manqueCritique, manqueOptionnel)
-        .UniteMaintCorrective = TrouverColonne(ws, "UNITE de la maintenance corrective", False, manqueCritique, manqueOptionnel)
+        .UniteMaintCorrective = TrouverColonne(ws, "UNIT" & ChrW(201) & " maintenance corrective", False, manqueCritique, manqueOptionnel)
 
         ' --- Duree de vie / taches preventives -----------------------------
-        .DureeVie_Gen_HARD = TrouverColonne(ws, "DUREE DE VIE LIMITEE g" & ChrW(233) & "n" & ChrW(233) & "rique (offre et PGR) HARDWARE", False, manqueCritique, manqueOptionnel)
-        .DureeVie_Ana_HARD = TrouverColonne(ws, "DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) HARDWARE", False, manqueCritique, manqueOptionnel)
-        .DureeVie_Gen_SOFT = TrouverColonne(ws, "DUREE DE VIE LIMITEE g" & ChrW(233) & "n" & ChrW(233) & "rique (offre et PGR) SOFTWARE", False, manqueCritique, manqueOptionnel)
+        ' DureeVie_Ana_* mappe la colonne "DVL <type> specifique" du nouveau
+        ' template (= ce qui etait appele "analytique" / "RAM report specifique
+        ' projet (CGR)" dans l'ancien). Saisie ASL.
+        .DureeVie_Gen_HARD = TrouverColonne(ws, "DVL HARD g" & ChrW(233) & "n" & ChrW(233) & "rique", False, manqueCritique, manqueOptionnel)
+        .DureeVie_Ana_HARD = TrouverColonne(ws, "DVL HARD sp" & ChrW(233) & "cifique", False, manqueCritique, manqueOptionnel)
+        .DureeVie_Gen_SOFT = TrouverColonne(ws, "DVL SOFT g" & ChrW(233) & "n" & ChrW(233) & "rique", False, manqueCritique, manqueOptionnel)
         .DureeTachePrev_Gen_SOFT = TrouverColonne(ws, _
-            "Dur" & ChrW(233) & "e de la t" & ChrW(226) & "che pr" & ChrW(233) & _
-            "ventive g" & ChrW(233) & "n" & ChrW(233) & "rique SOFTWARE (offre et PGR)", _
+            "Dur" & ChrW(233) & "e t" & ChrW(226) & "che pr" & ChrW(233) & _
+            "ventif SOFT g" & ChrW(233) & "n" & ChrW(233) & "rique", _
             False, manqueCritique, manqueOptionnel)
-        .DureeVie_Ana_SOFT = TrouverColonne(ws, "DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) SOFTWARE", False, manqueCritique, manqueOptionnel)
+        .DureeVie_Ana_SOFT = TrouverColonne(ws, "DVL SOFT sp" & ChrW(233) & "cifique", False, manqueCritique, manqueOptionnel)
         .DureeTachePrev_Ana_SOFT = TrouverColonne(ws, _
-            "Dur" & ChrW(233) & "e de la t" & ChrW(226) & "che pr" & ChrW(233) & _
-            "ventive analytique SOFTWARE (CGR)", _
+            "Dur" & ChrW(233) & "e t" & ChrW(226) & "che pr" & ChrW(233) & _
+            "ventif SOFT analytique", _
             False, manqueCritique, manqueOptionnel)
-        .UniteMaintPreventive = TrouverColonne(ws, "UNITE de la maintenance pr" & ChrW(233) & "ventive", False, manqueCritique, manqueOptionnel)
+        .UniteMaintPreventive = TrouverColonne(ws, "UNIT" & ChrW(201) & " maintenance pr" & ChrW(233) & "ventive", False, manqueCritique, manqueOptionnel)
 
         ' --- Couts et prix --------------------------------------------------
-        ' Critiques : les 6 prix utilises pour la qualite Spare/Repair
-        .CoutTotal = TrouverColonne(ws, "Cout total", False, manqueCritique, manqueOptionnel)
-        .ISP_TIS_FCS = TrouverColonne(ws, "ISP TIS FRANCE (FCS)", True, manqueCritique, manqueOptionnel)
-        .ISP_TIS_Calc = TrouverColonne(ws, "ISP TIS FRANCE (calcul" & ChrW(233) & ")", False, manqueCritique, manqueOptionnel)
-        .LeadTimeSpareCalend = TrouverColonne(ws, "Lead Time SPARE (en jours calendaires)", False, manqueCritique, manqueOptionnel)
-        .PrixRepa_ISP = TrouverColonne(ws, "Prix repa (ISP Catalogue R" & ChrW(233) & "pa)", True, manqueCritique, manqueOptionnel)
-        .LeadTimeRepairCalend = TrouverColonne(ws, "Lead Time REPAIR (en jours calendaires)", False, manqueCritique, manqueOptionnel)
-        .CoutSpare_FRS_NotISP = TrouverColonne(ws, "Cout spare FOURNISSEUR (Not ISP)", False, manqueCritique, manqueOptionnel)
+        ' Critiques : les 4 prix necessaires aux cascades Spare/Repair de la
+        ' ListView_Generation. Cascade Spare : Fournisseur -> Cat D&IS ->
+        ' FCS calcule -> Archive. Cascade Repair : Fournisseur -> Cat D&IS ->
+        ' Archive.
+        .PrixFCS = TrouverColonne(ws, "Prix FCS", False, manqueCritique, manqueOptionnel)
+        .PrixSpareCatalogue = TrouverColonne(ws, "Prix spare catalogue", True, manqueCritique, manqueOptionnel)
+        .PrixSpareCalcule = TrouverColonne(ws, "Prix Spare calcul" & ChrW(233), True, manqueCritique, manqueOptionnel)
+        .RefSourceSpare = TrouverColonne(ws, "Ref Source Spare", False, manqueCritique, manqueOptionnel)
+        .LeadTimeSpareCalend = TrouverColonne(ws, "Lead Time SPARE (jours calendaires)", False, manqueCritique, manqueOptionnel)
+        .PrixRepairCatalogue = TrouverColonne(ws, "Prix repair catalogue", True, manqueCritique, manqueOptionnel)
+        .RefSourceRepair = TrouverColonne(ws, "Ref Source Repair", False, manqueCritique, manqueOptionnel)
+        .LeadTimeRepairCalend = TrouverColonne(ws, "Lead Time REPAIR (jours calendaires)", False, manqueCritique, manqueOptionnel)
+        .CoutSpare_FRS_NotISP = TrouverColonne(ws, "Cout spare FOURNISSEUR Not ISP", False, manqueCritique, manqueOptionnel)
         .LeadTimeSpare_FRS = TrouverColonne(ws, "Lead Time SPARE FOURNISSEUR", False, manqueCritique, manqueOptionnel)
-        .CoutRepair_FRS_NotISP = TrouverColonne(ws, "Cout Repair FOURNISSEUR (Not ISP)", False, manqueCritique, manqueOptionnel)
+        .CoutRepair_FRS_NotISP = TrouverColonne(ws, "Cout Repair FOURNISSEUR Not ISP", False, manqueCritique, manqueOptionnel)
         .LeadTimeRepair_FRS = TrouverColonne(ws, "Lead Time REPAIR FOURNISSEUR", False, manqueCritique, manqueOptionnel)
         .CoutSpare_AlstomFR_FRS = TrouverColonne(ws, "Cout spare ALSTOM FRANCE FOURNISSEUR", True, manqueCritique, manqueOptionnel)
         .PrixRepair_Alstom_FRS = TrouverColonne(ws, "Prix repair ALSTOM FOURNISSEUR", True, manqueCritique, manqueOptionnel)
-        .PrixManuelSpare = TrouverColonne(ws, "Prix Manuel Spare", True, manqueCritique, manqueOptionnel)
-        .PrixManuelRepair = TrouverColonne(ws, "Prix Manuel Repair", True, manqueCritique, manqueOptionnel)
-        .PrixSpare_ProjetArchive = TrouverColonne(ws, "Prix Spare sur un projet archive", False, manqueCritique, manqueOptionnel)
-        .PrixRepair_ProjetArchive = TrouverColonne(ws, "Prix Repair sur un projet archive", False, manqueCritique, manqueOptionnel)
+        .PrixSpare_ProjetArchive = TrouverColonne(ws, "Prix Spare projet archive", False, manqueCritique, manqueOptionnel)
+        .PrixRepair_ProjetArchive = TrouverColonne(ws, "Prix Repair projet archive", False, manqueCritique, manqueOptionnel)
     End With
 
     If Len(manqueOptionnel) > 0 Then
@@ -312,17 +311,26 @@ End Function
 ' Alimente la ListView_Generation du UserForm avec, pour chaque DTR de
 ' la PBS du classeur actif :
 '   Col 1  : DTR
-'   Col 2  : Projet_ASL - % MeQ (vert 100% / rouge < 100% / "Absent" si pas de row)
+'   Col 2  : Nb projets ProjetASL (count global ; tooltip = liste projets)
 '   Col 3  : ATM-Info   - % MeQ
 '   Col 4  : ATM-Tache  - % MeQ (moyenne sur toutes les taches du DTR)
 '   Col 5  : EMMST      - % MeQ
 '   Col 6  : Produit    - % MeQ
-'   Col 7  : Qualite Prix Spare
-'   Col 8  : Source Ecart Spare
-'   Col 9  : Source Manque Spare
-'   Col 10 : Qualite Prix Repair
-'   Col 11 : Source Ecart Repair
-'   Col 12 : Source Manque Repair
+'   Col 7  : Prix Spare    (Format #,##0.00 ou vide)
+'   Col 8  : Source Spare  ("Fournisseur" / Ref D&IS / "FCS" / "Projet : NOM")
+'   Col 9  : Prix Repair   (Format #,##0.00 ou vide)
+'   Col 10 : Source Repair ("Fournisseur" / Ref D&IS / "Projet : NOM")
+'
+' Cascade prix (priorite descendante) :
+'   Spare  : Fournisseur -> Cat D&IS -> Cat FCS calcule (col AB) -> Archive
+'   Repair : Fournisseur -> Cat D&IS                              -> Archive
+'
+' Source affichee = origine de la valeur prix retenue :
+'   - Fournisseur : libelle en dur
+'   - Cat D&IS    : contenu de Ref Source Spare (col AC) ou Repair (col AF)
+'   - Cat FCS     : "FCS" en dur (Spare uniquement)
+'   - Archive     : "Projet : <nom>" du projet alphabetiquement premier dans
+'                   ProjetASL pour ce DTR, projet courant exclu
 '
 ' MeQ = champs Obligatoire="Oui" remplis / champs Obligatoire="Oui" attendus,
 ' + Conditionnels evalues via SIRUS_RegleObligatoire (G_SIRUS_Regles).
@@ -345,7 +353,7 @@ Public Sub SIRUS_RemplirListViewGeneration()
     Dim lv As MSComctlLib.ListView
     Dim ligne As Long, derniereLigne As Long
     Dim dtr As String
-    Dim vMan As Variant, vFrs As Variant, vCat As Variant
+    Dim sProjetCourant As String
     Dim resSpare As Variant, resRepair As Variant
     Dim li As MSComctlLib.ListItem
     Dim nbAjoutees As Long
@@ -374,6 +382,20 @@ Public Sub SIRUS_RemplirListViewGeneration()
         Set cfgProduit = SIRUS_LireConfig("Produit")
     End If
 
+    ' Garantir que la connexion BdD est ouverte. RafraichirPrixArchive
+    ' (G_PBS_Refresh) fait un Close_CONN a la fin -> Base = Nothing.
+    ' Sans ce guard, ChargerRowsTableBdD_Optim plante silencieusement et
+    ' la ListView affiche "Absent" / 0 partout apres un Refresh.
+    If SIRUS_LookupDTR_Active Then
+        On Error Resume Next
+        If Base Is Nothing Then
+            Call Open_CONN(Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile")))
+        ElseIf Base.State <> 1 Then
+            Call Open_CONN(Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile")))
+        End If
+        On Error GoTo Sortie
+    End If
+
     ' Caches rows BdD - une seule requete SELECT (cible) par table.
     ' ProjetASL : pas de filtre projet (on veut le count global de projets
     ' connus par DTR, cf. nouvelle colonne "N projets" ci-dessous).
@@ -387,6 +409,12 @@ Public Sub SIRUS_RemplirListViewGeneration()
 
     derniereLigne = wsPBS.Cells(wsPBS.rows.count, DATA_ASL_type.DTR_PBS).End(xlUp).Row
     If derniereLigne <= DATA_ASL_HeaderRow Then Exit Sub
+
+    ' Projet courant : alimente la cascade Archive (exclusion + libelle source)
+    sProjetCourant = ""
+    On Error Resume Next
+    sProjetCourant = CStr(UserForm.Project_List.Value)
+    On Error GoTo 0
 
     Application.ScreenUpdating = False
 
@@ -432,23 +460,15 @@ Public Sub SIRUS_RemplirListViewGeneration()
             Call AjouterSubItemColore(li, "", False)
         End If
 
-        ' Qualite SPARE (Manuel / Alstom FRS / ISP catalogue)
-        vMan = LireCellule(wsPBS, ligne, DATA_ASL_type.PrixManuelSpare)
-        vFrs = LireCellule(wsPBS, ligne, DATA_ASL_type.CoutSpare_AlstomFR_FRS)
-        vCat = LireCellule(wsPBS, ligne, DATA_ASL_type.ISP_TIS_FCS)
-        resSpare = EvaluerQualitePrix(vMan, vFrs, vCat)
-        Call AjouterSubItemColore(li, CStr(resSpare(0)), False, CouleurQualite(CStr(resSpare(0)), CStr(resSpare(2))))
-        Call AjouterSubItemColore(li, CStr(resSpare(1)), False)
-        Call AjouterSubItemColore(li, CStr(resSpare(2)), False)
+        ' Prix SPARE (Frs -> Cat D&IS -> FCS calcule -> Archive)
+        resSpare = CalculerPrixSpare(wsPBS, ligne, dtr, sProjetCourant)
+        Call AjouterSubItemPrix(li, resSpare(0))
+        Call AjouterSubItemSource(li, CStr(resSpare(1)))
 
-        ' Qualite REPAIR (Manuel / Alstom FRS / ISP catalogue)
-        vMan = LireCellule(wsPBS, ligne, DATA_ASL_type.PrixManuelRepair)
-        vFrs = LireCellule(wsPBS, ligne, DATA_ASL_type.PrixRepair_Alstom_FRS)
-        vCat = LireCellule(wsPBS, ligne, DATA_ASL_type.PrixRepa_ISP)
-        resRepair = EvaluerQualitePrix(vMan, vFrs, vCat)
-        Call AjouterSubItemColore(li, CStr(resRepair(0)), False, CouleurQualite(CStr(resRepair(0)), CStr(resRepair(2))))
-        Call AjouterSubItemColore(li, CStr(resRepair(1)), False)
-        Call AjouterSubItemColore(li, CStr(resRepair(2)), False)
+        ' Prix REPAIR (Frs -> Cat D&IS -> Archive)
+        resRepair = CalculerPrixRepair(wsPBS, ligne, dtr, sProjetCourant)
+        Call AjouterSubItemPrix(li, resRepair(0))
+        Call AjouterSubItemSource(li, CStr(resRepair(1)))
 
 SuivanteLigne:
     Next ligne
@@ -456,12 +476,13 @@ SuivanteLigne:
     Debug.Print "SIRUS_RemplirListViewGeneration : " & nbAjoutees & _
                 " ligne(s) (Lookup=" & SIRUS_LookupDTR_Active & ")"
     Debug.Print "  Colonnes prix mappees (0 = introuvable) :"
-    Debug.Print "    PrixManuelSpare        = col " & DATA_ASL_type.PrixManuelSpare
     Debug.Print "    CoutSpare_AlstomFR_FRS = col " & DATA_ASL_type.CoutSpare_AlstomFR_FRS
-    Debug.Print "    ISP_TIS_FCS            = col " & DATA_ASL_type.ISP_TIS_FCS
-    Debug.Print "    PrixManuelRepair       = col " & DATA_ASL_type.PrixManuelRepair
+    Debug.Print "    PrixSpareCatalogue     = col " & DATA_ASL_type.PrixSpareCatalogue
+    Debug.Print "    PrixSpareCalcule       = col " & DATA_ASL_type.PrixSpareCalcule
+    Debug.Print "    PrixSpare_ProjetArchive= col " & DATA_ASL_type.PrixSpare_ProjetArchive
     Debug.Print "    PrixRepair_Alstom_FRS  = col " & DATA_ASL_type.PrixRepair_Alstom_FRS
-    Debug.Print "    PrixRepa_ISP           = col " & DATA_ASL_type.PrixRepa_ISP
+    Debug.Print "    PrixRepairCatalogue    = col " & DATA_ASL_type.PrixRepairCatalogue
+    Debug.Print "    PrixRepair_ProjetArchive=col " & DATA_ASL_type.PrixRepair_ProjetArchive
 
 Sortie:
     Application.ScreenUpdating = True
@@ -888,135 +909,6 @@ End Sub
 
 
 ' =========================================================================
-' FONCTION: CouleurQualite
-' Couleur associee a un statut qualite prix (OK / NOK *) pour la ListView.
-' Retourne -1 si pas de couleur particuliere (texte noir par defaut).
-'
-' Cas special : "NOK - Manque" avec sourceManque = "Fournisseur" seul est
-' considere normal (le prix fournisseur n'est pas toujours connu en
-' avance, c'est attendu). Pas de coloration ni de gras dans ce cas.
-' =========================================================================
-Private Function CouleurQualite(ByVal sQualite As String, _
-                                 Optional ByVal sSourceManque As String = "") As Long
-    ' Exception : manque uniquement du prix Fournisseur = cas normal
-    If sQualite = "NOK - Manque" And sSourceManque = "Fournisseur" Then
-        CouleurQualite = -1
-        Exit Function
-    End If
-
-    Select Case sQualite
-        Case "OK":                    CouleurQualite = RGB(0, 128, 0)        ' vert
-        Case "NOK - Ecart":           CouleurQualite = RGB(255, 140, 0)      ' orange
-        Case "NOK - Manque":          CouleurQualite = RGB(255, 140, 0)      ' orange
-        Case "NOK - Manque & Ecart":  CouleurQualite = RGB(192, 0, 0)        ' rouge
-        Case Else:                    CouleurQualite = -1
-    End Select
-End Function
-
-
-' =========================================================================
-' FONCTION: EvaluerQualitePrix
-' Calcule les 3 indicateurs de qualite pour un trio (Manuel / Fournisseur /
-' Catalogue) selon les regles SIRUS :
-'
-'   0/3 connus                -> "NOK - Manque" / "-" / "Manuel + Fournisseur + Catalogue"
-'   1/3 connus                -> "NOK - Manque" / "-" / les 2 sources manquantes
-'   2/3 connus, ecart >  seuil -> "NOK - Manque & Ecart" / source la plus
-'                                ecartee de la mediane / source manquante
-'   2/3 connus, ecart <= seuil -> "NOK - Manque" / "-" / source manquante
-'   3/3 connus, ecart >  seuil -> "NOK - Ecart" / source la plus ecartee / "-"
-'   3/3 connus, ecart <= seuil -> "OK" / "-" / "-"
-'
-' Ordre des sources : 1 = Manuel, 2 = Fournisseur, 3 = Catalogue.
-' Retour : Array(qualite, sourceEcart, sourceManque) -- toutes des String.
-' =========================================================================
-Public Function EvaluerQualitePrix(ByVal vManuel As Variant, ByVal vFournisseur As Variant, ByVal vCatalogue As Variant, _
-                                   Optional ByVal seuil As Double = 0.25) As Variant
-
-    Dim names(1 To 3) As String
-    Dim vals(1 To 3) As Double
-    Dim known(1 To 3) As Boolean
-    Dim nb As Long
-    Dim qualite As String, srcEcart As String, srcManque As String
-    Dim manquantes As String
-    Dim i As Long
-    Dim med As Double
-    Dim diff As Double, bestDiff As Double
-    Dim bestIdx As Long
-
-    names(1) = "Manuel"
-    names(2) = "Fournisseur"
-    names(3) = "Catalogue"
-
-    nb = 0
-    If EstNumeriqueConnu(vManuel) Then known(1) = True: vals(1) = CDbl(vManuel): nb = nb + 1
-    If EstNumeriqueConnu(vFournisseur) Then known(2) = True: vals(2) = CDbl(vFournisseur): nb = nb + 1
-    If EstNumeriqueConnu(vCatalogue) Then known(3) = True: vals(3) = CDbl(vCatalogue): nb = nb + 1
-
-    ' Liste des sources manquantes (separees par " + ")
-    manquantes = ""
-    For i = 1 To 3
-        If Not known(i) Then
-            If Len(manquantes) > 0 Then manquantes = manquantes & " + "
-            manquantes = manquantes & names(i)
-        End If
-    Next i
-
-    Select Case nb
-        Case 0, 1
-            qualite = "NOK - Manque"
-            srcEcart = "-"
-            srcManque = manquantes
-
-        Case 2, 3
-            med = MedianeConnus(vals, known)
-
-            ' Recherche de la source la plus ecartee de la mediane
-            bestDiff = -1#
-            bestIdx = 0
-            For i = 1 To 3
-                If known(i) Then
-                    If med = 0 Then
-                        diff = IIf(vals(i) = 0, 0#, 1E+99)
-                    Else
-                        diff = Abs(vals(i) - med) / Abs(med)
-                    End If
-                    If diff > bestDiff Then
-                        bestDiff = diff
-                        bestIdx = i
-                    End If
-                End If
-            Next i
-
-            If bestDiff > seuil Then
-                If nb = 2 Then
-                    qualite = "NOK - Manque & Ecart"
-                    srcEcart = names(bestIdx)
-                    srcManque = manquantes
-                Else
-                    qualite = "NOK - Ecart"
-                    srcEcart = names(bestIdx)
-                    srcManque = "-"
-                End If
-            Else
-                If nb = 2 Then
-                    qualite = "NOK - Manque"
-                    srcEcart = "-"
-                    srcManque = manquantes
-                Else
-                    qualite = "OK"
-                    srcEcart = "-"
-                    srcManque = "-"
-                End If
-            End If
-    End Select
-
-    EvaluerQualitePrix = Array(qualite, srcEcart, srcManque)
-
-End Function
-
-
-' =========================================================================
 ' FONCTION: EstNumeriqueConnu
 ' True si la valeur est exploitable comme prix (non vide, non erreur,
 ' numerique). 0 est considere connu.
@@ -1032,37 +924,177 @@ End Function
 
 
 ' =========================================================================
-' FONCTION: MedianeConnus
-' Mediane des valeurs marquees connues dans known(). Retourne 0 si vide.
+' FONCTION: CalculerPrixSpare
+' Applique la cascade Spare : Fournisseur -> Cat D&IS -> Cat FCS calcule
+' -> Archive. Retourne Array(prix, source) ou prix peut etre Empty si
+' aucune source n'est connue.
+'
+'   Fournisseur connu          -> (prix, "Fournisseur")
+'   D&IS connu                 -> (prix, RefSourceSpare ou "Catalogue D&IS")
+'   FCS calcule connu (col AB) -> (prix, RefSourceSpare ou "Catalogue FCS")
+'   Archive connu              -> (prix, "Projet : <projet alpha 1er>")
+'   Aucun                      -> (Empty, "")
+'
+' Note : la col AC (RefSourceSpare) est rempli par le Refresh selon une
+' cascade D&IS -> FCS, donc on peut la lire pour les 2 branches D&IS et
+' FCS sans avoir a discriminer ici. Si AA (vDIS) est vide mais AB (vFCS)
+' non, AC contiendra la ref FCS.
 ' =========================================================================
-Private Function MedianeConnus(ByRef vals() As Double, ByRef known() As Boolean) As Double
+Private Function CalculerPrixSpare(ByVal wsPBS As Worksheet, _
+                                    ByVal ligne As Long, _
+                                    ByVal dtr As String, _
+                                    ByVal sProjetCourant As String) As Variant
+    Dim vFrs As Variant, vDIS As Variant, vFCS As Variant, vArchive As Variant
+    Dim sRefSpare As String
+    Dim sProjetArchive As String
 
-    Dim arr(1 To 3) As Double
-    Dim n As Long, i As Long, j As Long, t As Double
+    vFrs = LireCellule(wsPBS, ligne, DATA_ASL_type.CoutSpare_AlstomFR_FRS)
+    vDIS = LireCellule(wsPBS, ligne, DATA_ASL_type.PrixSpareCatalogue)
+    vFCS = LireCellule(wsPBS, ligne, DATA_ASL_type.PrixSpareCalcule)
+    vArchive = LireCellule(wsPBS, ligne, DATA_ASL_type.PrixSpare_ProjetArchive)
+    sRefSpare = Trim$(NzSafeStr(LireCellule(wsPBS, ligne, DATA_ASL_type.RefSourceSpare)))
 
-    n = 0
-    For i = 1 To 3
-        If known(i) Then
-            n = n + 1
-            arr(n) = vals(i)
+    If EstNumeriqueConnu(vFrs) Then
+        CalculerPrixSpare = Array(CDbl(vFrs), "Fournisseur")
+    ElseIf EstNumeriqueConnu(vDIS) Then
+        CalculerPrixSpare = Array(CDbl(vDIS), IIf(LenB(sRefSpare) > 0, sRefSpare, "Catalogue D&IS"))
+    ElseIf EstNumeriqueConnu(vFCS) Then
+        CalculerPrixSpare = Array(CDbl(vFCS), IIf(LenB(sRefSpare) > 0, sRefSpare, "Catalogue FCS"))
+    ElseIf EstNumeriqueConnu(vArchive) Then
+        sProjetArchive = ProjetArchiveAlphaPremier(dtr, sProjetCourant)
+        If LenB(sProjetArchive) > 0 Then
+            CalculerPrixSpare = Array(CDbl(vArchive), "Projet : " & sProjetArchive)
+        Else
+            CalculerPrixSpare = Array(CDbl(vArchive), "Projet archive")
         End If
-    Next i
-
-    If n = 0 Then Exit Function
-
-    For i = 1 To n - 1
-        For j = i + 1 To n
-            If arr(j) < arr(i) Then t = arr(i): arr(i) = arr(j): arr(j) = t
-        Next j
-    Next i
-
-    If n Mod 2 = 1 Then
-        MedianeConnus = arr((n + 1) \ 2)
     Else
-        MedianeConnus = (arr(n \ 2) + arr(n \ 2 + 1)) / 2
+        CalculerPrixSpare = Array(Empty, "")
     End If
-
 End Function
+
+
+' =========================================================================
+' FONCTION: CalculerPrixRepair
+' Idem CalculerPrixSpare sans le maillon FCS (pas de prix Repair FCS dans
+' la BdD).
+'
+'   Fournisseur connu -> (prix, "Fournisseur")
+'   D&IS connu        -> (prix, RefSourceRepair ou "Catalogue D&IS")
+'   Archive connu     -> (prix, "Projet : <projet alpha 1er>")
+'   Aucun             -> (Empty, "")
+' =========================================================================
+Private Function CalculerPrixRepair(ByVal wsPBS As Worksheet, _
+                                     ByVal ligne As Long, _
+                                     ByVal dtr As String, _
+                                     ByVal sProjetCourant As String) As Variant
+    Dim vFrs As Variant, vDIS As Variant, vArchive As Variant
+    Dim sRefDIS As String
+    Dim sProjetArchive As String
+
+    vFrs = LireCellule(wsPBS, ligne, DATA_ASL_type.PrixRepair_Alstom_FRS)
+    vDIS = LireCellule(wsPBS, ligne, DATA_ASL_type.PrixRepairCatalogue)
+    vArchive = LireCellule(wsPBS, ligne, DATA_ASL_type.PrixRepair_ProjetArchive)
+    sRefDIS = Trim$(NzSafeStr(LireCellule(wsPBS, ligne, DATA_ASL_type.RefSourceRepair)))
+
+    If EstNumeriqueConnu(vFrs) Then
+        CalculerPrixRepair = Array(CDbl(vFrs), "Fournisseur")
+    ElseIf EstNumeriqueConnu(vDIS) Then
+        CalculerPrixRepair = Array(CDbl(vDIS), IIf(LenB(sRefDIS) > 0, sRefDIS, "Catalogue D&IS"))
+    ElseIf EstNumeriqueConnu(vArchive) Then
+        sProjetArchive = ProjetArchiveAlphaPremier(dtr, sProjetCourant)
+        If LenB(sProjetArchive) > 0 Then
+            CalculerPrixRepair = Array(CDbl(vArchive), "Projet : " & sProjetArchive)
+        Else
+            CalculerPrixRepair = Array(CDbl(vArchive), "Projet archive")
+        End If
+    Else
+        CalculerPrixRepair = Array(Empty, "")
+    End If
+End Function
+
+
+' =========================================================================
+' FONCTION: ProjetArchiveAlphaPremier
+' Pour un DTR donne, parcourt dictProjetASL_Rows (cache module-level
+' alimente par SIRUS_RemplirListViewGeneration) et retourne le nom du
+' projet alphabetiquement premier, projet courant exclu. "" si aucun
+' projet connu.
+' =========================================================================
+Private Function ProjetArchiveAlphaPremier(ByVal dtr As String, _
+                                            ByVal sProjetCourant As String) As String
+    Dim rows As Collection
+    Dim row As Object
+    Dim sProjet As String
+    Dim sBest As String
+
+    If dictProjetASL_Rows Is Nothing Then Exit Function
+    If Not dictProjetASL_Rows.Exists(dtr) Then Exit Function
+    Set rows = dictProjetASL_Rows(dtr)
+
+    For Each row In rows
+        If row.Exists("PROJET_PROJETASL") Then
+            sProjet = Trim$(NzSafeStr(row("PROJET_PROJETASL")))
+            If LenB(sProjet) > 0 And UCase$(sProjet) <> UCase$(sProjetCourant) Then
+                If LenB(sBest) = 0 Then
+                    sBest = sProjet
+                ElseIf StrComp(sProjet, sBest, vbTextCompare) < 0 Then
+                    sBest = sProjet
+                End If
+            End If
+        End If
+    Next row
+
+    ProjetArchiveAlphaPremier = sBest
+End Function
+
+
+' =========================================================================
+' SUB: AjouterSubItemPrix
+' Affiche un prix format #,##0.00, ou "-" en rouge gras si vide / non
+' numerique (cas ou aucune source de la cascade n'est connue).
+' =========================================================================
+Private Sub AjouterSubItemPrix(li As MSComctlLib.ListItem, ByVal vPrix As Variant)
+    Dim lsi As MSComctlLib.ListSubItem
+    If EstNumeriqueConnu(vPrix) Then
+        Set lsi = li.ListSubItems.Add(, , Format$(CDbl(vPrix), "#,##0.00"))
+    Else
+        Set lsi = li.ListSubItems.Add(, , "-")
+        lsi.ForeColor = RGB(192, 0, 0)
+        lsi.Bold = True
+    End If
+End Sub
+
+
+' =========================================================================
+' SUB: AjouterSubItemSource
+' Colore la source selon son origine. Detection par mot-cle dans le libelle
+' (qui peut etre une ref catalogue complete genre "D&IS 2026-2027_v03") :
+'   Fournisseur          -> vert  (prio 1)
+'   Projet : <nom>       -> orange(prio archive ; teste avant FCS pour eviter
+'                                  qu'un nom de projet contenant "FCS" matche)
+'   contient "FCS"       -> gris  (prio 3 Spare via col AB calcule)
+'   contient "D&IS"      -> bleu  (prio 2 catalogue D&IS)
+'   autre non vide       -> bleu  (catalogue D&IS par defaut)
+'   ""                   -> rouge gras (aucune source)
+' =========================================================================
+Private Sub AjouterSubItemSource(li As MSComctlLib.ListItem, ByVal sSource As String)
+    Dim lsi As MSComctlLib.ListSubItem
+    Set lsi = li.ListSubItems.Add(, , sSource)
+
+    If LenB(sSource) = 0 Then
+        lsi.ForeColor = RGB(192, 0, 0)
+        lsi.Bold = True
+    ElseIf sSource = "Fournisseur" Then
+        lsi.ForeColor = RGB(0, 128, 0)
+    ElseIf Left$(sSource, 7) = "Projet " Then
+        lsi.ForeColor = RGB(255, 140, 0)
+    ElseIf InStr(1, sSource, "FCS", vbTextCompare) > 0 Then
+        lsi.ForeColor = RGB(100, 100, 100)
+    Else
+        ' Catalogue D&IS (libelle Ref ou fallback)
+        lsi.ForeColor = RGB(0, 0, 192)
+    End If
+End Sub
 
 
 ' =========================================================================
@@ -1090,43 +1122,81 @@ Public Sub Test_MapColonnesDATA_ASL()
     Debug.Print "  DTR_PBS                = " & DATA_ASL_type.DTR_PBS
     Debug.Print "  Designation_PBS        = " & DATA_ASL_type.Designation_PBS
     Debug.Print "  SousSysteme            = " & DATA_ASL_type.SousSysteme
-    Debug.Print "  PrixManuelSpare        = " & DATA_ASL_type.PrixManuelSpare
     Debug.Print "  CoutSpare_AlstomFR_FRS = " & DATA_ASL_type.CoutSpare_AlstomFR_FRS
-    Debug.Print "  ISP_TIS_FCS            = " & DATA_ASL_type.ISP_TIS_FCS
-    Debug.Print "  PrixManuelRepair       = " & DATA_ASL_type.PrixManuelRepair
+    Debug.Print "  PrixSpareCatalogue     = " & DATA_ASL_type.PrixSpareCatalogue
+    Debug.Print "  PrixSpareCalcule       = " & DATA_ASL_type.PrixSpareCalcule
+    Debug.Print "  RefSourceSpare         = " & DATA_ASL_type.RefSourceSpare
+    Debug.Print "  PrixSpare_ProjetArchive= " & DATA_ASL_type.PrixSpare_ProjetArchive
     Debug.Print "  PrixRepair_Alstom_FRS  = " & DATA_ASL_type.PrixRepair_Alstom_FRS
-    Debug.Print "  PrixRepa_ISP           = " & DATA_ASL_type.PrixRepa_ISP
+    Debug.Print "  PrixRepairCatalogue    = " & DATA_ASL_type.PrixRepairCatalogue
+    Debug.Print "  RefSourceRepair        = " & DATA_ASL_type.RefSourceRepair
+    Debug.Print "  PrixRepair_ProjetArchive=" & DATA_ASL_type.PrixRepair_ProjetArchive
 
 End Sub
 
 
 ' =========================================================================
-' SUB: Test_EvaluerQualitePrix
-' Tests unitaires basiques sur EvaluerQualitePrix. Affiche les resultats
-' dans la fenetre Immediate.
+' SUB: Test_CalculerPrix
+' Tests unitaires sur CalculerPrixSpare / CalculerPrixRepair via un mock
+' de feuille temporaire. Ecrit 4 lignes (1 par cas de cascade) et verifie
+' le label Source retourne. Affiche les resultats dans la fenetre
+' Immediate.
 ' =========================================================================
-Public Sub Test_EvaluerQualitePrix()
-
+Public Sub Test_CalculerPrix()
+    Dim wb As Workbook, ws As Worksheet
     Dim r As Variant
+    Dim sNomTmp As String
 
-    r = EvaluerQualitePrix(Empty, Empty, Empty)
-    Debug.Print "[0/3]                " & r(0) & " | Ecart=" & r(1) & " | Manque=" & r(2)
+    sNomTmp = "_TestCalculerPrix"
+    Set wb = ActiveWorkbook
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    wb.Worksheets(sNomTmp).Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Set ws = wb.Worksheets.Add
+    ws.Name = sNomTmp
 
-    r = EvaluerQualitePrix(100, Empty, Empty)
-    Debug.Print "[1/3 Manuel]         " & r(0) & " | Ecart=" & r(1) & " | Manque=" & r(2)
+    ' Cadrage minimal : on aligne juste les colonnes utiles aux cascades.
+    ' Lignes 1 = en-tete, lignes 2-5 = cas de test.
+    ws.Cells(1, 1).Value = "DTR"
+    ws.Cells(1, 2).Value = "Frs Spare"
+    ws.Cells(1, 3).Value = "Cat DIS Spare"
+    ws.Cells(1, 4).Value = "Cat FCS Calc"
+    ws.Cells(1, 5).Value = "Archive Spare"
+    ws.Cells(1, 6).Value = "Ref DIS"
 
-    r = EvaluerQualitePrix(100, 110, Empty)
-    Debug.Print "[2/3 ecart faible]   " & r(0) & " | Ecart=" & r(1) & " | Manque=" & r(2)
+    ws.Cells(2, 1).Value = "DTR-FRS"
+    ws.Cells(2, 2).Value = 100
+    ws.Cells(3, 1).Value = "DTR-DIS"
+    ws.Cells(3, 3).Value = 110
+    ws.Cells(3, 6).Value = "D&IS 2026-2027_v03"
+    ws.Cells(4, 1).Value = "DTR-FCS"
+    ws.Cells(4, 4).Value = 120
+    ws.Cells(5, 1).Value = "DTR-VIDE"
 
-    r = EvaluerQualitePrix(100, 200, Empty)
-    Debug.Print "[2/3 ecart fort]     " & r(0) & " | Ecart=" & r(1) & " | Manque=" & r(2)
+    ' Mock du type DATA_ASL pour utiliser les cascades
+    Dim sauv As DATA_ASL_Col
+    sauv = DATA_ASL_type
+    DATA_ASL_type.CoutSpare_AlstomFR_FRS = 2
+    DATA_ASL_type.PrixSpareCatalogue = 3
+    DATA_ASL_type.PrixSpareCalcule = 4
+    DATA_ASL_type.PrixSpare_ProjetArchive = 5
+    DATA_ASL_type.RefSourceSpare = 6
 
-    r = EvaluerQualitePrix(100, 110, 105)
-    Debug.Print "[3/3 ecart faible]   " & r(0) & " | Ecart=" & r(1) & " | Manque=" & r(2)
+    r = CalculerPrixSpare(ws, 2, "DTR-FRS", "PROJ_X")
+    Debug.Print "[Frs]  prix=" & r(0) & " | source=" & r(1)
+    r = CalculerPrixSpare(ws, 3, "DTR-DIS", "PROJ_X")
+    Debug.Print "[DIS]  prix=" & r(0) & " | source=" & r(1)
+    r = CalculerPrixSpare(ws, 4, "DTR-FCS", "PROJ_X")
+    Debug.Print "[FCS]  prix=" & r(0) & " | source=" & r(1)
+    r = CalculerPrixSpare(ws, 5, "DTR-VIDE", "PROJ_X")
+    Debug.Print "[Vide] prix=" & r(0) & " | source=" & r(1)
 
-    r = EvaluerQualitePrix(100, 110, 300)
-    Debug.Print "[3/3 ecart fort]     " & r(0) & " | Ecart=" & r(1) & " | Manque=" & r(2)
-
+    DATA_ASL_type = sauv
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
 End Sub
 
 

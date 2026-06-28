@@ -680,8 +680,6 @@ barreimage.Visible = False
 barrearriere.Visible = False
 Article_label.Visible = False
 Article_List.Visible = False
-Version_Frame_Extr.Visible = False
-
 
 'Taille du userform
 UserForm.Height = 570
@@ -697,6 +695,21 @@ For i = LBound(listprojets) To UBound(listprojets)
     Else: Exit For
     End If
 Next i
+
+'Pre-selection automatique : si le classeur actif a une cellule nommee
+'DATA_ASL_PROJET non vide (template ECOSLI_DATA_ASL existant rempli par
+'un Refresh precedent), on pre-positionne Project_List dessus.
+'ActiveWorkbook (pas ThisWorkbook qui pointerait sur le .xlam).
+Dim sProjetAuto As String
+sProjetAuto = ""
+On Error Resume Next
+sProjetAuto = Trim$(CStr(ActiveWorkbook.Names("DATA_ASL_PROJET").RefersToRange.Value))
+On Error GoTo 0
+If LenB(sProjetAuto) > 0 Then
+    On Error Resume Next
+    Project_List.Value = sProjetAuto
+    On Error GoTo 0
+End If
 
 'Definir la liste des gates dans un tableau
 gates = Array("BA", "GO Order", "IGR", "PGR", "CGR", "FEI", "IQA")
@@ -719,9 +732,6 @@ Next i
 
 For i = LBound(revisions) To UBound(revisions)
     Revision_List.AddItem revisions(i)
-Next i
-For i = LBound(livrables) To UBound(livrables)
-    Extr_Livrables_List.AddItem livrables(i)
 Next i
 For i = LBound(family) To UBound(family)
     FamilyProduct_List.AddItem family(i)

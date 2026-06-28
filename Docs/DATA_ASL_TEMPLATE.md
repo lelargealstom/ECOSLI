@@ -107,10 +107,12 @@ Les autres cellules de la ligne 2 sont libres.
 |---|---|---|---|
 | 🟢 **Vert clair** | `5296274` (≈ `RGB(82, 220, 80)`) | Saisie ASL — l'utilisateur remplit | A, B, C, D, J, K, T, V, AH, AI, AJ, AK |
 | 🔴 **Rouge** | `255` (≈ `RGB(255, 0, 0)`) | Refresh — rempli par le bouton via ADODB | E, G, H, L, O, P, Q, S, U, X, Z, AA, AC, AD, AE, AF, AG, AN, AO |
-| 🟦 **Bleu clair** | `15773696` (≈ `RGB(0, 176, 240)`) | Calcul local Excel (formule sans lien externe) | F, I, M, N, W, AB, AL, AM |
+| 🟦 **Bleu clair** | `15773696` (≈ `RGB(0, 176, 240)`) | Calcul — recalculé en valeurs pures par `G_PBS_Refresh.RafraichirCalculs` (zéro formule dans le fichier — décision 2026-06-28) | F, I, M, N, W, AB, AL, AM |
 | ⬜ **Gris clair** | (au choix Thomas) | Constante en dur écrite par Refresh | R ("PH"), Y ("Y") |
 
 Ces couleurs sont **fonctionnelles** : elles permettent à l'ingénieur ASL de savoir d'un coup d'œil quelles cellules sont à sa charge (vert) vs auto-remplies (rouge / bleu / gris).
+
+> **Évolution 2026-06-28** : les colonnes 🟦 (bleu) ne contiennent plus de formules Excel — `G_PBS_Refresh.RafraichirCalculs` les écrit en valeurs pures à chaque clic sur **Rafraichir Data PBS**. Le PowerShell `_patch_template_v2.ps1` continue de poser les formules à la génération du template, mais elles sont écrasées au 1er Refresh.
 
 ---
 
@@ -151,61 +153,57 @@ VBA : dict `{(DTR, HardSoft) → tempsTotal}` → écrit en col Q si HARD, X si 
 
 ### §C — Prix Catalogue (cols Z, AA, AC, AD, AE, AF, AG)
 
-Logique : pour chaque DTR, pour chaque combinaison (Type, Catalogue), prendre la ligne de date la plus récente.
+**Implémentation actuelle** (décision Thomas 2026-06-28) : le Refresh ne fait **aucune cascade sur les prix** — il dépose chaque ligne BdD dans sa colonne dédiée :
 
-```sql
-SELECT
-    p1.[DTR],
-    p1.[Type],
-    p1.[Ref Catalogue],
-    p1.[Prix],
-    p1.[LeadTime],
-    p1.[Date Source]
-FROM [SnapShotPrix$] p1
-INNER JOIN (
-    SELECT [DTR], [Type], MAX([Date Source]) AS DateMax
-    FROM [SnapShotPrix$]
-    WHERE [DTR] IN (<liste DTR>)
-      AND (
-        (UPPER([Ref Catalogue]) LIKE '%D&IS CATALOGUE%')
-        OR (UPPER([Ref Catalogue]) LIKE '%FCS%')
-      )
-      AND ([Type] = 'Spare' OR [Type] = 'Repair')
-    GROUP BY [DTR], [Type], [Ref Catalogue]
-) p2
-  ON p1.[DTR] = p2.[DTR]
- AND p1.[Type] = p2.[Type]
- AND p1.[Date Source] = p2.DateMax
-```
+| Col | Contenu | Filtre BdD `SnapShotPrix$` |
+|:-:|---|---|
+| Z (`Prix FCS`) | MAX(`Date Source`) parmi les lignes FCS Spare | `Type=Spare` ET `Ref Catalogue LIKE '%FCS%'` |
+| AA (`Prix spare catalogue`) | MAX(`Date Source`) parmi les lignes D&IS Spare | `Type=Spare` ET `Ref Catalogue LIKE '%D&IS Catalogue%'` |
+| AC (`Ref Source Spare`) | Ref D&IS retenue **sinon** Ref FCS retenue (cascade D&IS → FCS pour le **label seulement**, pas le prix) | dépend de AA/Z |
+| AD (`Lead Time SPARE`) | LeadTime de la ligne AA retenue | idem AA |
+| AE (`Prix repair catalogue`) | MAX(`Date Source`) parmi les lignes D&IS Repair | `Type=Repair` ET `Ref Catalogue LIKE '%D&IS Catalogue%'` |
+| AF (`Ref Source Repair`) | Ref D&IS Repair retenue (strict, pas de FCS Repair en BdD) | idem AE |
+| AG (`Lead Time REPAIR`) | LeadTime de la ligne AE retenue | idem AE |
 
-⚠️ **À vérifier en test** : ACE OLE DB sur Excel ne supporte pas toujours les sous-requêtes JOIN. Si plantage, fallback : faire 4 requêtes séparées (Spare-D&IS, Spare-FCS, Repair-D&IS) avec `ORDER BY [Date Source] DESC` puis dédoublonnage côté VBA en prenant le 1er row par DTR.
+Aucune ligne avec ref autre que D&IS ou FCS n'est conservée. **Pas de sous-requête JOIN** : on lit toute la feuille `Produit_SnapShotPrix` en bulk array (bypass ADO pour contourner le bug ACE mixed-type sur la col DTR) et on filtre côté VBA via un Dictionary `{DTR|TYPE_CATEGORIE → MAX(Date)}`.
 
-VBA post-traite : pour chaque DTR, mappe :
-- Type=Spare + Ref LIKE D&IS Catalogue → `Prix spare catalogue` (AA), `Lead Time SPARE` (AD), `Ref Source Spare` (AC, valeur de `Ref Catalogue` retenue)
-- Type=Spare + Ref LIKE FCS → `Prix FCS` (Z)
-- Type=Repair + Ref LIKE D&IS Catalogue → `Prix repair catalogue` (AE), `Lead Time REPAIR` (AG), `Ref Source Repair` (AF)
+**La sous-priorité D&IS / FCS pour le prix se fait en aval** dans `G_SIRUS_PBS.CalculerPrixSpare` (ListView Generation) : si AA est vide mais AB l'est (= Prix FCS × coeff 1,0557, recalculé par `RafraichirCalculs`), on retient AB comme prix Spare avec source = `Ref Source Spare` (qui contient alors la ref FCS grâce au fallback de AC).
 
 ### §D — Prix archive multi-projets (cols AN, AO)
 
-Pour chaque DTR : moyenne des prix des projets référencés en BdD, **en excluant le projet courant** (`Project_List.Value`).
+**Implémentation actuelle** (décision Thomas 2026-06-28) : pas de colonne Date dans `Projet_ASL$`, donc on retient le **projet alphabétiquement premier** (StrComp ascendant) parmi ceux ayant un prix > 0, **projet courant exclu**. Pas d'AVG.
 
 ```sql
-SELECT
-    [DTR_PROJETASL],
-    AVG(VAL([ISP TIS HORS FRANCE (archivé)])) AS prixSpareAvg,
-    AVG(VAL([Prix repair (DEVISE du projet (SLI))_PROJETASL])) AS prixRepairAvg,
-    COUNT(*) AS nbProjets
-FROM [Projet_ASL$]
-WHERE [DTR_PROJETASL] IN (<liste DTR>)
-  AND [PROJET_PROJETASL] <> '<Project_List courant>'
-  AND (
-    VAL([ISP TIS HORS FRANCE (archivé)]) > 0
-    OR VAL([Prix repair (DEVISE du projet (SLI))_PROJETASL]) > 0
-  )
-GROUP BY [DTR_PROJETASL]
+SELECT [DTR_PROJETASL] & '' AS DTR_str,
+       [PROJET_PROJETASL],
+       [ISP TIS HORS FRANCE (archivé)],
+       [Prix repair (DEVISE du projet (SLI))_PROJETASL]
+FROM   [Projet_ASL$]
 ```
 
-Note : `VAL()` pour forcer la conversion numérique côté ACE (les colonnes Excel peuvent être typées Text). À tester.
+VBA post-traite : 2 dicts séparés (Spare / Repair) `{DTR_UC → Array(projetMin, prix)}`. Pour chaque ligne BdD :
+- Si `prix > 0` et `projet <> projetCourant` :
+  - Si projet plus petit que celui déjà retenu (StrComp asc) → on remplace
+  - Sinon → on conserve
+
+Le projet retenu est récupérable par la ListView Generation via `dictProjetASL_Rows` (cache de `G_SIRUS_PBS.ChargerRowsTableBdD_Optim`) pour reconstruire le label `"Projet : <nom>"`.
+
+### §E — Colonnes calculées (cols I, N, O, AB, AL, AM)
+
+**Décision Thomas 2026-06-28** : zéro formule Excel dans le fichier. `G_PBS_Refresh.RafraichirCalculs` écrit en valeurs pures (avec `Application.WorksheetFunction.Round` à 2 décimales pour les prix) :
+
+| Col | Formule appliquée | Source | Cellule vide si |
+|:-:|---|---|---|
+| I (`NTI`) | `Select Case NodeType` → "3" / "3+" / "" | col G | NodeType ∉ {LRU, LRUNR, SRU, SRUNR} |
+| N (`Tx déf fonct`) | `1 / MTBF fonctionnel` | col L | MTBF ≤ 0 ou non numérique |
+| O (`Tx déf gen`) | `1 / MTBF générique` | col M | MTBF ≤ 0 ou non numérique |
+| AB (`Prix Spare Calculé`) | `Prix FCS × cellule AB2` | col Z × 1,0557 | source ≤ 0 ou non numérique |
+| AL (`Cout Spare Alstom`) | `Cout Spare FRS × cellule AL2` | col AH × 1,17 | source ≤ 0 ou non numérique |
+| AM (`Prix Repair Alstom`) | `Cout Repair FRS × cellule AM2` | col AJ × 1,75 | source ≤ 0 ou non numérique |
+
+Helper `EstNumeriqueNonNul(v)` filtre les zéros pour éviter d'écrire `0,00 €` qui serait réinterprété par la ListView Generation comme un prix Fournisseur connu (cascade Frs → D&IS → ...).
+
+Format **Comptabilité €** (`_-* #,##0.00\ "€"_-;-* #,##0.00\ "€"_-;_-* "-"??\ "€"_-;_-@_-`) appliqué via `AppliquerFormatPrix(lo)` aux 10 colonnes prix (Z/AA/AB/AE/AH/AJ/AL/AM/AN/AO) à chaque Refresh.
 
 ---
 

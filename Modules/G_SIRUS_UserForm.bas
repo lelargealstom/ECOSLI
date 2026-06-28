@@ -78,18 +78,19 @@ Public Sub SIRUS_ConfigListViewGeneration()
     lv.ListItems.Clear
 
     ' -- Creer les colonnes avec largeurs ------------------
+    ' 10 colonnes : DTR + 5 MeQ tables + 2x (Prix, Source)
+    ' Cascade prix : Spare = Frs -> Cat D&IS -> FCS calcule -> Archive
+    '                Repair = Frs -> Cat D&IS -> Archive
     lv.ColumnHeaders.Add , , "DTR", 80
     lv.ColumnHeaders.Add , , "Nb projets", 70
     lv.ColumnHeaders.Add , , "ATM - Info", 70
     lv.ColumnHeaders.Add , , "ATM - Taches", 80
     lv.ColumnHeaders.Add , , "EMMST", 60
     lv.ColumnHeaders.Add , , "Produit", 60
-    lv.ColumnHeaders.Add , , "Qualite Prix Spare", 130
-    lv.ColumnHeaders.Add , , "Source Ecart Spare", 100
-    lv.ColumnHeaders.Add , , "Source Manque Spare", 130
-    lv.ColumnHeaders.Add , , "Qualite Prix Repair", 130
-    lv.ColumnHeaders.Add , , "Source Ecart Repair", 100
-    lv.ColumnHeaders.Add , , "Source Manque Repair", 130
+    lv.ColumnHeaders.Add , , "Prix Spare", 80
+    lv.ColumnHeaders.Add , , "Source Spare", 150
+    lv.ColumnHeaders.Add , , "Prix Repair", 80
+    lv.ColumnHeaders.Add , , "Source Repair", 150
 
 End Sub
 ' ============================================================

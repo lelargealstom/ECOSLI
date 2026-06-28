@@ -788,28 +788,20 @@ Public Sub SIRUS_EnrichirProjetASL_DepuisDATA_ASL(ByVal sOperation As String, _
             wsCible.Cells(ligneCible, colLeadRepairArch).Value = _
                 wsPBS.Cells(lignePBS, DATA_ASL_type.LeadTimeRepairCalend).Value
 
-        ' Prix Spare archive : cascade Fournisseur -> Catalogue -> Manuel -> Archive
-        ' (cf. D_Providor_BreakDownStructure.RemplirPrixSpare). Une valeur
-        ' valide = IsNumeric AND <> 0.
+        ' Prix Spare archive : cascade Fournisseur -> Cat D&IS -> Cat FCS
+        ' calcule (col AB) -> Archive. Une valeur valide = IsNumeric AND <> 0.
         If colPrixSpareArch > 0 Then
             Dim vPrixSpare As Variant
-            vPrixSpare = CascadePrixDATA_ASL(wsPBS, lignePBS, _
-                            DATA_ASL_type.CoutSpare_AlstomFR_FRS, _
-                            DATA_ASL_type.ISP_TIS_FCS, _
-                            DATA_ASL_type.PrixManuelSpare, _
-                            DATA_ASL_type.PrixSpare_ProjetArchive)
+            vPrixSpare = CascadePrixSpareDATA_ASL(wsPBS, lignePBS)
             If Not IsEmpty(vPrixSpare) Then _
                 wsCible.Cells(ligneCible, colPrixSpareArch).Value = vPrixSpare
         End If
 
-        ' Prix Repair archive : meme cascade cote Repair
+        ' Prix Repair archive : cascade Fournisseur -> Cat D&IS -> Archive
+        ' (pas de FCS Repair dans la BdD).
         If colPrixRepairArch > 0 Then
             Dim vPrixRepair As Variant
-            vPrixRepair = CascadePrixDATA_ASL(wsPBS, lignePBS, _
-                            DATA_ASL_type.PrixRepair_Alstom_FRS, _
-                            DATA_ASL_type.PrixRepa_ISP, _
-                            DATA_ASL_type.PrixManuelRepair, _
-                            DATA_ASL_type.PrixRepair_ProjetArchive)
+            vPrixRepair = CascadePrixRepairDATA_ASL(wsPBS, lignePBS)
             If Not IsEmpty(vPrixRepair) Then _
                 wsCible.Cells(ligneCible, colPrixRepairArch).Value = vPrixRepair
         End If
@@ -827,39 +819,63 @@ NextPBS:
                 " overwrite, " & nbAjout & " ajout(s) depuis DATA_ASL."
 End Sub
 
-' Cascade prix DATA_ASL : retourne la 1re valeur non-zero numerique parmi
-' les colonnes fournies (ordre = priorite). Reprend la regle Providor
-' (D_Providor_BreakDownStructure.RemplirPrixSpare/Repair + TrySetPrice) :
-'   Fournisseur -> Catalogue -> Manuel -> Archive
-' Une cellule est "connue" si IsNumeric ET <> 0 (zero = inconnu metier).
-' Renvoie Empty si aucune source ne donne une valeur connue (le pre-fill
-' BdD n est alors pas ecrase).
-Private Function CascadePrixDATA_ASL(ByVal wsPBS As Worksheet, _
-                                      ByVal lignePBS As Long, _
-                                      ByVal colFournisseur As Long, _
-                                      ByVal colCatalogue As Long, _
-                                      ByVal colManuel As Long, _
-                                      ByVal colArchive As Long) As Variant
+' Cascade prix Spare DATA_ASL : retourne la 1re valeur non-zero numerique
+' selon la priorite : Fournisseur (col Alstom FRS) -> Catalogue D&IS
+' (col AA) -> Catalogue FCS calcule (col AB = FCS x 1,0557) -> Archive
+' (col AN). Une cellule est "connue" si IsNumeric ET <> 0. Renvoie Empty
+' si aucune source ne donne de valeur connue (le pre-fill BdD n est alors
+' pas ecrase).
+Private Function CascadePrixSpareDATA_ASL(ByVal wsPBS As Worksheet, _
+                                           ByVal lignePBS As Long) As Variant
     Dim v As Variant
+    Dim cols As Variant
+    Dim i As Long
 
-    If colFournisseur > 0 Then
-        v = wsPBS.Cells(lignePBS, colFournisseur).Value
-        If IsNumeric(v) Then If CDbl(v) <> 0 Then CascadePrixDATA_ASL = CDbl(v): Exit Function
-    End If
-    If colCatalogue > 0 Then
-        v = wsPBS.Cells(lignePBS, colCatalogue).Value
-        If IsNumeric(v) Then If CDbl(v) <> 0 Then CascadePrixDATA_ASL = CDbl(v): Exit Function
-    End If
-    If colManuel > 0 Then
-        v = wsPBS.Cells(lignePBS, colManuel).Value
-        If IsNumeric(v) Then If CDbl(v) <> 0 Then CascadePrixDATA_ASL = CDbl(v): Exit Function
-    End If
-    If colArchive > 0 Then
-        v = wsPBS.Cells(lignePBS, colArchive).Value
-        If IsNumeric(v) Then If CDbl(v) <> 0 Then CascadePrixDATA_ASL = CDbl(v): Exit Function
-    End If
+    cols = Array(DATA_ASL_type.CoutSpare_AlstomFR_FRS, _
+                 DATA_ASL_type.PrixSpareCatalogue, _
+                 DATA_ASL_type.PrixSpareCalcule, _
+                 DATA_ASL_type.PrixSpare_ProjetArchive)
 
-    CascadePrixDATA_ASL = Empty
+    For i = LBound(cols) To UBound(cols)
+        If cols(i) > 0 Then
+            v = wsPBS.Cells(lignePBS, cols(i)).Value
+            If IsNumeric(v) Then
+                If CDbl(v) <> 0 Then
+                    CascadePrixSpareDATA_ASL = CDbl(v)
+                    Exit Function
+                End If
+            End If
+        End If
+    Next i
+
+    CascadePrixSpareDATA_ASL = Empty
+End Function
+
+' Cascade prix Repair DATA_ASL : Fournisseur -> Catalogue D&IS -> Archive.
+' Pas de FCS Repair dans la BdD. Memes regles que CascadePrixSpareDATA_ASL.
+Private Function CascadePrixRepairDATA_ASL(ByVal wsPBS As Worksheet, _
+                                            ByVal lignePBS As Long) As Variant
+    Dim v As Variant
+    Dim cols As Variant
+    Dim i As Long
+
+    cols = Array(DATA_ASL_type.PrixRepair_Alstom_FRS, _
+                 DATA_ASL_type.PrixRepairCatalogue, _
+                 DATA_ASL_type.PrixRepair_ProjetArchive)
+
+    For i = LBound(cols) To UBound(cols)
+        If cols(i) > 0 Then
+            v = wsPBS.Cells(lignePBS, cols(i)).Value
+            If IsNumeric(v) Then
+                If CDbl(v) <> 0 Then
+                    CascadePrixRepairDATA_ASL = CDbl(v)
+                    Exit Function
+                End If
+            End If
+        End If
+    Next i
+
+    CascadePrixRepairDATA_ASL = Empty
 End Function
 
 ' Cherche la colonne d une feuille SIRUS par son ColonneBdD (entete ligne 2).

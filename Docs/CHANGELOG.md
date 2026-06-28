@@ -6,6 +6,92 @@ Format : `[Date] — Auteur — Périmètre`, puis liste des changements par mod
 
 ---
 
+## 2026-06-27 → 2026-06-28 — Sprint 1 ter : Alignement DATA_ASL / cascade prix / UX
+
+Session post-Sprint 1 bis. Le bouton Rafraichir étant en place, on aligne `MapColonnesDATA_ASL` sur les nouveaux libellés du template, on refond la logique cascade prix (Manuel sorti, sous-priorité D&IS/FCS), on supprime toutes les formules Excel locales au profit d'écritures VBA en valeurs pures, et on ajoute 2 améliorations UX (pré-sélection projet au Ctrl+W + ListView auto-rafraîchie après Refresh).
+
+### Refonte cascade prix (decision Thomas 2026-06-28)
+
+**Nouvelle cascade Spare** : `Fournisseur` → `Cat D&IS` → `Cat FCS calculé` (col AB) → `Archive`.
+**Nouvelle cascade Repair** : `Fournisseur` → `Cat D&IS` → `Archive` (pas de FCS Repair en BdD).
+
+- Suppression des champs `PrixManuelSpare` / `PrixManuelRepair` du `Type DATA_ASL_Col` (colonnes retirées du template).
+- Ajout de `PrixSpareCalcule`, `RefSourceSpare`, `RefSourceRepair` au `Type`.
+- Renames : `CoutTotal` → `PrixFCS`, `ISP_TIS_FCS` → `PrixSpareCatalogue`, `ISP_TIS_Calc` → `PrixSpareCalcule`, `PrixRepa_ISP` → `PrixRepairCatalogue`.
+- `EvaluerQualitePrix` / `MedianeConnus` / `CouleurQualite` **supprimées** (logique trio Manuel/Frs/Cat avec médiane abandonnée).
+- Nouvelles fonctions `CalculerPrixSpare` / `CalculerPrixRepair` / `ProjetArchiveAlphaPremier` / `AjouterSubItemPrix` / `AjouterSubItemSource` dans `G_SIRUS_PBS.bas`.
+- `G_SIRUS_Generation.CascadePrixDATA_ASL` (paramètre Manuel) remplacée par `CascadePrixSpareDATA_ASL` et `CascadePrixRepairDATA_ASL` (utilisées pour pré-remplir `SIRUS_ProjetASL_Modifier`).
+
+### Refonte ListView Generation : 12 → 10 colonnes
+
+Avant : `DTR | ProjetASL | InfoATM | Taches | EMMST | Produit | QualSpare | EcartSpare | ManqueSpare | QualRepair | EcartRepair | ManqueRepair`
+Après : `DTR | Nb projets | ATM-Info | ATM-Taches | EMMST | Produit | Prix Spare | Source Spare | Prix Repair | Source Repair`
+
+- `SIRUS_ConfigListViewGeneration` mis à jour dans `G_SIRUS_UserForm.bas` (4 ColumnHeaders en moins, 4 en plus).
+- Affichage Source coloré selon origine :
+  - 🟢 vert = Fournisseur
+  - 🔵 bleu = D&IS catalogue (libellé = `Ref Source Spare/Repair` lu en col AC/AF, ex `D&IS 2026-2027_v03`)
+  - ⚪ gris = FCS calculé (Spare uniquement, valeur lue en col AB = Prix FCS × 1,0557)
+  - 🟠 orange = `Projet : <nom>` (archive, projet alphabétiquement 1er pour ce DTR)
+  - 🔴 rouge gras = aucun prix dispo
+
+### Refresh : changements logique
+
+- **`RafraichirPrixCatalogue`** : suppression de la cascade D&IS→FCS→AUTRE pour les prix. Désormais col AA (`Prix Spare Catalogue`) = **D&IS strict** (MAX Date), col AE (`Prix Repair Catalogue`) = D&IS strict. Col Z (`Prix FCS`) reste FCS strict (inchangé). Col AC (`Ref Source Spare`) garde une mini-cascade D&IS → FCS pour le **label uniquement** (la ListView en a besoin quand la cascade tombe sur FCS via col AB). Col AF (`Ref Source Repair`) reste D&IS strict (pas de FCS Repair). Helper `ChoisirCascade` supprimé.
+- **`RafraichirPrixArchive`** : suppression du calcul AVG sur multi-projets (pas de colonne Date dans `Projet_ASL$`). Pour chaque DTR, on retient désormais le **projet alphabétiquement 1er** (StrComp ascendant) parmi ceux ayant un prix > 0, projet courant exclu. Cols AN/AO contiennent le prix de ce projet retenu. La ListView Generation re-lit `dictProjetASL_Rows` pour reconstruire le label `"Projet : <nom>"`.
+- **`RafraichirCalculs`** (nouveau) : reconstruit en valeurs pures les 6 colonnes "calcul local" (zéro formule dans le fichier) :
+  - Col I (`NTI`) = Select Case NodeType (LRU/LRUNR → "3", SRU/SRUNR → "3+", sinon vide)
+  - Col N (`Tx déf fonct`) = 1 / MTBF fonctionnel (col L) si > 0
+  - Col O (`Tx déf gen`) = 1 / MTBF générique (col M) si > 0
+  - Col AB (`Prix Spare Calculé`) = Prix FCS × cellule AB2
+  - Col AL (`Cout Spare Alstom`) = Cout Spare FRS Not ISP × cellule AL2
+  - Col AM (`Prix Repair Alstom`) = Cout Repair FRS Not ISP × cellule AM2
+- Helpers `EstNumeriqueNonNul` (filtre Empty/Null/0/non-numérique pour ne pas écrire "0,00 €" quand la source est vide) et `ArrondiPrix` (arrondi commercial 2 décimales via `Application.WorksheetFunction.Round`).
+- **`AppliquerFormatPrix`** : applique le format Comptabilité € (`_-* #,##0.00\ "€"_-;...`) à 10 colonnes prix (Z/AA/AB/AE/AH/AJ/AL/AM/AN/AO) en fin de Refresh. Évite l'affichage `373,179.39` (long décimal avec thousand-sep) sur les multiplications par coeff.
+- **Appel automatique `SIRUS_RemplirListViewGeneration`** en fin de Refresh : la ListView Generation se recalcule avec les nouvelles données sans nécessiter d'action utilisateur.
+
+### Alignement `MapColonnesDATA_ASL` sur les libellés du nouveau template
+
+41 libellés réécrits dans `G_SIRUS_PBS.bas` pour matcher exactement les en-têtes du template `Templates/ECOSLI_DATA_ASL.xlsx`. Corrections principales :
+- `SOUS SYSTÈME (copiés de la PBS...)` → `SOUS SYSTÈME`
+- `Tx déffaillance ...` (typo historique) → `Tx défaillance ...`
+- `MTBF intrinsèque (RAM report specifique projet (CGR))` → `MTBF intrinsèque RAM Report spécifique`
+- `DUREE DE VIE LIMITEE générique (offre et PGR) HARDWARE` → `DVL HARD générique`
+- `DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) HARDWARE` → `DVL HARD spécifique`
+- `réf du plan d'ensemble (issue de la BdD)` → `Réf plan ensemble`
+- `UNITE de la maintenance corrective/préventive` → `UNITÉ maintenance corrective/préventive`
+- Les 4 renames prix (Cout total → Prix FCS, etc.).
+
+Critères critiques rationalisés : DTR + PrixSpareCatalogue + PrixSpareCalcule + PrixRepairCatalogue + CoutSpare_AlstomFR_FRS + PrixRepair_Alstom_FRS.
+
+### UX UserForm
+
+- **`UserForm_Initialize`** : si `ActiveWorkbook` a une cellule nommée `DATA_ASL_PROJET` non vide (template ECOSLI_DATA_ASL déjà rempli par un Refresh précédent), `Project_List.Value` est pré-positionné dessus → l'ingé n'a plus besoin de re-sélectionner le projet à chaque Ctrl+W. Wrap `On Error Resume Next` pour le cas classeur sans cellule nommée.
+- **Garde-fou connexion BdD** dans `SIRUS_RemplirListViewGeneration` : si `Base Is Nothing` ou `Base.State <> 1` (cas après `RafraichirPrixArchive` qui fait `Close_CONN`), réouvre la connexion à la volée. Évite l'affichage "Absent" / 0 partout sur les colonnes MeQ après un Refresh.
+
+### Bug fix divers
+
+- `Test_EvaluerQualitePrix` remplacé par `Test_CalculerPrix` (mock feuille temporaire avec 4 cas de cascade).
+- `Test_MapColonnesDATA_ASL` met à jour les références aux champs renommés.
+- Le diagnostic `Test_RafraichirPrixDryRun` est déjà compatible avec la nouvelle logique D&IS/FCS strict.
+
+### Fichiers modifiés
+
+- `Modules/G_SIRUS_PBS.bas` (gros : Type + Map + ListView + cascades + connexion guard)
+- `Modules/G_SIRUS_Generation.bas` (refonte CascadePrix*)
+- `Modules/G_PBS_Refresh.bas` (cascades simplifiées + RafraichirCalculs + format € + call ListView)
+- `Modules/G_SIRUS_UserForm.bas` (ListView Generation 10 cols)
+- `Forms/UserForm.frm` (auto-select projet au Ctrl+W)
+
+### Reste à faire (prochaines sessions)
+
+- Mettre à jour les PowerShell `Templates/_build_template.ps1` + `_patch_template_v2.ps1` pour ne plus poser les formules dans F/I/M/N/W/AB/AL/AM (cohérence "zéro formule"). Pas bloquant car le Refresh écrase, mais évite la confusion sur un template fraîchement généré.
+- Phase 2.1 — Enrichir règles InfoATM / EMMST / ProjetSLI.
+- Phase 3.2 — Snapshot Modifier.
+- Phase 6 — Industrialisation (Historique, Paramètres, Recette).
+
+---
+
 ## 2026-06-25 → 2026-06-26 — Sprint 1 bis : Bouton Rafraichir DATA_ASL
 
 Sprint 1 bis livré : refonte complète du flow d'alimentation de DATA_ASL. Plus aucun lien externe SharePoint (les formules `=XLOOKUP(https://...)` fragiles aux migrations sont remplacées par un bouton **"Rafraichir Data PBS"** dans le UserForm qui pull les données via ADODB / lecture Excel directe).

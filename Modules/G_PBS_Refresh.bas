@@ -153,6 +153,7 @@ Public Sub SIRUS_RafraichirDATA_ASL(Optional ByVal wbParam As Workbook = Nothing
     Call RafraichirConstantes(lo, dictDtrs)
     Call RafraichirPrixCatalogue(lo, dictDtrs)
     Call RafraichirPrixArchive(lo, dictDtrs, sProjet)
+    Call RafraichirCalculs(ws, lo, dictDtrs)
     Call EcrireCellulesProjetDate(wb, sProjet)
     Call TracerRefreshLog(wb, sProjet, dictDtrs.count, Timer - tStart)
 
@@ -161,6 +162,16 @@ CleanUp:
     Application.Calculation = xlCalculationAutomatic
     Application.ScreenUpdating = True
     Call ProtegerFeuille(ws, wb)
+
+    ' Rafraichir la ListView Generation pour refleter les nouvelles
+    ' valeurs DATA_ASL sans que l ingenieur ait a fermer/rouvrir le
+    ' UserForm. Wrap en On Error : si la ListView n est pas dispo
+    ' (UserForm pas charge), on ignore silencieusement.
+    If LenB(sErreur) = 0 Then
+        On Error Resume Next
+        Call G_SIRUS_PBS.SIRUS_RemplirListViewGeneration
+        On Error GoTo 0
+    End If
 
     If LenB(sErreur) > 0 Then
         MsgBox "Erreur Rafraichir DATA_ASL :" & vbCrLf & vbCrLf & sErreur, _
@@ -481,14 +492,20 @@ End Sub
 '                                  col AF (Ref Source Repair),
 '                                  col AG (Lead Time REPAIR)
 Private Sub RafraichirPrixCatalogue(ByVal lo As ListObject, ByVal dictDtrs As Object)
-    ' Cascade categorie de catalogue (decision Thomas 2026-06-26) :
-    '   1. D&IS Catalogue  -> categorie "DIS"
-    '   2. FCS             -> categorie "FCS"
-    '   3. Autres          -> categorie "AUTRE"
-    ' Pour chaque DTR x Type (Spare/Repair), on retient le meilleur de
-    ' chaque categorie (MAX Date Source). A l ecriture, on prend DIS si
-    ' present, sinon FCS, sinon AUTRE. Le "Prix FCS" reste strictement
-    ' FCS uniquement (sinon le nom n a plus de sens).
+    ' Decision Thomas 2026-06-28 : le Refresh ne fait PAS de cascade sur
+    ' les PRIX, mais SI une mini-cascade sur le label catalogue AC :
+    '   - col Z  Prix FCS              = MAX(Date Source) parmi les lignes FCS
+    '   - col AA Prix Spare Catalogue  = MAX(Date) parmi les lignes D&IS (strict)
+    '   - col AC Ref Source Spare      = ref D&IS si dispo, sinon ref FCS
+    '   - col AE Prix Repair Catalogue = MAX(Date) parmi les lignes D&IS Repair
+    '   - col AF Ref Source Repair     = ref D&IS Repair (pas de FCS Repair)
+    ' Justification AC en cascade : la ListView Generation cascade Spare
+    ' D&IS -> FCS pour le prix (via col AB = Prix FCS x 1,0557) ; elle a
+    ' donc besoin du libelle catalogue retenu en aval. Si on laissait AC
+    ' vide quand seul FCS est connu, la Source afficherait "FCS" en dur
+    ' sans traceability sur la ref Catalogue exacte.
+    ' Pas de fallback "AUTRE" : si ni D&IS ni FCS ne sont connus, AA/AC
+    ' restent vides et la ListView tombe sur Archive.
     '
     ' IMPORTANT : on N UTILISE PAS ADODB pour cette table. Le bug Microsoft
     ' ACE OLE DB sur .xlsb avec colonne DTR mixed-type (numerique +
@@ -569,8 +586,10 @@ Private Sub RafraichirPrixCatalogue(ByVal lo As ListObject, ByVal dictDtrs As Ob
                 vPrix = arr(ligne, colIdxPrix)
                 vLT = arr(ligne, colIdxLT)
 
-                ' Categoriser la Ref Catalogue
-                sCategorie = "AUTRE"
+                ' Categoriser la Ref Catalogue : on retient uniquement DIS
+                ' et FCS. Tout autre catalogue est ignore (decision 2026-06-28
+                ' : pas de fallback "AUTRE", la ListView gere la cascade).
+                sCategorie = ""
                 If InStr(1, sRefCat, "D&IS CATALOGUE", vbTextCompare) > 0 Then
                     sCategorie = "DIS"
                 ElseIf InStr(1, sRefCat, "FCS", vbTextCompare) > 0 Then
@@ -578,7 +597,9 @@ Private Sub RafraichirPrixCatalogue(ByVal lo As ListObject, ByVal dictDtrs As Ob
                 End If
 
                 ' On ne stocke que les types Spare/Repair avec Date valide
-                If (sType = "SPARE" Or sType = "REPAIR") And IsDate(vDate) Then
+                ' et categorie DIS ou FCS reconnue.
+                If LenB(sCategorie) > 0 And _
+                   (sType = "SPARE" Or sType = "REPAIR") And IsDate(vDate) Then
                     sKeyCat = sUC & "|" & sType & "_" & sCategorie
                     Dim conserver As Boolean
                     conserver = True
@@ -619,30 +640,37 @@ CleanupBdD:
     For Each key In dictDtrs.Keys
         ligne = CLng(dictDtrs(key))
 
-        ' --- Prix FCS (col Z) : STRICT FCS, pas de cascade -----
+        ' --- Prix FCS (col Z) : strict FCS, MAX(Date) ----------
         If dictBest.Exists(key & "|SPARE_FCS") Then
             colZ.Cells(ligne, 1).Value = dictBest(key & "|SPARE_FCS")(1)
         Else
             colZ.Cells(ligne, 1).Value = Empty
         End If
 
-        ' --- Prix Spare Catalogue + Ref + LT (AA/AC/AD) :
-        '     cascade DIS -> FCS -> AUTRE
-        choix = ChoisirCascade(dictBest, key, "SPARE")
-        If IsArray(choix) Then
+        ' --- Prix Spare Catalogue + LT (AA/AD) : strict D&IS, MAX(Date).
+        ' --- Ref Source Spare (AC) : cascade D&IS -> FCS pour le label
+        '     uniquement (le prix AA reste D&IS strict ; le prix FCS vit
+        '     en col Z + AB calcule).
+        If dictBest.Exists(key & "|SPARE_DIS") Then
+            choix = dictBest(key & "|SPARE_DIS")
             colAA.Cells(ligne, 1).Value = choix(1)
             colAC.Cells(ligne, 1).Value = choix(2)
             colAD.Cells(ligne, 1).Value = choix(3)
         Else
             colAA.Cells(ligne, 1).Value = Empty
-            colAC.Cells(ligne, 1).Value = Empty
             colAD.Cells(ligne, 1).Value = Empty
+            ' Fallback label AC sur la ref FCS si dispo.
+            If dictBest.Exists(key & "|SPARE_FCS") Then
+                colAC.Cells(ligne, 1).Value = dictBest(key & "|SPARE_FCS")(2)
+            Else
+                colAC.Cells(ligne, 1).Value = Empty
+            End If
         End If
 
         ' --- Prix Repair Catalogue + Ref + LT (AE/AF/AG) :
-        '     cascade DIS -> FCS -> AUTRE
-        choix = ChoisirCascade(dictBest, key, "REPAIR")
-        If IsArray(choix) Then
+        '     strict D&IS, MAX(Date). Pas de FCS Repair en BdD.
+        If dictBest.Exists(key & "|REPAIR_DIS") Then
+            choix = dictBest(key & "|REPAIR_DIS")
             colAE.Cells(ligne, 1).Value = choix(1)
             colAF.Cells(ligne, 1).Value = choix(2)
             colAG.Cells(ligne, 1).Value = choix(3)
@@ -685,41 +713,27 @@ Private Function TrouverColParLibelle(ByVal ws As Worksheet, ByVal sLibelle As S
     On Error GoTo 0
 End Function
 
-' Cascade DIS -> FCS -> AUTRE pour un (DTR, Type) donne.
-' Renvoie Array(date, prix, ref, lt) du meilleur candidat dispo, ou
-' Empty si aucune categorie n a de donnees.
-Private Function ChoisirCascade(ByVal dictBest As Object, _
-                                 ByVal keyDTR As Variant, _
-                                 ByVal sType As String) As Variant
-    Dim k As String
-    k = CStr(keyDTR) & "|" & sType & "_DIS"
-    If dictBest.Exists(k) Then ChoisirCascade = dictBest(k) : Exit Function
-    k = CStr(keyDTR) & "|" & sType & "_FCS"
-    If dictBest.Exists(k) Then ChoisirCascade = dictBest(k) : Exit Function
-    k = CStr(keyDTR) & "|" & sType & "_AUTRE"
-    If dictBest.Exists(k) Then ChoisirCascade = dictBest(k) : Exit Function
-    ChoisirCascade = Empty
-End Function
-
 ' =========================================================================
 ' BLOC 6 : RAFRAICHIR LES PRIX ARCHIVE depuis Projet_ASL$
 ' =========================================================================
 ' SELECT * FROM [Projet_ASL$] WHERE [PROJET_PROJETASL] <> '<projet courant>'
-' Pour chaque DTR, AVG des valeurs > 0 trouvees dans :
-'   [ISP TIS HORS FRANCE (archivé)]                               -> col AN
-'   [Prix repair (DEVISE du projet (SLI))_PROJETASL]              -> col AO
+' Decision Thomas 2026-06-28 : pas de colonne Date dans Projet_ASL, donc
+' on retient le projet alphabetiquement premier (StrComp asc) pour chaque
+' DTR. Pas d AVG. Le prix retenu = celui du projet retenu, source
+' tracable par la ListView Generation via dictProjetASL_Rows.
+'   [ISP TIS HORS FRANCE (archivé)]                  -> col AN
+'   [Prix repair (DEVISE du projet (SLI))_PROJETASL] -> col AO
 Private Sub RafraichirPrixArchive(ByVal lo As ListObject, ByVal dictDtrs As Object, _
                                     ByVal sProjetCourant As String)
     Dim cnx As String
     Dim sDTR As String, sUC As String, sProjet As String
     Dim ligne As Long
-    Dim dictSpareSum As Object   ' { DTR_UC -> sum }
-    Dim dictSpareCnt As Object   ' { DTR_UC -> count }
-    Dim dictRepairSum As Object
-    Dim dictRepairCnt As Object
+    Dim dictSpare As Object  ' { DTR_UC -> Array(projetMin, prix) }
+    Dim dictRepair As Object ' { DTR_UC -> Array(projetMin, prix) }
     Dim vSpare As Variant, vRepair As Variant
     Dim key As Variant
     Dim colAN As Range, colAO As Range
+    Dim prevSpare As Variant, prevRepair As Variant
 
     cnx = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
     On Error GoTo Sortie
@@ -733,34 +747,47 @@ Private Sub RafraichirPrixArchive(ByVal lo As ListObject, ByVal dictDtrs As Obje
     If REQSEL Is Nothing Then GoTo Sortie
     If REQSEL.EOF And REQSEL.BOF Then GoTo Sortie
 
-    Set dictSpareSum = CreateObject("Scripting.Dictionary")
-    Set dictSpareCnt = CreateObject("Scripting.Dictionary")
-    Set dictRepairSum = CreateObject("Scripting.Dictionary")
-    Set dictRepairCnt = CreateObject("Scripting.Dictionary")
-    dictSpareSum.CompareMode = vbTextCompare
-    dictSpareCnt.CompareMode = vbTextCompare
-    dictRepairSum.CompareMode = vbTextCompare
-    dictRepairCnt.CompareMode = vbTextCompare
+    Set dictSpare = CreateObject("Scripting.Dictionary")
+    Set dictRepair = CreateObject("Scripting.Dictionary")
+    dictSpare.CompareMode = vbTextCompare
+    dictRepair.CompareMode = vbTextCompare
 
     Do While Not REQSEL.EOF
         sDTR = Trim$(NzS(REQSEL.Fields("DTR_str").Value))
         sProjet = Trim$(NzS(REQSEL.Fields("PROJET_PROJETASL").Value))
-        If LenB(sDTR) > 0 And UCase$(sProjet) <> UCase$(sProjetCourant) Then
+        If LenB(sDTR) > 0 And LenB(sProjet) > 0 _
+           And UCase$(sProjet) <> UCase$(sProjetCourant) Then
             sUC = UCase$(sDTR)
             If dictDtrs.Exists(sUC) Then
                 vSpare = REQSEL.Fields("ISP TIS HORS FRANCE (archivé)").Value
                 vRepair = REQSEL.Fields("Prix repair (DEVISE du projet (SLI))_PROJETASL").Value
 
+                ' Spare : on retient le projet alpha 1er (StrComp ascendant)
+                ' parmi les projets ayant un prix Spare > 0.
                 If IsNumeric(vSpare) Then
                     If CDbl(vSpare) > 0 Then
-                        dictSpareSum(sUC) = NzD(dictSpareSum, sUC) + CDbl(vSpare)
-                        dictSpareCnt(sUC) = NzD(dictSpareCnt, sUC) + 1
+                        If dictSpare.Exists(sUC) Then
+                            prevSpare = dictSpare(sUC)
+                            If StrComp(sProjet, CStr(prevSpare(0)), vbTextCompare) < 0 Then
+                                dictSpare(sUC) = Array(sProjet, CDbl(vSpare))
+                            End If
+                        Else
+                            dictSpare(sUC) = Array(sProjet, CDbl(vSpare))
+                        End If
                     End If
                 End If
+                ' Repair : meme logique, dict separe (un projet peut avoir
+                ' Spare connu mais pas Repair, ou inversement).
                 If IsNumeric(vRepair) Then
                     If CDbl(vRepair) > 0 Then
-                        dictRepairSum(sUC) = NzD(dictRepairSum, sUC) + CDbl(vRepair)
-                        dictRepairCnt(sUC) = NzD(dictRepairCnt, sUC) + 1
+                        If dictRepair.Exists(sUC) Then
+                            prevRepair = dictRepair(sUC)
+                            If StrComp(sProjet, CStr(prevRepair(0)), vbTextCompare) < 0 Then
+                                dictRepair(sUC) = Array(sProjet, CDbl(vRepair))
+                            End If
+                        Else
+                            dictRepair(sUC) = Array(sProjet, CDbl(vRepair))
+                        End If
                     End If
                 End If
             End If
@@ -773,13 +800,13 @@ Private Sub RafraichirPrixArchive(ByVal lo As ListObject, ByVal dictDtrs As Obje
 
     For Each key In dictDtrs.Keys
         ligne = CLng(dictDtrs(key))
-        If dictSpareCnt.Exists(key) Then
-            colAN.Cells(ligne, 1).Value = dictSpareSum(key) / dictSpareCnt(key)
+        If dictSpare.Exists(key) Then
+            colAN.Cells(ligne, 1).Value = dictSpare(key)(1)
         Else
             colAN.Cells(ligne, 1).Value = Empty
         End If
-        If dictRepairCnt.Exists(key) Then
-            colAO.Cells(ligne, 1).Value = dictRepairSum(key) / dictRepairCnt(key)
+        If dictRepair.Exists(key) Then
+            colAO.Cells(ligne, 1).Value = dictRepair(key)(1)
         Else
             colAO.Cells(ligne, 1).Value = Empty
         End If
@@ -788,6 +815,185 @@ Private Sub RafraichirPrixArchive(ByVal lo As ListObject, ByVal dictDtrs As Obje
 Sortie:
     On Error Resume Next
     Call Close_CONN(cnx)
+    On Error GoTo 0
+End Sub
+
+' =========================================================================
+' BLOC 7 : RAFRAICHIR LES COLONNES CALCULEES
+' =========================================================================
+' Decision Thomas 2026-06-28 : zero formule dans DATA_ASL. Les 6 colonnes
+' "calcul local" sont reconstruites en valeurs pures a chaque Refresh,
+' apres que les colonnes sources (Refresh + saisie ASL) soient toutes
+' renseignees.
+'
+'   I  COL_NTI                = Select Case Node typed (col G)
+'                                LRU/LRUNR -> "3" ; SRU/SRUNR -> "3+" ; sinon ""
+'   N  COL_TX_DEF_FONCT       = 1 / MTBF fonctionnel (col L) si > 0
+'   O  COL_TX_DEF_GEN         = 1 / MTBF generique   (col M) si > 0
+'   AB COL_PRIX_SPARE_CALC    = Prix FCS (col Z)               * coeff AB2
+'   AL COL_COUT_SPARE_ALSTOM  = Cout spare FRS Not ISP (col AH) * coeff AL2
+'   AM COL_PRIX_REPAIR_ALSTOM = Cout Repair FRS Not ISP (col AJ)* coeff AM2
+'
+' Regle source vide (Thomas 2026-06-28) : si la source est Empty, Null,
+' non-numerique OU egale a 0, la cellule cible reste vide (pas de "0,00 €"
+' qui serait reinterprete par la ListView comme un prix Fournisseur connu).
+'
+' Prix arrondis a 2 decimales avant ecriture (sinon les multiplications
+' par coeff genere des longs decimaux qui s affichent comme "373,179.39"
+' avec separateur de milliers).
+'
+' Format Comptabilite € applique aux colonnes de prix (Z/AA/AB/AE/AH/
+' AJ/AL/AM/AN/AO) en sortie pour homogeneiser l affichage "350,00 €".
+'
+' Les coefficients sont lus depuis la ligne 2 du worksheet (hors ListObject,
+' au-dessus de la ligne d en-tete row 3).
+Private Sub RafraichirCalculs(ByVal ws As Worksheet, ByVal lo As ListObject, _
+                               ByVal dictDtrs As Object)
+    Dim colNode As Range, colNTI As Range
+    Dim colMTBFFonct As Range, colMTBFGen As Range
+    Dim colTxFonct As Range, colTxGen As Range
+    Dim colPrixFCS As Range, colPrixSpareCalc As Range
+    Dim colCoutSpareFRS As Range, colCoutSpareAlstom As Range
+    Dim colCoutRepairFRS As Range, colPrixRepairAlstom As Range
+    Dim coefAB As Variant, coefAL As Variant, coefAM As Variant
+    Dim key As Variant
+    Dim ligne As Long
+    Dim sNode As String
+    Dim v As Variant
+
+    On Error GoTo Sortie
+
+    Set colNode = lo.ListColumns(COL_NODE_TYPED).DataBodyRange
+    Set colNTI = lo.ListColumns(COL_NTI).DataBodyRange
+    Set colMTBFFonct = lo.ListColumns(COL_MTBF_FONCT).DataBodyRange
+    Set colMTBFGen = lo.ListColumns(COL_MTBF_GEN).DataBodyRange
+    Set colTxFonct = lo.ListColumns(COL_TX_DEF_FONCT).DataBodyRange
+    Set colTxGen = lo.ListColumns(COL_TX_DEF_GEN).DataBodyRange
+    Set colPrixFCS = lo.ListColumns(COL_PRIX_FCS).DataBodyRange
+    Set colPrixSpareCalc = lo.ListColumns(COL_PRIX_SPARE_CALC).DataBodyRange
+    Set colCoutSpareFRS = lo.ListColumns(COL_COUT_SPARE_FRS).DataBodyRange
+    Set colCoutSpareAlstom = lo.ListColumns(COL_COUT_SPARE_ALSTOM).DataBodyRange
+    Set colCoutRepairFRS = lo.ListColumns(COL_COUT_REPAIR_FRS).DataBodyRange
+    Set colPrixRepairAlstom = lo.ListColumns(COL_PRIX_REPAIR_ALSTOM).DataBodyRange
+
+    ' Coefficients ligne 2 (hors ListObject : row 2 < header row 3)
+    coefAB = ws.Cells(2, COL_PRIX_SPARE_CALC).Value
+    coefAL = ws.Cells(2, COL_COUT_SPARE_ALSTOM).Value
+    coefAM = ws.Cells(2, COL_PRIX_REPAIR_ALSTOM).Value
+
+    For Each key In dictDtrs.Keys
+        ligne = CLng(dictDtrs(key))
+
+        ' --- I : NTI ---------------------------------------------
+        sNode = UCase$(Trim$(NzS(colNode.Cells(ligne, 1).Value)))
+        Select Case sNode
+            Case "LRU", "LRUNR"
+                colNTI.Cells(ligne, 1).Value = "3"
+            Case "SRU", "SRUNR"
+                colNTI.Cells(ligne, 1).Value = "3+"
+            Case Else
+                colNTI.Cells(ligne, 1).ClearContents
+        End Select
+
+        ' --- N : Tx def fonct = 1 / MTBF fonctionnel ------------
+        v = colMTBFFonct.Cells(ligne, 1).Value
+        If EstNumeriqueNonNul(v) Then
+            colTxFonct.Cells(ligne, 1).Value = 1 / CDbl(v)
+        Else
+            colTxFonct.Cells(ligne, 1).ClearContents
+        End If
+
+        ' --- O : Tx def gen = 1 / MTBF generique ----------------
+        v = colMTBFGen.Cells(ligne, 1).Value
+        If EstNumeriqueNonNul(v) Then
+            colTxGen.Cells(ligne, 1).Value = 1 / CDbl(v)
+        Else
+            colTxGen.Cells(ligne, 1).ClearContents
+        End If
+
+        ' --- AB : Prix Spare Calcule = Prix FCS * coeff AB2 -----
+        '         arrondi 2 decimales
+        v = colPrixFCS.Cells(ligne, 1).Value
+        If EstNumeriqueNonNul(v) And EstNumeriqueNonNul(coefAB) Then
+            colPrixSpareCalc.Cells(ligne, 1).Value = ArrondiPrix(CDbl(v) * CDbl(coefAB))
+        Else
+            colPrixSpareCalc.Cells(ligne, 1).ClearContents
+        End If
+
+        ' --- AL : Cout Spare Alstom = Cout Spare FRS * coeff AL2 -
+        v = colCoutSpareFRS.Cells(ligne, 1).Value
+        If EstNumeriqueNonNul(v) And EstNumeriqueNonNul(coefAL) Then
+            colCoutSpareAlstom.Cells(ligne, 1).Value = ArrondiPrix(CDbl(v) * CDbl(coefAL))
+        Else
+            colCoutSpareAlstom.Cells(ligne, 1).ClearContents
+        End If
+
+        ' --- AM : Prix Repair Alstom = Cout Repair FRS * coeff AM2
+        v = colCoutRepairFRS.Cells(ligne, 1).Value
+        If EstNumeriqueNonNul(v) And EstNumeriqueNonNul(coefAM) Then
+            colPrixRepairAlstom.Cells(ligne, 1).Value = ArrondiPrix(CDbl(v) * CDbl(coefAM))
+        Else
+            colPrixRepairAlstom.Cells(ligne, 1).ClearContents
+        End If
+    Next key
+
+    ' Format Comptabilite € sur toutes les colonnes de prix (cf. comment
+    ' tete de sub). Idempotent : reapplique a chaque Refresh.
+    Call AppliquerFormatPrix(lo)
+    Exit Sub
+
+Sortie:
+    Debug.Print "[RafraichirCalculs] erreur : " & Err.description
+End Sub
+
+' Helper : True si v est numerique ET different de 0. Filtre Empty, Null,
+' "", strings non-numeriques et 0. Utilise par RafraichirCalculs pour
+' eviter d ecrire "0,00 €" quand la source est vide (qui serait alors
+' interprete par la ListView Generation comme un prix Fournisseur connu).
+Private Function EstNumeriqueNonNul(ByVal v As Variant) As Boolean
+    If IsEmpty(v) Then Exit Function
+    If IsNull(v) Then Exit Function
+    If IsError(v) Then Exit Function
+    If Not IsNumeric(v) Then Exit Function
+    If CDbl(v) = 0 Then Exit Function
+    EstNumeriqueNonNul = True
+End Function
+
+' Helper : arrondi commercial a 2 decimales (Application.Round, pas le
+' Round VBA qui fait du banker's rounding).
+Private Function ArrondiPrix(ByVal v As Double) As Double
+    ArrondiPrix = Application.WorksheetFunction.Round(v, 2)
+End Function
+
+' Helper : applique le format Comptabilite € (style "350,00 €") aux
+' colonnes de prix de DATA_ASL. Format VBA US-style (decimal=point,
+' thousand=comma) ; Excel le traduit en local (FR : decimal=virgule,
+' thousand=espace, donc "1 234,56 €").
+'
+' Pour les cellules vides, ce format affiche rien (Empty -> blank).
+' Pour les zeros (qu on ne devrait pas avoir vu la regle EstNumerique
+' NonNul mais defensive), il affiche "-   €" qui est l indicateur
+' standard de "valeur zero" en comptabilite.
+Private Sub AppliquerFormatPrix(ByVal lo As ListObject)
+    Dim fmt As String
+    Dim cols As Variant
+    Dim i As Long
+    Dim colIdx As Variant
+
+    ' Format Comptabilite € standard. Le \  represente un espace insecable
+    ' avant le symbole. Les ?? alignent les "-" sur les decimales.
+    fmt = "_-* #,##0.00\ ""€""_-;-* #,##0.00\ ""€""_-;_-* ""-""??\ ""€""_-;_-@_-"
+
+    cols = Array(COL_PRIX_FCS, COL_PRIX_SPARE_CAT, COL_PRIX_SPARE_CALC, _
+                 COL_PRIX_REPAIR_CAT, COL_COUT_SPARE_FRS, COL_COUT_REPAIR_FRS, _
+                 COL_COUT_SPARE_ALSTOM, COL_PRIX_REPAIR_ALSTOM, _
+                 COL_PRIX_SPARE_ARCHIVE, COL_PRIX_REPAIR_ARCHIVE)
+
+    On Error Resume Next
+    For i = LBound(cols) To UBound(cols)
+        colIdx = cols(i)
+        lo.ListColumns(CLng(colIdx)).DataBodyRange.NumberFormat = fmt
+    Next i
     On Error GoTo 0
 End Sub
 
