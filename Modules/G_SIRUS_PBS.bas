@@ -910,15 +910,23 @@ End Sub
 
 ' =========================================================================
 ' FONCTION: EstNumeriqueConnu
-' True si la valeur est exploitable comme prix (non vide, non erreur,
-' numerique). 0 est considere connu.
+' True si la valeur est exploitable comme prix : non vide, non erreur,
+' numerique, ET different de 0.
+'
+' 0 est explicitement EXCLU (modif 2026-06-28) : un prix Spare/Repair a 0
+' represente metier "prix inconnu". Sans cette exclusion, la cascade
+' Frs -> D&IS -> FCS -> Archive s arrete prematurement quand une cellule
+' source vaut 0 (saisie zero, ou ecriture defensive) au lieu de continuer
+' jusqu a une source vraiment connue.
 ' =========================================================================
 Private Function EstNumeriqueConnu(ByVal v As Variant) As Boolean
     If IsError(v) Then Exit Function
     If IsMissing(v) Then Exit Function
     If IsEmpty(v) Then Exit Function
+    If IsNull(v) Then Exit Function
     If Trim$(CStr(v)) = "" Then Exit Function
     If Not IsNumeric(v) Then Exit Function
+    If CDbl(v) = 0 Then Exit Function
     EstNumeriqueConnu = True
 End Function
 

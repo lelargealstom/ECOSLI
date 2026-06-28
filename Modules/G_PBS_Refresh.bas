@@ -826,6 +826,10 @@ End Sub
 ' apres que les colonnes sources (Refresh + saisie ASL) soient toutes
 ' renseignees.
 '
+'   F  COL_DESIGNATION_PROVIDOR = Designation PBS (col B) si connue,
+'                                  sinon Designation BdD (col E). Sert
+'                                  comme cle de jointure DTR/Designation
+'                                  pour generer Providor / ATM / EMMST.
 '   I  COL_NTI                = Select Case Node typed (col G)
 '                                LRU/LRUNR -> "3" ; SRU/SRUNR -> "3+" ; sinon ""
 '   N  COL_TX_DEF_FONCT       = 1 / MTBF fonctionnel (col L) si > 0
@@ -849,6 +853,7 @@ End Sub
 ' au-dessus de la ligne d en-tete row 3).
 Private Sub RafraichirCalculs(ByVal ws As Worksheet, ByVal lo As ListObject, _
                                ByVal dictDtrs As Object)
+    Dim colDesPBS As Range, colDesBDD As Range, colDesProv As Range
     Dim colNode As Range, colNTI As Range
     Dim colMTBFFonct As Range, colMTBFGen As Range
     Dim colTxFonct As Range, colTxGen As Range
@@ -858,11 +863,14 @@ Private Sub RafraichirCalculs(ByVal ws As Worksheet, ByVal lo As ListObject, _
     Dim coefAB As Variant, coefAL As Variant, coefAM As Variant
     Dim key As Variant
     Dim ligne As Long
-    Dim sNode As String
+    Dim sNode As String, sDesPBS As String, sDesBDD As String
     Dim v As Variant
 
     On Error GoTo Sortie
 
+    Set colDesPBS = lo.ListColumns(COL_DESIGNATION_PBS).DataBodyRange
+    Set colDesBDD = lo.ListColumns(COL_DESIGNATION_BDD).DataBodyRange
+    Set colDesProv = lo.ListColumns(COL_DESIGNATION_PROVIDOR).DataBodyRange
     Set colNode = lo.ListColumns(COL_NODE_TYPED).DataBodyRange
     Set colNTI = lo.ListColumns(COL_NTI).DataBodyRange
     Set colMTBFFonct = lo.ListColumns(COL_MTBF_FONCT).DataBodyRange
@@ -883,6 +891,19 @@ Private Sub RafraichirCalculs(ByVal ws As Worksheet, ByVal lo As ListObject, _
 
     For Each key In dictDtrs.Keys
         ligne = CLng(dictDtrs(key))
+
+        ' --- F : DESIGNATION (Providor) -------------------------
+        '         PBS prio (saisie ASL), sinon fallback BdD (Refresh).
+        '         Cle de jointure DTR/Designation pour Providor/ATM/EMMST.
+        sDesPBS = Trim$(NzS(colDesPBS.Cells(ligne, 1).Value))
+        sDesBDD = Trim$(NzS(colDesBDD.Cells(ligne, 1).Value))
+        If LenB(sDesPBS) > 0 Then
+            colDesProv.Cells(ligne, 1).Value = sDesPBS
+        ElseIf LenB(sDesBDD) > 0 Then
+            colDesProv.Cells(ligne, 1).Value = sDesBDD
+        Else
+            colDesProv.Cells(ligne, 1).ClearContents
+        End If
 
         ' --- I : NTI ---------------------------------------------
         sNode = UCase$(Trim$(NzS(colNode.Cells(ligne, 1).Value)))
