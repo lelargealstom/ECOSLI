@@ -150,8 +150,8 @@ Private Sub RecupererDonneesPBS_EMMST()
     
     tDTR = DS1.Range("Providor[DTR Reference (issue de PBS)]")
     tDES_PBS = DS1.Range("Providor[DESIGNATION (issue de PBS)]")
-    tDES_MEF = DS1.Range("Providor[DESIGNATION (mise en forme pour copier dans Providor : construite a partir de celle de la PBS et de la designation issue de BdD (ORCHESTRA)))]")
-    tSS = DS1.Range("Providor[SOUS SYSTeME (copies de la PBS et classifies selon generiques)]")
+    tDES_MEF = DS1.Range("Providor[DESIGNATION (Providor)]")
+    tSS = DS1.Range("Providor[SOUS SYSTÈME]")
     
 End Sub
 
@@ -192,10 +192,10 @@ Private Function CopierTemplateEMMST(ByVal chemin As String) As Workbook
     ' Construire nom fichier et chemin template selon langue
     If langue = "FR" Then
         nomFichier = Projet_Abrev & "_EMMST_" & Revision & ".xlsx"
-        templatePath = userpath & "\Alstom\DIS Service VBN Pole ISR - QualitÃ©\005-03 Templates\02_Phase Projet\02. ASL\Fiches EMMST\Template EMMST-FR_V02.xlsx"
+        templatePath = userpath & "\Alstom\DIS Service VBN Pole ISR - Qualité\005-03 Templates\02_Phase Projet\02. ASL\Fiches EMMST\Template EMMST-FR_V02.xlsx"
     Else
         nomFichier = Projet_Abrev & "_PHLST_" & Revision & ".xlsx"
-        templatePath = userpath & "\Alstom\DIS Service VBN Pole ISR - QualitÃ©\005-03 Templates\02_Phase Projet\02. ASL\Fiches EMMST\Template PHLST-ENG_V02.xlsx"
+        templatePath = userpath & "\Alstom\DIS Service VBN Pole ISR - Qualité\005-03 Templates\02_Phase Projet\02. ASL\Fiches EMMST\Template PHLST-ENG_V02.xlsx"
     End If
     
     ' Copier template

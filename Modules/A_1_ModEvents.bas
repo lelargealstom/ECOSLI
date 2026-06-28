@@ -151,23 +151,23 @@ Public Sub Install()
     Selection.ClearContents
     wb1.Sheets("DATA_ASL").Range("Providor[DTR Reference (issue de PBS)]").Select
     Selection.ClearContents
-    wb1.Sheets("DATA_ASL").Range("Providor[SOUS SYSTÈME (copiés de la PBS et classifiés selon génériques)]").Select
+    wb1.Sheets("DATA_ASL").Range("Providor[SOUS SYSTÈME]").Select
     Selection.ClearContents
     wb1.Sheets("DATA_ASL").Range("Providor[Qte]").Select
     Selection.ClearContents
-    wb1.Sheets("DATA_ASL").Range("Providor[MTBF intrinsèque (RAM report specifique projet (CGR))]").Select
+    wb1.Sheets("DATA_ASL").Range("Providor[MTBF intrinsèque RAM Report spécifique]").Select
     Selection.ClearContents
-    wb1.Sheets("DATA_ASL").Range("Providor[MTBF fonctionnel (RAM report specifique projet (CGR))]").Select
+    wb1.Sheets("DATA_ASL").Range("Providor[MTBF fonctionnel RAM Report spécifique]").Select
     Selection.ClearContents
-    wb1.Sheets("DATA_ASL").Range("Providor[DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) HARDWARE]").Select
+    wb1.Sheets("DATA_ASL").Range("Providor[DVL HARD spécifique]").Select
     Selection.ClearContents
-    wb1.Sheets("DATA_ASL").Range("Providor[DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) SOFTWARE]").Select
+    wb1.Sheets("DATA_ASL").Range("Providor[DVL SOFT spécifique]").Select
     Selection.ClearContents
-    wb1.Sheets("DATA_ASL").Range("Providor[Cout spare FOURNISSEUR (Not ISP)]").Select
+    wb1.Sheets("DATA_ASL").Range("Providor[Cout spare FOURNISSEUR Not ISP]").Select
     Selection.ClearContents
     wb1.Sheets("DATA_ASL").Range("Providor[Lead Time SPARE FOURNISSEUR]").Select
     Selection.ClearContents
-    wb1.Sheets("DATA_ASL").Range("Providor[Cout Repair FOURNISSEUR (Not ISP)]").Select
+    wb1.Sheets("DATA_ASL").Range("Providor[Cout Repair FOURNISSEUR Not ISP]").Select
     Selection.ClearContents
     wb1.Sheets("DATA_ASL").Range("Providor[Lead Time REPAIR FOURNISSEUR]").Select
     Selection.ClearContents

@@ -327,7 +327,6 @@ Private Sub RemplirPrixRepair(ByVal ligne As Integer)
             ' Hiérarchie prix
             If TrySetPrice(ligne, tPrix_FRS_Repair(j, 1), "Cout Repair fournisseur") Then Exit Sub
             If TrySetPrice(ligne, tPrix_Cat_Repair(j, 1), "Prix catalogue Repa") Then Exit Sub
-            If TrySetPrice(ligne, tPrix_Manuel_Repair(j, 1), "Prix Manuel Repa") Then Exit Sub
             If TrySetPrice(ligne, tPrix_RepairProjet_Archive(j, 1), "Prix d'un projet archivé en BDD") Then Exit Sub
             
             ' Si aucun prix trouvé : ISP * 0.67
@@ -358,7 +357,6 @@ Private Sub RemplirPrixSpare(ByVal ligne As Integer)
             ' Hiérarchie prix
             If TrySetPrice(ligne, tPrix_FRS_Spare(j, 1), "Cout Spare fournisseur") Then Exit Sub
             If TrySetPrice(ligne, tPrix_Cat_Spare(j, 1), "Prix catalogue Spare") Then Exit Sub
-            If TrySetPrice(ligne, tPrix_Manuel_Spare(j, 1), "Prix Manuel Spare") Then Exit Sub
             If TrySetPrice(ligne, tPrix_SpareProjet_Archive(j, 1), "Prix d'un projet archivé en BDD") Then Exit Sub
             
             Exit For

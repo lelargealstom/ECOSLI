@@ -170,9 +170,9 @@ Private Sub RecupererDonneesPBS_Providor(test As Boolean)
         ' Identification
         tDTR = DS1.Range("Providor[DTR Reference (issue de PBS)]")
         tDES_PBS = DS1.Range("Providor[DESIGNATION (issue de PBS)]")
-        tDES_BDD = DS1.Range("Providor[DESIGNATION (issue de BdD)]")
-        tDES_MEF = DS1.Range("Providor[DESIGNATION (mise en forme pour copier dans Providor : construite à partir de celle de la PBS et de la désignation issue de BdD (ORCHESTRA)))]")
-        tSS = DS1.Range("Providor[SOUS SYSTÈME (copiés de la PBS et classifiés selon génériques)]")
+        tDES_BDD = DS1.Range("Providor[DESIGNATION (issue BdD)]")
+        tDES_MEF = DS1.Range("Providor[DESIGNATION (Providor)]")
+        tSS = DS1.Range("Providor[SOUS SYSTÈME]")
         
         ' Quantités et types
         tQTE = DS1.Range("Providor[Qte]")
@@ -180,31 +180,29 @@ Private Sub RecupererDonneesPBS_Providor(test As Boolean)
         tNodeType = DS1.Range("Providor[Node typed (LRU/SRU…)]")
         
         ' Prix
-        tPrix_Cat_Spare = DS1.Range("Providor[ISP TIS FRANCE (FCS)]")
-        tPrix_Cat_Repair = DS1.Range("Providor[Prix repa (ISP Catalogue Répa)]")
-        tPrix_Manuel_Spare = DS1.Range("Providor[Prix Manuel Spare]")
-        tPrix_Manuel_Repair = DS1.Range("Providor[Prix Manuel Repair]")
-        tPrix_SpareProjet_Archive = DS1.Range("Providor[Prix Spare sur un projet archive]")
-        tPrix_RepairProjet_Archive = DS1.Range("Providor[Prix Repair sur un projet archive]")
+        tPrix_Cat_Spare = DS1.Range("Providor[Prix spare catalogue]")
+        tPrix_Cat_Repair = DS1.Range("Providor[Prix repair catalogue]")
+        tPrix_SpareProjet_Archive = DS1.Range("Providor[Prix Spare projet archive]")
+        tPrix_RepairProjet_Archive = DS1.Range("Providor[Prix Repair projet archive]")
         tPrix_FRS_Spare = DS1.Range("Providor[Cout spare ALSTOM FRANCE FOURNISSEUR]")
         tPrix_FRS_Repair = DS1.Range("Providor[Prix repair ALSTOM FOURNISSEUR]")
         
         ' Temps corrective/préventive
-        tTps_CorrPrev_Gen_HARD = DS1.Range("Providor[Durée de la tâche corrective et préventive générique (offre et PGR) HARDWARE]")
-        tTps_CorrPrev_Ana_HARD = DS1.Range("Providor[Durée de la tâche corrective et préventive analytique (CGR) HARDWARE]")
-        tTps_Prev_Gen_SOFT = DS1.Range("Providor[Durée de la tâche préventive générique SOFTWARE (offre et PGR)]")
-        tTps_Prev_Ana_SOFT = DS1.Range("Providor[Durée de la tâche préventive analytique SOFTWARE (CGR)]")
+        tTps_CorrPrev_Gen_HARD = DS1.Range("Providor[Durée tâche correctif+préventif HARD générique]")
+        tTps_CorrPrev_Ana_HARD = DS1.Range("Providor[Durée tâche correctif+préventif HARD analytique]")
+        tTps_Prev_Gen_SOFT = DS1.Range("Providor[Durée tâche préventif SOFT générique]")
+        tTps_Prev_Ana_SOFT = DS1.Range("Providor[Durée tâche préventif SOFT analytique]")
         
         ' Durée de vie
-        tDureevie_Gen_HARD = DS1.Range("Providor[DUREE DE VIE LIMITEE générique (offre et PGR) HARDWARE]")
-        tDureevie_Gen_SOFT = DS1.Range("Providor[DUREE DE VIE LIMITEE générique (offre et PGR) SOFTWARE]")
-        tDureevie_Ana_HARD = DS1.Range("Providor[DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) HARDWARE]")
-        tDureevie_Ana_SOFT = DS1.Range("Providor[DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) SOFTWARE]")
+        tDureevie_Gen_HARD = DS1.Range("Providor[DVL HARD générique]")
+        tDureevie_Gen_SOFT = DS1.Range("Providor[DVL SOFT générique]")
+        tDureevie_Ana_HARD = DS1.Range("Providor[DVL HARD spécifique]")
+        tDureevie_Ana_SOFT = DS1.Range("Providor[DVL SOFT spécifique]")
         
         ' MTBF
-        tMTBF_gen = DS1.Range("Providor[MTBF générique (offre et PGR)]")
-        tMTBF_Intr = DS1.Range("Providor[MTBF intrinsèque (RAM report specifique projet (CGR))]")
-        tMTBF_fct = DS1.Range("Providor[MTBF fonctionnel (RAM report specifique projet (CGR))]")
+        tMTBF_gen = DS1.Range("Providor[MTBF générique (offre+PGR)]")
+        tMTBF_Intr = DS1.Range("Providor[MTBF intrinsèque RAM Report spécifique]")
+        tMTBF_fct = DS1.Range("Providor[MTBF fonctionnel RAM Report spécifique]")
     Else
         Call InitPBS_Etalon
         Call InjecterDonneesEtalon

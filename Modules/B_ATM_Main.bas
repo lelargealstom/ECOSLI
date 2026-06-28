@@ -117,26 +117,26 @@ Private Sub RecupererDonneesPBS()
     ' Colonnes de base
     tDTR = DS1.Range("Providor[DTR Reference (issue de PBS)]")
     tDES_PBS = DS1.Range("Providor[DESIGNATION (issue de PBS)]")
-    tDES_BDD = DS1.Range("Providor[DESIGNATION (issue de BdD)]")
-    tDES_MEF = DS1.Range("Providor[DESIGNATION (mise en forme pour copier dans Providor : construite à partir de celle de la PBS et de la désignation issue de BdD (ORCHESTRA)))]")
-    tSS = DS1.Range("Providor[SOUS SYSTÈME (copiés de la PBS et classifiés selon génériques)]")
+    tDES_BDD = DS1.Range("Providor[DESIGNATION (issue BdD)]")
+    tDES_MEF = DS1.Range("Providor[DESIGNATION (Providor)]")
+    tSS = DS1.Range("Providor[SOUS SYSTÈME]")
     
     ' Colonnes HARD/SOFT et périodicité
     tHARD_SOFT = DS1.Range("Providor[HARD/SOFT]")
-    tPERIODICITE = DS1.Range("Providor[DUREE DE VIE LIMITEE générique (offre et PGR) HARDWARE]")
+    tPERIODICITE = DS1.Range("Providor[DVL HARD générique]")
     
     ' Colonnes RAM - MTBF
-    tMTBF_gen = DS1.Range("Providor[MTBF générique (offre et PGR)]")
-    tMTBF_fct = DS1.Range("Providor[MTBF fonctionnel (RAM report specifique projet (CGR))]")
-    tMTBF_Intr = DS1.Range("Providor[MTBF intrinsèque (RAM report specifique projet (CGR))]")
+    tMTBF_gen = DS1.Range("Providor[MTBF générique (offre+PGR)]")
+    tMTBF_fct = DS1.Range("Providor[MTBF fonctionnel RAM Report spécifique]")
+    tMTBF_Intr = DS1.Range("Providor[MTBF intrinsèque RAM Report spécifique]")
     
     ' Colonnes RAM - Durée de vie HARDWARE
-    tDureevie_Gen_HARD = DS1.Range("Providor[DUREE DE VIE LIMITEE générique (offre et PGR) HARDWARE]")
-    tDureevie_Ana_HARD = DS1.Range("Providor[DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) HARDWARE]")
+    tDureevie_Gen_HARD = DS1.Range("Providor[DVL HARD générique]")
+    tDureevie_Ana_HARD = DS1.Range("Providor[DVL HARD spécifique]")
     
     ' Colonnes RAM - Durée de vie SOFTWARE
-    tDureevie_Gen_SOFT = DS1.Range("Providor[DUREE DE VIE LIMITEE générique (offre et PGR) SOFTWARE]")
-    tDureevie_Ana_SOFT = DS1.Range("Providor[DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) SOFTWARE]")
+    tDureevie_Gen_SOFT = DS1.Range("Providor[DVL SOFT générique]")
+    tDureevie_Ana_SOFT = DS1.Range("Providor[DVL SOFT spécifique]")
     
 End Sub
 
