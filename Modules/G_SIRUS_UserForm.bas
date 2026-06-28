@@ -307,8 +307,7 @@ Public Sub SIRUS_AjouterLigneProduit(TypeMod As String)
     End If
 
     If missing <> "" Then
-        MsgBox "Champs obligatoires manquants : " & _
-               Left(missing, Len(missing) - 3), vbExclamation, "SIRUS"
+        MsgBox "Champs obligatoires manquants : " & Left(missing, Len(missing) - 3), vbExclamation, "SIRUS"
         Exit Sub
     End If
 
@@ -317,8 +316,7 @@ Public Sub SIRUS_AjouterLigneProduit(TypeMod As String)
     For Each item In lignesProduit
         If IsArray(item) Then
             If UCase(Trim(item(0))) = UCase(dtr) Then
-                MsgBox "DTR '" & dtr & "' deja present dans la liste.", _
-                       vbExclamation, "SIRUS"
+                MsgBox "DTR '" & dtr & "' deja present dans la liste.", vbExclamation, "SIRUS"
                 Exit Sub
             End If
         End If
@@ -443,17 +441,14 @@ Public Sub SIRUS_AjouterTacheATM()
     Dim descLower As String
     descLower = LCase(desc)
     Dim needCrit As Boolean
-    needCrit = (InStr(descLower, "torque") > 0 Or _
-                InStr(descLower, "tighten") > 0 Or _
-                (InStr(descLower, "serrer") > 0 And InStr(descLower, "couple") > 0))
+    needCrit = (InStr(descLower, "torque") > 0 Or InStr(descLower, "tighten") > 0 Or (InStr(descLower, "serrer") > 0 And InStr(descLower, "couple") > 0))
 
     If needCrit And critdim = "" Then
         missing = missing & "Criteres dim. (serrage detecte) / "
     End If
 
     If missing <> "" Then
-        MsgBox "Champs obligatoires manquants :" & vbCrLf & _
-               Left(missing, Len(missing) - 3), vbExclamation, "SIRUS a ATM"
+        MsgBox "Champs obligatoires manquants :" & vbCrLf & Left(missing, Len(missing) - 3), vbExclamation, "SIRUS a ATM"
         Exit Sub
     End If
 
@@ -464,12 +459,8 @@ Public Sub SIRUS_AjouterTacheATM()
     Set lv = UserForm.ListView_Taches
 
     For Each li In lv.ListItems
-        If UCase(li.Text) = UCase(dtr) And _
-           UCase(li.SubItems(2)) = UCase(rang) And _
-           UCase(li.SubItems(1)) = UCase(langue) Then
-            MsgBox "La combinaison DTR '" & dtr & "' / Rang '" & rang & _
-                   "' / Langue '" & langue & "' existe deja.", _
-                   vbExclamation, "SIRUS a ATM"
+        If UCase(li.Text) = UCase(dtr) And UCase(li.SubItems(2)) = UCase(rang) And UCase(li.SubItems(1)) = UCase(langue) Then
+            MsgBox "La combinaison DTR '" & dtr & "' / Rang '" & rang & "' / Langue '" & langue & "' existe deja.", vbExclamation, "SIRUS a ATM"
             Exit Sub
         End If
     Next li
@@ -801,9 +792,7 @@ Public Sub SIRUS_UI_BtnGenererClick()
             If sTable = "ProjetASL" Then
                 sProjet = Trim$(CStr(UserForm.Project_List.Value))
                 If LenB(sProjet) = 0 Then
-                    MsgBox "Selectionner d abord un projet dans la liste principale " & _
-                           "(Project_List) en haut du UserForm.", _
-                           vbExclamation, "SIRUS"
+                    MsgBox "Selectionner d abord un projet dans la liste principale (Project_List) en haut du UserForm.", vbExclamation, "SIRUS"
                     Exit Sub
                 End If
                 cles = Array(sProjet)
@@ -903,10 +892,7 @@ Public Sub SIRUS_RafraichirComboFeuilles()
         For Each ws In ActiveWorkbook.Worksheets
             If Left$(ws.Name, 6) = "SIRUS_" Then
                 ' Exclure feuilles internes (Config, Diag, Historique)
-                If InStr(1, ws.Name, "SIRUS_Config", vbTextCompare) = 0 _
-                   And InStr(1, ws.Name, "SIRUS_Diag", vbTextCompare) = 0 _
-                   And InStr(1, ws.Name, "SIRUS_Historique", vbTextCompare) = 0 _
-                   And InStr(1, ws.Name, "_Snap", vbTextCompare) = 0 Then
+                If InStr(1, ws.Name, "SIRUS_Config", vbTextCompare) = 0 And InStr(1, ws.Name, "SIRUS_Diag", vbTextCompare) = 0 And InStr(1, ws.Name, "SIRUS_Historique", vbTextCompare) = 0 And InStr(1, ws.Name, "_Snap", vbTextCompare) = 0 Then
                     .AddItem ws.Name
                 End If
             End If
@@ -960,8 +946,7 @@ Public Sub SIRUS_UI_BtnAnalyserClick()
 
     sFeuille = CStr(UserForm.Cmb_SIRUS_FeuilleAnalyse.Value)
     If LenB(sFeuille) = 0 Then
-        MsgBox "Aucune feuille a analyser. Generer d'abord une feuille.", _
-               vbExclamation, "SIRUS"
+        MsgBox "Aucune feuille a analyser. Generer d'abord une feuille.", vbExclamation, "SIRUS"
         Exit Sub
     End If
 
@@ -972,8 +957,7 @@ Public Sub SIRUS_UI_BtnAnalyserClick()
 
     ' Resume statut + activer envoi (gating MeQ retire pour l instant -
     ' decision Thomas 2026-06-11 : on permet d envoyer tout le temps).
-    UserForm.Lbl_SIRUS_StatutAnalyse.Caption = _
-        "Taux de completude (MeQ) : " & Format(taux * 100, "0.0") & "%"
+    UserForm.Lbl_SIRUS_StatutAnalyse.Caption = "Taux de completude (MeQ) : " & Format(taux * 100, "0.0") & "%"
 
     UserForm.Btn_SIRUS_Envoyer.Enabled = True
 
@@ -1001,8 +985,7 @@ Public Sub SIRUS_UI_BtnEditerFeuilleClick()
 
     sFeuille = CStr(UserForm.Cmb_SIRUS_FeuilleAnalyse.Value)
     If LenB(sFeuille) = 0 Then
-        MsgBox "Selectionner d'abord une feuille dans la liste Zone 2.", _
-               vbExclamation, "SIRUS"
+        MsgBox "Selectionner d'abord une feuille dans la liste Zone 2.", vbExclamation, "SIRUS"
         Exit Sub
     End If
 
@@ -1010,8 +993,7 @@ Public Sub SIRUS_UI_BtnEditerFeuilleClick()
     Set ws = ActiveWorkbook.Worksheets(sFeuille)
     On Error GoTo 0
     If ws Is Nothing Then
-        MsgBox "Feuille '" & sFeuille & "' introuvable dans le classeur actif.", _
-               vbExclamation, "SIRUS"
+        MsgBox "Feuille '" & sFeuille & "' introuvable dans le classeur actif.", vbExclamation, "SIRUS"
         Exit Sub
     End If
 
@@ -1081,8 +1063,7 @@ Public Sub SIRUS_UI_BtnEnvoyerClick()
     sPriorite = CStr(UserForm.Cmb_SIRUS_Priorite.Value)
 
     If LenB(sProjet) = 0 Then
-        MsgBox "Selectionner un projet dans la liste principale Project_List " & _
-               "avant l envoi.", vbExclamation, "SIRUS"
+        MsgBox "Selectionner un projet dans la liste principale Project_List avant l envoi.", vbExclamation, "SIRUS"
         Exit Sub
     End If
     If LenB(sSujet) = 0 Then
@@ -1100,8 +1081,7 @@ Public Sub SIRUS_UI_BtnEnvoyerClick()
 
     feuilles = SIRUS_RecupererFeuillesAEnvoyer()
     If UBound(feuilles) < LBound(feuilles) Then
-        MsgBox "Aucune feuille SIRUS a envoyer. Generer + analyser une feuille d abord.", _
-               vbExclamation, "SIRUS"
+        MsgBox "Aucune feuille SIRUS a envoyer. Generer + analyser une feuille d abord.", vbExclamation, "SIRUS"
         Exit Sub
     End If
 
@@ -1111,21 +1091,12 @@ Public Sub SIRUS_UI_BtnEnvoyerClick()
     Dim sProjetsInconnus As String
     sProjetsInconnus = SIRUS_ProjetsASL_Inconnus(feuilles)
     If LenB(sProjetsInconnus) > 0 Then
-        MsgBox "Envoi bloque : projet(s) inconnu(s) dans ProjetSLI :" & vbCrLf & vbCrLf & _
-               sProjetsInconnus & vbCrLf & vbCrLf & _
-               "Creer d abord le projet en ProjetSLI avant d ajouter des entrees ProjetASL.", _
-               vbCritical, "SIRUS - Envoi impossible"
+        MsgBox "Envoi bloque : projet(s) inconnu(s) dans ProjetSLI :" & vbCrLf & vbCrLf & sProjetsInconnus & vbCrLf & vbCrLf & "Creer d abord le projet en ProjetSLI avant d ajouter des entrees ProjetASL.", vbCritical, "SIRUS - Envoi impossible"
         Exit Sub
     End If
 
     ' -- 2. Confirmation utilisateur -------------------------
-    reponse = MsgBox("Confirmer l envoi du ticket ATMAP ?" & vbCrLf & vbCrLf & _
-                     "Sujet     : " & sSujet & vbCrLf & _
-                     "Priorite  : " & sPriorite & vbCrLf & _
-                     "Projet    : " & sProjet & vbCrLf & _
-                     "Feuilles  : " & (UBound(feuilles) - LBound(feuilles) + 1) & " a envoyer", _
-                     vbYesNo + vbQuestion + vbDefaultButton2, _
-                     "SIRUS - Confirmation envoi ATMAP")
+    reponse = MsgBox("Confirmer l envoi du ticket ATMAP ?" & vbCrLf & vbCrLf & "Sujet     : " & sSujet & vbCrLf & "Priorite  : " & sPriorite & vbCrLf & "Projet    : " & sProjet & vbCrLf & "Feuilles  : " & (UBound(feuilles) - LBound(feuilles) + 1) & " a envoyer", vbYesNo + vbQuestion + vbDefaultButton2, "SIRUS - Confirmation envoi ATMAP")
     If reponse <> vbYes Then Exit Sub
 
     ' -- 3. Construire la PJ Excel (toutes feuilles SIRUS du combo) ----
@@ -1190,9 +1161,7 @@ Public Sub SIRUS_UI_BtnEnvoyerClick()
 
     UserForm.Lbl_SIRUS_StatutEnvoi.Caption = "Creation du ticket..."
     DoEvents
-    resultTicket = SIRUS_CreerTicketEnvoi(digest, userID, sNumeroVBN, _
-                                            sSujet, sDesc, sAttentes, sPriorite, ticketID, _
-                                            sNumeroImport, sDateEstimee)
+    resultTicket = SIRUS_CreerTicketEnvoi(digest, userID, sNumeroVBN, sSujet, sDesc, sAttentes, sPriorite, ticketID, sNumeroImport, sDateEstimee)
 
     If ticketID = -1 Then
         UserForm.Lbl_SIRUS_StatutEnvoi.Caption = "Echec creation ticket"
@@ -1215,16 +1184,10 @@ Public Sub SIRUS_UI_BtnEnvoyerClick()
     On Error GoTo 0
 
     ' -- 9. Statut final visible -----------------------------
-    UserForm.Lbl_SIRUS_StatutEnvoi.Caption = "OK - " & sNumeroVBN & _
-                                              " / " & sNumeroImport & _
-                                              " (SP Id " & ticketID & ")"
+    UserForm.Lbl_SIRUS_StatutEnvoi.Caption = "OK - " & sNumeroVBN & " / " & sNumeroImport & " (SP Id " & ticketID & ")"
     UserForm.Lbl_SIRUS_StatutEnvoi.ForeColor = RGB(39, 80, 10)
 
-    MsgBox "Ticket cree avec succes !" & vbCrLf & vbCrLf & _
-           "Numero ticket  : " & sNumeroVBN & vbCrLf & _
-           "Numero import  : " & sNumeroImport & vbCrLf & _
-           "SharePoint ID  : " & ticketID & vbCrLf & vbCrLf & _
-           resultPJ, vbInformation, "SIRUS - Envoi termine"
+    MsgBox "Ticket cree avec succes !" & vbCrLf & vbCrLf & "Numero ticket  : " & sNumeroVBN & vbCrLf & "Numero import  : " & sNumeroImport & vbCrLf & "SharePoint ID  : " & ticketID & vbCrLf & vbCrLf & resultPJ, vbInformation, "SIRUS - Envoi termine"
     Exit Sub
 
 Sortie:
@@ -1336,8 +1299,7 @@ Private Sub SIRUS_MajDescriptionEnvoi()
     End If
 
     On Error Resume Next
-    UserForm.Txt_SIRUS_Description.Value = sOp & " de " & nbLignes & _
-        " reference(s) en " & sTable & " pour le projet " & sProjetAff
+    UserForm.Txt_SIRUS_Description.Value = sOp & " de " & nbLignes & " reference(s) en " & sTable & " pour le projet " & sProjetAff
     On Error GoTo 0
 End Sub
 
@@ -1560,9 +1522,7 @@ Private Function SIRUS_ParserCles(ByVal sTexte As String) As Variant
     End If
 End Function
 
-Private Sub SIRUS_ParserNomFeuille(ByVal sNom As String, _
-                                    ByRef sTable As String, _
-                                    ByRef sOp As String)
+Private Sub SIRUS_ParserNomFeuille(ByVal sNom As String, ByRef sTable As String, ByRef sOp As String)
     ' "SIRUS_Produit_Creer" -> sTable="Produit", sOp="Creer"
     Dim parts() As String
     parts = Split(sNom, "_")
@@ -1580,7 +1540,7 @@ Public Sub SIRUS_ConfigListViewResultats()
     On Error GoTo 0
 
     ' Nouveau layout (refonte 2026-06-11) : 1 ligne par alerte.
-    '   Cle    : DTR (toutes tables) ou Projet (ProjetSLI) — col 3 feuille
+    '   Cle    : DTR (toutes tables) ou Projet (ProjetSLI) - col 3 feuille
     '   Champ  : libelle humain du champ fautif (def.Champ)
     '   Alertes: detail de l alerte sur ce champ precis
     With lv

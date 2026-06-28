@@ -104,8 +104,7 @@ Private Function InitialiserContexteEMMST() As Boolean
     
     ' Validation gate
     If gate = "" Then
-        MsgBox "Aucune gate n'est selectionnee. Merci de selectionner la gate avant de generer les fiches EMMST", _
-               vbInformation, "Gate"
+        MsgBox "Aucune gate n'est selectionnee. Merci de selectionner la gate avant de generer les fiches EMMST", vbInformation, "Gate"
         InitialiserContexteEMMST = False
         Exit Function
     End If
@@ -151,7 +150,7 @@ Private Sub RecupererDonneesPBS_EMMST()
     tDTR = DS1.Range("Providor[DTR Reference (issue de PBS)]")
     tDES_PBS = DS1.Range("Providor[DESIGNATION (issue de PBS)]")
     tDES_MEF = DS1.Range("Providor[DESIGNATION (Providor)]")
-    tSS = DS1.Range("Providor[SOUS SYSTÈME]")
+    tSS = DS1.Range("Providor[SOUS SYSTEME]")
     
 End Sub
 
@@ -192,10 +191,10 @@ Private Function CopierTemplateEMMST(ByVal chemin As String) As Workbook
     ' Construire nom fichier et chemin template selon langue
     If langue = "FR" Then
         nomFichier = Projet_Abrev & "_EMMST_" & Revision & ".xlsx"
-        templatePath = userpath & "\Alstom\DIS Service VBN Pole ISR - Qualité\005-03 Templates\02_Phase Projet\02. ASL\Fiches EMMST\Template EMMST-FR_V02.xlsx"
+        templatePath = userpath & "\Alstom\DIS Service VBN Pole ISR - Qualite\005-03 Templates\02_Phase Projet\02. ASL\Fiches EMMST\Template EMMST-FR_V02.xlsx"
     Else
         nomFichier = Projet_Abrev & "_PHLST_" & Revision & ".xlsx"
-        templatePath = userpath & "\Alstom\DIS Service VBN Pole ISR - Qualité\005-03 Templates\02_Phase Projet\02. ASL\Fiches EMMST\Template PHLST-ENG_V02.xlsx"
+        templatePath = userpath & "\Alstom\DIS Service VBN Pole ISR - Qualite\005-03 Templates\02_Phase Projet\02. ASL\Fiches EMMST\Template PHLST-ENG_V02.xlsx"
     End If
     
     ' Copier template
@@ -224,16 +223,7 @@ Private Sub RecupererDonneesBDD_EMMST()
     ' =====================================================================
     ' REQUeTE 1: Table EMMST (48 champs)
     ' =====================================================================
-    STRSEL = "SELECT [DTR_EMMST], [DimensionNuLongueur_EMMST], [DimensionNuLargeur_EMMST], [DimensionNuHauteur_EMMST], [DimensionNuPoids], " & _
-             "[DimensionConditionneLongueur_EMMST], [DimensionConditionneLargeur_EMMST], [DimensionConditionneHauteur_EMMST], [DimensionConditionnePoids_EMMST], " & _
-             "[DatePeremption_EMMST], [UniteConditionnement_EMMST], [CommentaireEmballage_EMMST], [CommentaireMarquage_EMMST], [CommentaireManutention_EMMST], " & _
-             "[CommentaireStockage_EMMST], [CommentaireTransport_EMMST], [TypeOutil_EMMST], [DureePeremption_EMMST], [Reutilisable_EMMST], [EtiquetteEmballage_EMMST], " & _
-             "[MarquageEquipement_EMMST], [ManutentionEquipement_EMMST], [OutillageSpecifiqueManutention_EMMST], [PrecautionManutention_EMMST], [PositionStockage_EMMST], " & _
-             "[StockageExterieur_EMMST], [StockageSousAbri_EMMST], [StockageAirLibre_EMMST], [StockageHorsPoussiere_EMMST], [StockageHorsEau_EMMST], [StockageInterieur_EMMST], " & _
-             "[StockageChaud_EMMST], [StockageFroid_EMMST], [StockageHorsLumiere_EMMST], [Gerbable_EMMST], [MoyenStockage_EMMST], [PrecautionStockage_EMMST], [MaintenanceStockage_EMMST], " & _
-             "[MoyenTransport_EMMST], [OutillageSpecifiqueTransport_EMMST], [PrescriptionTransport_EMMST], [PrecautionTransport_EMMST], [Version_EMMST], [DatePeremptionEN_EMMST], " & _
-             "[UniteConditionneEN_EMMST], [CommentaireEmballageEN_EMMST], [CommentaireMarquageEN_EMMST], [CommentaireManutentionEN_EMMST], [CommentaireStockageEN_EMMST], [CommentaireTransportEN_EMMST] " & _
-             "FROM [EMMST$]"
+    STRSEL = "SELECT [DTR_EMMST], [DimensionNuLongueur_EMMST], [DimensionNuLargeur_EMMST], [DimensionNuHauteur_EMMST], [DimensionNuPoids], [DimensionConditionneLongueur_EMMST], [DimensionConditionneLargeur_EMMST], [DimensionConditionneHauteur_EMMST], [DimensionConditionnePoids_EMMST], [DatePeremption_EMMST], [UniteConditionnement_EMMST], [CommentaireEmballage_EMMST], [CommentaireMarquage_EMMST], [CommentaireManutention_EMMST], [CommentaireStockage_EMMST], [CommentaireTransport_EMMST], [TypeOutil_EMMST], [DureePeremption_EMMST], [Reutilisable_EMMST], [EtiquetteEmballage_EMMST], [MarquageEquipement_EMMST], [ManutentionEquipement_EMMST], [OutillageSpecifiqueManutention_EMMST], [PrecautionManutention_EMMST], [PositionStockage_EMMST], [StockageExterieur_EMMST], [StockageSousAbri_EMMST], [StockageAirLibre_EMMST], [StockageHorsPoussiere_EMMST], [StockageHorsEau_EMMST], [StockageInterieur_EMMST], [StockageChaud_EMMST], [StockageFroid_EMMST], [StockageHorsLumiere_EMMST], [Gerbable_EMMST], [MoyenStockage_EMMST], [PrecautionStockage_EMMST], [MaintenanceStockage_EMMST], [MoyenTransport_EMMST], [OutillageSpecifiqueTransport_EMMST], [PrescriptionTransport_EMMST], [PrecautionTransport_EMMST], [Version_EMMST], [DatePeremptionEN_EMMST], [UniteConditionneEN_EMMST], [CommentaireEmballageEN_EMMST], [CommentaireMarquageEN_EMMST], [CommentaireManutentionEN_EMMST], [CommentaireStockageEN_EMMST], [CommentaireTransportEN_EMMST] FROM [EMMST$]"
     
     Call open_REQSEL(STRSEL)
     EMMST_tab = RecordsetToArray(REQSEL)
@@ -360,8 +350,7 @@ End Sub
 ' =========================================================================
 ' PROCEDURE: GENERER FICHE EMMST (pour un DTR)
 ' =========================================================================
-Private Sub GenererFicheEMMST(ByRef Template As Workbook, ByRef index As Worksheet, _
-                              ByRef Template_EMMST As Worksheet, ByVal indexDTR As Integer)
+Private Sub GenererFicheEMMST(ByRef Template As Workbook, ByRef index As Worksheet, ByRef Template_EMMST As Worksheet, ByVal indexDTR As Integer)
 ' Genere une fiche EMMST pour un DTR specifique
     
     Dim dest As Worksheet
@@ -406,8 +395,7 @@ End Sub
 ' =========================================================================
 ' FONCTION: COMPTER DOUBLONS FEUILLES EMMST
 ' =========================================================================
-Private Function CompterDoublonsFeuillesEMMST(ByRef Template As Workbook, ByRef index As Worksheet, _
-                                               ByVal indexDTR As Integer, ByVal system As String) As Integer
+Private Function CompterDoublonsFeuillesEMMST(ByRef Template As Workbook, ByRef index As Worksheet, ByVal indexDTR As Integer, ByVal system As String) As Integer
 ' Compte le nombre de feuilles avec nom similaire (gestion doublons)
     
     Dim ws As Worksheet
@@ -430,8 +418,7 @@ End Function
 ' =========================================================================
 ' PROCEDURE: NOMMER FEUILLE EMMST
 ' =========================================================================
-Private Sub NommerFeuilleEMMST(ByRef dest As Worksheet, ByRef index As Worksheet, _
-                               ByVal indexDTR As Integer, ByVal system As String, ByVal cpt As Integer)
+Private Sub NommerFeuilleEMMST(ByRef dest As Worksheet, ByRef index As Worksheet, ByVal indexDTR As Integer, ByVal system As String, ByVal cpt As Integer)
 ' Nomme la feuille EMMST en gerant les doublons
     
     Dim baseName As String
@@ -464,8 +451,7 @@ End Sub
 ' =========================================================================
 ' FONCTION: RECHERCHER DTR EMMST
 ' =========================================================================
-Private Function RechercherDTR_EMMST(ByVal dtr As String, ByRef ligne As Integer, _
-                                     ByRef test As Boolean) As Boolean
+Private Function RechercherDTR_EMMST(ByVal dtr As String, ByRef ligne As Integer, ByRef test As Boolean) As Boolean
 ' Recherche un DTR dans le tableau EMMST_tab
 ' Retourne True si trouve, False sinon
     
@@ -488,8 +474,7 @@ End Function
 ' =========================================================================
 ' PROCEDURE: VERIFIER COMPLeTUDE EMMST
 ' =========================================================================
-Private Sub VerifierCompletudeEMMST(ByVal ligne As Integer, ByRef index As Worksheet, _
-                                    ByVal indexDTR As Integer)
+Private Sub VerifierCompletudeEMMST(ByVal ligne As Integer, ByRef index As Worksheet, ByVal indexDTR As Integer)
 ' Verifie si la fiche EMMST a beaucoup de donnees manquantes
 ' Si plus de 20 champs NULL ? marquer "A remplir"
     
@@ -513,8 +498,7 @@ End Sub
 ' =========================================================================
 ' PROCEDURE: REMPLIR FICHE EMMST COMPLeTE
 ' =========================================================================
-Private Sub RemplirFicheEMMST(ByRef dest As Worksheet, ByRef index As Worksheet, _
-                              ByVal indexDTR As Integer, ByVal ligne As Integer)
+Private Sub RemplirFicheEMMST(ByRef dest As Worksheet, ByRef index As Worksheet, ByVal indexDTR As Integer, ByVal ligne As Integer)
 ' Remplit une fiche EMMST complete avec toutes les donnees
 ' Utilise la classe EMMST_Ranges pour acceder aux cellules
     

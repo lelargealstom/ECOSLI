@@ -3,7 +3,7 @@ Public Sub Cadrage_ECOSLI(Infos_tab As Variant)
 ' Macro de cadrage de la feuille Info ATM de la BDD
 ' Il est possible de changer la disposition des colonnes mais pas la nomination des colonnes
 
-'On récupère les numéros de colonne
+'On recupere les numeros de colonne
 ECOSLI_Type.dtr = 6
 ECOSLI_Type.Designation = 7
 ECOSLI_Type.Designation_BDD = 8

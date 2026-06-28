@@ -7,10 +7,10 @@ Sub ExportAllModules()
     
     userpath = Environ$("UserProfile")
     
-    ' Dossier d'export (à adapter)
-    exportPath = userpath & "\Alstom\Svcs_DIS_Fr_VBN - Documents\01_Metiers\01_ISR\007 - Outils métier ISR\01. BDD SLI\01_Outils MACRO EXCEL\VBA_Export\"
+    ' Dossier d'export (a adapter)
+    exportPath = userpath & "\Alstom\Svcs_DIS_Fr_VBN - Documents\01_Metiers\01_ISR\007 - Outils metier ISR\01. BDD SLI\01_Outils MACRO EXCEL\VBA_Export\"
     
-    ' Crée le dossier s'il n'existe pas
+    ' Cree le dossier s'il n'existe pas
     If Dir(exportPath, vbDirectory) = "" Then MkDir exportPath
     
     For Each vbComp In ThisWorkbook.VBProject.VBComponents
@@ -28,7 +28,7 @@ Sub ExportAllModules()
         
     Next vbComp
     
-    MsgBox "Export terminé !"
+    MsgBox "Export termine !"
 End Sub
 
 ' --- Helpers ---
@@ -96,7 +96,7 @@ End Function
 
 ' --- Fonctions publiques ---
 
-' Nombre de prix renseignés (0 à 3)
+' Nombre de prix renseignes (0 a 3)
 Public Function Prix_NombreConnus(Manual As Variant, Alstom As Variant, ISP As Variant) As Long
     Dim idx() As Long, vals() As Double
     vals = BuildKnownArray(Manual, Alstom, ISP, idx)
@@ -120,7 +120,7 @@ Public Function Prix_MoyenneConnus(Manual As Variant, Alstom As Variant, ISP As 
     Prix_MoyenneConnus = s / n
 End Function
 
-' Vrai si au moins un prix s’écarte de plus de "seuil" (25% par défaut) de la médiane
+' Vrai si au moins un prix s'ecarte de plus de "seuil" (25% par defaut) de la mediane
 Public Function Prix_DifferenceSuperieureSeuil(Manual As Variant, Alstom As Variant, ISP As Variant, Optional seuil As Double = 0.25) As Boolean
     Dim idx() As Long, vals() As Double, n As Long, med As Double, i As Long, diff As Double
     vals = BuildKnownArray(Manual, Alstom, ISP, idx)
@@ -131,7 +131,7 @@ Public Function Prix_DifferenceSuperieureSeuil(Manual As Variant, Alstom As Vari
 
     med = MedianOf(vals)
     If med = 0 Then
-        ' Si médiane = 0, tout prix non nul est considéré "très différent"
+        ' Si mediane = 0, tout prix non nul est considere "tres different"
         For i = 1 To UBound(vals)
             If vals(i) <> 0 Then Prix_DifferenceSuperieureSeuil = True: Exit Function
         Next
@@ -146,7 +146,7 @@ Public Function Prix_DifferenceSuperieureSeuil(Manual As Variant, Alstom As Vari
     Prix_DifferenceSuperieureSeuil = False
 End Function
 
-' Renvoie le NOM de la colonne la plus différente (> seuil) ou vide si rien à signaler
+' Renvoie le NOM de la colonne la plus differente (> seuil) ou vide si rien a signaler
 Public Function Prix_ColonneDifferente(Manual As Variant, Alstom As Variant, ISP As Variant, Optional seuil As Double = 0.25) As String
     Dim idx() As Long, vals() As Double, n As Long, med As Double, i As Long
     Dim diff As Double, bestIdx As Long, bestDiff As Double
@@ -189,7 +189,7 @@ Public Function Prix_ColonneDifferente(Manual As Variant, Alstom As Variant, ISP
     End If
 End Function
 
-' (Optionnel) Résumé texte lisible
+' (Optionnel) Resume texte lisible
 Public Function Prix_Resume(Manual As Variant, Alstom As Variant, ISP As Variant, Optional seuil As Double = 0.25) As String
     Dim nb As Long, avg As Variant, flag As Boolean, col As String, avgText As String
     nb = Prix_NombreConnus(Manual, Alstom, ISP)
@@ -198,8 +198,7 @@ Public Function Prix_Resume(Manual As Variant, Alstom As Variant, ISP As Variant
     col = Prix_ColonneDifferente(Manual, Alstom, ISP, seuil)
 
     If IsError(avg) Then avgText = "NA" Else avgText = Format(avg, "0.00")
-    Prix_Resume = "Connus=" & nb & "/3 ; Moyenne=" & avgText & " ; Ecart > " & Replace(Format(seuil, "0.0%"), ",0", "") & _
-                  " ? " & IIf(flag, "Oui (" & col & ")", "Non")
+    Prix_Resume = "Connus=" & nb & "/3 ; Moyenne=" & avgText & " ; Ecart > " & Replace(Format(seuil, "0.0%"), ",0", "") & " ? " & IIf(flag, "Oui (" & col & ")", "Non")
 End Function
 
 

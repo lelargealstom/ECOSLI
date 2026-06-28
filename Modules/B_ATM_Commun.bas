@@ -20,24 +20,7 @@ Public Sub RecupererDonneesBDD_ATM(ByVal versionATM As Integer)
     ' =====================================================================
     ' REQUETE 1: Info_ATM$ (17 champs) - IDENTIQUE V1 ET V2
     ' =====================================================================
-    STRSEL = "SELECT " & _
-         "[DTR_INFOATM], " & _
-         "[DescriptifATMFR_INFOATM], " & _
-         "[LocalisationATM_INFOATM], " & _
-         "[PLANATM_INFOATM], " & _
-         "[CommentaireATM_INFOATM], " & _
-         "[Version_INFOATM], " & _
-         "[DescriptifATMEN_INFOATM], " & _
-         "[LocalisationATMEN_INFOATM], " & _
-         "[CommentairesATMEN_INFOATM], " & _
-         "[Reparabilite_INFOATM], " & _
-         "[HARD/SOFT], " & _
-         "[Poids_INFOATM], " & _
-         "[Temps générique de la tâche_INFOATM], " & _
-         "[Temps générique de la tâche SOFTWARE_INFOATM], " & _
-         "[Temps analytique cumulé de la tache_INFOATM], " & _
-         "[NbLanguePopulation_INFOATM] " & _
-         "FROM [Info_ATM$]"
+    STRSEL = "SELECT [DTR_INFOATM], [DescriptifATMFR_INFOATM], [LocalisationATM_INFOATM], [PLANATM_INFOATM], [CommentaireATM_INFOATM], [Version_INFOATM], [DescriptifATMEN_INFOATM], [LocalisationATMEN_INFOATM], [CommentairesATMEN_INFOATM], [Reparabilite_INFOATM], [HARD/SOFT], [Poids_INFOATM], [Temps generique de la tache_INFOATM], [Temps generique de la tache SOFTWARE_INFOATM], [Temps analytique cumule de la tache_INFOATM], [NbLanguePopulation_INFOATM] FROM [Info_ATM$]"
     
     Call open_REQSEL(STRSEL)
     Infos_tab = RecordsetToArray(REQSEL)
@@ -45,23 +28,15 @@ Public Sub RecupererDonneesBDD_ATM(ByVal versionATM As Integer)
     ' =====================================================================
     ' REQUETE 2: Taches_ATM$ (15 champs) - DIFFERENCES V1/V2
     ' =====================================================================
-    ' V1: PAS de filtre HARD/SOFT (gère les deux types dans le code)
+    ' V1: PAS de filtre HARD/SOFT (gere les deux types dans le code)
     ' V2: FILTRE WHERE [HARD/SOFT]='HARD' uniquement
     
     If versionATM = 1 Then
         ' ATM V1: RRecuperer TOUTES les taches (HARD et SOFT)
-        STRSEL = "SELECT [DTR_TACHEATM], [Langue_TACHEATM], [Rang_TACHEATM], [HARD/SOFT], " & _
-                 "[Categorie_TACHEATM], [Niveau qualif_TACHEATM], [Description_TACHEATM], [CritèresDimensionnels_TACHEATM], " & _
-                 "[OutillageSpécifique_TACHEATM], [OutillageStandard_TACHEATM], [PiècedeRechangeConsommable_TACHEATM], [NbOpérateurs_TACHEATM], " & _
-                 "[TempsEstiméHeures_TACHEATM] " & _
-                 "FROM [Taches_ATM$]"
+        STRSEL = "SELECT [DTR_TACHEATM], [Langue_TACHEATM], [Rang_TACHEATM], [HARD/SOFT], [Categorie_TACHEATM], [Niveau qualif_TACHEATM], [Description_TACHEATM], [CriteresDimensionnels_TACHEATM], [OutillageSpecifique_TACHEATM], [OutillageStandard_TACHEATM], [PiecedeRechangeConsommable_TACHEATM], [NbOperateurs_TACHEATM], [TempsEstimeHeures_TACHEATM] FROM [Taches_ATM$]"
     ElseIf versionATM = 2 Then
         ' ATM V2: Filtrer HARD uniquement
-        STRSEL = "SELECT [DTR_TACHEATM], [Langue_TACHEATM], [Rang_TACHEATM], [HARD/SOFT], " & _
-                 "[Categorie_TACHEATM], [Niveau qualif_TACHEATM], [Description_TACHEATM], [CritèresDimensionnels_TACHEATM], " & _
-                 "[OutillageSpécifique_TACHEATM], [OutillageStandard_TACHEATM], [PiècedeRechangeConsommable_TACHEATM], [NbOpérateurs_TACHEATM], " & _
-                 "[TempsEstiméHeures_TACHEATM] " & _
-                 "FROM [Taches_ATM$] WHERE [HARD/SOFT] = 'HARD'"
+        STRSEL = "SELECT [DTR_TACHEATM], [Langue_TACHEATM], [Rang_TACHEATM], [HARD/SOFT], [Categorie_TACHEATM], [Niveau qualif_TACHEATM], [Description_TACHEATM], [CriteresDimensionnels_TACHEATM], [OutillageSpecifique_TACHEATM], [OutillageStandard_TACHEATM], [PiecedeRechangeConsommable_TACHEATM], [NbOperateurs_TACHEATM], [TempsEstimeHeures_TACHEATM] FROM [Taches_ATM$] WHERE [HARD/SOFT] = 'HARD'"
     Else
         ' Version inconnue
         MsgBox "Version ATM inconnue: " & versionATM, vbCritical
@@ -122,12 +97,10 @@ Public Sub IndexerTachesEtInfos()
     If IsArray(Taches_tab) Then
         lb = LBound(Taches_tab, 1)
         ub = UBound(Taches_tab, 1)
-        Debug.Print "IndexerTachesEtInfos : Taches_tab LBound=" & lb & " UBound=" & ub & _
-                    " (Taches_type.dtr=" & Taches_type.dtr & " Taches_type.langue=" & Taches_type.langue & ")"
+        Debug.Print "IndexerTachesEtInfos : Taches_tab LBound=" & lb & " UBound=" & ub & " (Taches_type.dtr=" & Taches_type.dtr & " Taches_type.langue=" & Taches_type.langue & ")"
         nbTraces = 0
         For j = lb + 1 To ub
-            cle = CStr(Taches_tab(j, Taches_type.dtr)) & "|" & _
-                  CStr(Taches_tab(j, Taches_type.langue))
+            cle = CStr(Taches_tab(j, Taches_type.dtr)) & "|" & CStr(Taches_tab(j, Taches_type.langue))
             If Not dictTachesPMB.Exists(cle) Then
                 dictTachesPMB.Add cle, j
                 If nbTraces < 3 Then
@@ -144,8 +117,7 @@ Public Sub IndexerTachesEtInfos()
     If IsArray(Infos_tab) Then
         lb = LBound(Infos_tab, 1)
         ub = UBound(Infos_tab, 1)
-        Debug.Print "IndexerTachesEtInfos : Infos_tab LBound=" & lb & " UBound=" & ub & _
-                    " (Info_type.dtr=" & Info_type.dtr & ")"
+        Debug.Print "IndexerTachesEtInfos : Infos_tab LBound=" & lb & " UBound=" & ub & " (Info_type.dtr=" & Info_type.dtr & ")"
         nbTraces = 0
         For j = lb + 1 To ub
             cle = CStr(Infos_tab(j, Info_type.dtr))
@@ -161,8 +133,7 @@ Public Sub IndexerTachesEtInfos()
         Debug.Print "IndexerTachesEtInfos : Infos_tab n'est pas un Array, skip."
     End If
 
-    Debug.Print "IndexerTachesEtInfos : " & dictTachesPMB.count & _
-                " entrees Taches, " & dictInfosPMJ.count & " entrees Infos."
+    Debug.Print "IndexerTachesEtInfos : " & dictTachesPMB.count & " entrees Taches, " & dictInfosPMJ.count & " entrees Infos."
 End Sub
 
 ' =========================================================================
@@ -178,20 +149,11 @@ End Sub
 ' sans que le second ecrase le premier. CreateObject + Base = nouvelle
 ' instance independante.
 ' =========================================================================
-Public Function RecupererTachesDTR_BdD(ByVal dtr As String, _
-                                        ByVal langueATM As String, _
-                                        ByVal versionATM As Integer) As Object
+Public Function RecupererTachesDTR_BdD(ByVal dtr As String, ByVal langueATM As String, ByVal versionATM As Integer) As Object
     Dim rs As Object
     Dim sSQL As String
 
-    sSQL = "SELECT [DTR_TACHEATM], [Langue_TACHEATM], [Rang_TACHEATM], [HARD/SOFT], " & _
-           "[Categorie_TACHEATM], [Niveau qualif_TACHEATM], [Description_TACHEATM], " & _
-           "[CritèresDimensionnels_TACHEATM], [OutillageSpécifique_TACHEATM], " & _
-           "[OutillageStandard_TACHEATM], [PiècedeRechangeConsommable_TACHEATM], " & _
-           "[NbOpérateurs_TACHEATM], [TempsEstiméHeures_TACHEATM] " & _
-           "FROM [Taches_ATM$] " & _
-           "WHERE [DTR_TACHEATM] = '" & Replace(dtr, "'", "''") & "' " & _
-           "AND [Langue_TACHEATM] = '" & Replace(langueATM, "'", "''") & "'"
+    sSQL = "SELECT [DTR_TACHEATM], [Langue_TACHEATM], [Rang_TACHEATM], [HARD/SOFT], [Categorie_TACHEATM], [Niveau qualif_TACHEATM], [Description_TACHEATM], [CriteresDimensionnels_TACHEATM], [OutillageSpecifique_TACHEATM], [OutillageStandard_TACHEATM], [PiecedeRechangeConsommable_TACHEATM], [NbOperateurs_TACHEATM], [TempsEstimeHeures_TACHEATM] FROM [Taches_ATM$] WHERE [DTR_TACHEATM] = '" & Replace(dtr, "'", "''") & "' AND [Langue_TACHEATM] = '" & Replace(langueATM, "'", "''") & "'"
 
     If versionATM = 2 Then sSQL = sSQL & " AND [HARD/SOFT] = 'HARD'"
 
@@ -211,14 +173,7 @@ Public Function RecupererInfoATM_DTR(ByVal dtr As String) As Object
     Dim rs As Object
     Dim sSQL As String
 
-    sSQL = "SELECT [DTR_INFOATM], [DescriptifATMFR_INFOATM], [LocalisationATM_INFOATM], " & _
-           "[PLANATM_INFOATM], [CommentaireATM_INFOATM], [Version_INFOATM], " & _
-           "[DescriptifATMEN_INFOATM], [LocalisationATMEN_INFOATM], [CommentairesATMEN_INFOATM], " & _
-           "[Reparabilite_INFOATM], [HARD/SOFT], [Poids_INFOATM], " & _
-           "[Temps générique de la tâche_INFOATM], [Temps générique de la tâche SOFTWARE_INFOATM], " & _
-           "[Temps analytique cumulé de la tache_INFOATM], [NbLanguePopulation_INFOATM] " & _
-           "FROM [Info_ATM$] " & _
-           "WHERE [DTR_INFOATM] = '" & Replace(dtr, "'", "''") & "'"
+    sSQL = "SELECT [DTR_INFOATM], [DescriptifATMFR_INFOATM], [LocalisationATM_INFOATM], [PLANATM_INFOATM], [CommentaireATM_INFOATM], [Version_INFOATM], [DescriptifATMEN_INFOATM], [LocalisationATMEN_INFOATM], [CommentairesATMEN_INFOATM], [Reparabilite_INFOATM], [HARD/SOFT], [Poids_INFOATM], [Temps generique de la tache_INFOATM], [Temps generique de la tache SOFTWARE_INFOATM], [Temps analytique cumule de la tache_INFOATM], [NbLanguePopulation_INFOATM] FROM [Info_ATM$] WHERE [DTR_INFOATM] = '" & Replace(dtr, "'", "''") & "'"
 
     Set rs = CreateObject("ADODB.Recordset")
     rs.CursorLocation = 3

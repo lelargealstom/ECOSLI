@@ -36,41 +36,18 @@ Sub Test_Creer_Ticket_ATMAP()
 
     ' -- etape 3 a Donnees d'import -------------------------
     Dim lignesImport As New Collection
-    lignesImport.Add Array( _
-        "DTR-001-A", "Calculateur traction", "LRU", "Bombardier", _
-        "BC-2241-TRC", "DRW-4412", "45000", "15", "10", "EUR")
-    lignesImport.Add Array( _
-        "DTR-002-B", "Carte alimentation 24V", "SRU", "Alstom", _
-        "ALT-PWR-024", "DRW-0981", "22000", "12", "", "EUR")
+    lignesImport.Add Array( "DTR-001-A", "Calculateur traction", "LRU", "Bombardier", "BC-2241-TRC", "DRW-4412", "45000", "15", "10", "EUR")
+    lignesImport.Add Array( "DTR-002-B", "Carte alimentation 24V", "SRU", "Alstom", "ALT-PWR-024", "DRW-0981", "22000", "12", "", "EUR")
 
     ' -- etape 4 a Creation ticket --------------------------
-    result = CreateTicketREST( _
-        digest:=digest, _
-        userID:=userID, _
-        outilID:=43, _
-        numeroTicket:="VBN_Test", _
-        sujet:="IMP_001 a Import Produit", _
-        statut:="Nouveau", _
-        description:="Import de " & lignesImport.count & _
-                     " DTR en table Produit a DTR-001-A, DTR-002-B", _
-        attentes:="Integration en BdD SLI a Table Produit", _
-        typedemande:="Import", _
-        priorite:="High", _
-        ticketIDOut:=newID _
-    )
+    result = CreateTicketREST( digest:=digest, userID:=userID, outilID:=43, numeroTicket:="VBN_Test", sujet:="IMP_001 a Import Produit", statut:="Nouveau", description:="Import de " & lignesImport.count & " DTR en table Produit a DTR-001-A, DTR-002-B", attentes:="Integration en BdD SLI a Table Produit", typedemande:="Import", priorite:="High", ticketIDOut:=newID )
 
     MsgBox result, vbInformation, "ATMAP Test a Resultat"
 
     If newID = -1 Then Exit Sub
 
     ' -- etape 5 a Piece jointe Excel -----------------------
-    pjResult = AttachExcelToTicket( _
-        ticketID:=newID, _
-        digest:=digest, _
-        tableName:="Produit", _
-        numeroTicket:="VBN_Test", _
-        dataRows:=lignesImport _
-    )
+    pjResult = AttachExcelToTicket( ticketID:=newID, digest:=digest, tableName:="Produit", numeroTicket:="VBN_Test", dataRows:=lignesImport )
 
     MsgBox pjResult, vbInformation, "ATMAP Test a Piece jointe"
 
@@ -80,19 +57,7 @@ End Sub
 ' CREATION TICKET COMPLET a UNE SEULE REQUeTE REST POST
 ' ============================================================
 
-Private Function CreateTicketREST(digest As String, _
-                                   userID As Long, _
-                                   outilID As Long, _
-                                   numeroTicket As String, _
-                                   sujet As String, _
-                                   statut As String, _
-                                   description As String, _
-                                   attentes As String, _
-                                   typedemande As String, _
-                                   priorite As String, _
-                                   ticketIDOut As Long, _
-                                   Optional numeroImport As String = "", _
-                                   Optional dateEstimee As String = "") As String
+Private Function CreateTicketREST(digest As String, userID As Long, outilID As Long, numeroTicket As String, sujet As String, statut As String, description As String, attentes As String, typedemande As String, priorite As String, ticketIDOut As Long, Optional numeroImport As String = "", Optional dateEstimee As String = "") As String
 
     Dim xhr   As Object
     Dim url   As String
@@ -122,21 +87,7 @@ Private Function CreateTicketREST(digest As String, _
     End If
 
     ' Pas de Title a champ non utilisa dans ATMAP
-    body = "{""__metadata"":{""type"":""" & LIST_ENTITY_TYPE & """}," & _
-           """Numero_ticket"":""" & EscJson(numeroTicket) & """," & _
-           champImport & _
-           """Sujet"":""" & EscJson(sujet) & """," & _
-           """Statut"":""" & EscJson(statut) & """," & _
-           """Description"":""" & EscJson(description) & """," & _
-           """Attentes"":""" & EscJson(attentes) & """," & _
-           """Typedemande"":""" & EscJson(typedemande) & """," & _
-           """Priorit_x00e9_"":""" & EscJson(priorite) & """," & _
-           """Datecr_x00e9_ation"":""" & today & """," & _
-           champDateEst & _
-           """DemandeurId"":" & userID & "," & _
-           """Assign_x00e9__x00e0_Id"":" & userID & "," & _
-           """NomoutilId"":" & outilID & _
-           "}"
+    body = "{""__metadata"":{""type"":""" & LIST_ENTITY_TYPE & """},""Numero_ticket"":""" & EscJson(numeroTicket) & """," & champImport & """Sujet"":""" & EscJson(sujet) & """,""Statut"":""" & EscJson(statut) & """,""Description"":""" & EscJson(description) & """,""Attentes"":""" & EscJson(attentes) & """,""Typedemande"":""" & EscJson(typedemande) & """,""Priorit_x00e9_"":""" & EscJson(priorite) & """,""Datecr_x00e9_ation"":""" & today & """," & champDateEst & """DemandeurId"":" & userID & ",""Assign_x00e9__x00e0_Id"":" & userID & ",""NomoutilId"":" & outilID & "}"
 
     On Error GoTo ErrCreate
 
@@ -150,10 +101,7 @@ Private Function CreateTicketREST(digest As String, _
 
     If xhr.Status = 201 Then
         ticketIDOut = CLng(ParseJsonLong(resp, """Id"":"))
-        CreateTicketREST = "Ticket crea a ID : " & ticketIDOut & vbCrLf & _
-                           "Numero      : " & numeroTicket & vbCrLf & _
-                           "DemandeurId : " & userID & vbCrLf & _
-                           "NomoutilId  : " & outilID
+        CreateTicketREST = "Ticket crea a ID : " & ticketIDOut & vbCrLf & "Numero      : " & numeroTicket & vbCrLf & "DemandeurId : " & userID & vbCrLf & "NomoutilId  : " & outilID
     Else
         CreateTicketREST = "Erreur HTTP " & xhr.Status & vbCrLf & Left(resp, 500)
     End If
@@ -169,11 +117,7 @@ End Function
 ' CREER ET ATTACHER UN FICHIER EXCEL AU TICKET
 ' ============================================================
 
-Private Function AttachExcelToTicket(ticketID As Long, _
-                                      digest As String, _
-                                      tableName As String, _
-                                      numeroTicket As String, _
-                                      dataRows As Collection) As String
+Private Function AttachExcelToTicket(ticketID As Long, digest As String, tableName As String, numeroTicket As String, dataRows As Collection) As String
 
     Dim xlApp      As Object
     Dim xlWb       As Object
@@ -213,9 +157,7 @@ Private Function AttachExcelToTicket(ticketID As Long, _
     xlWs.rows(1).RowHeight = 28
     With xlWs.Range(xlWs.Cells(1, 1), xlWs.Cells(1, UBound(headers) + 1))
         .Merge
-        .Value = "SIRUS a Import a " & tableName & _
-                 "  |  " & numeroTicket & _
-                 "  |  " & Format(Now(), "dd/mm/yyyy hh:mm")
+        .Value = "SIRUS a Import a " & tableName & "  |  " & numeroTicket & "  |  " & Format(Now(), "dd/mm/yyyy hh:mm")
         .Font.Bold = True
         .Font.Size = 10
         .Font.Color = RGB(255, 255, 255)
@@ -263,9 +205,7 @@ Private Function AttachExcelToTicket(ticketID As Long, _
     ' -- 6. Tableau structura --------------------------------
     If rowIdx > 3 Then
         Dim lo As Object
-        Set lo = xlWs.ListObjects.Add(1, _
-            xlWs.Range(xlWs.Cells(2, 1), _
-                       xlWs.Cells(rowIdx - 1, UBound(headers) + 1)), , 1)
+        Set lo = xlWs.ListObjects.Add(1, xlWs.Range(xlWs.Cells(2, 1), xlWs.Cells(rowIdx - 1, UBound(headers) + 1)), , 1)
         lo.Name = "tbl_Import_" & tableName
         lo.TableStyle = "TableStyleMedium2"
     End If
@@ -297,8 +237,7 @@ Private Function AttachExcelToTicket(ticketID As Long, _
     stream.Position = 0
     
     Set xhr = CreateObject("MSXML2.XMLHTTP.6.0")
-    xhr.Open "POST", SITE_URL & "/_api/web/lists/getbytitle('" & LIST_NAME & "')" & _
-             "/items(" & ticketID & ")/AttachmentFiles/add(FileName='" & xlName & "')", False
+    xhr.Open "POST", SITE_URL & "/_api/web/lists/getbytitle('" & LIST_NAME & "')/items(" & ticketID & ")/AttachmentFiles/add(FileName='" & xlName & "')", False
     xhr.setRequestHeader "Accept", "application/json;odata=verbose"
     xhr.setRequestHeader "Content-Type", "application/octet-stream"
     xhr.setRequestHeader "X-RequestDigest", digest
@@ -315,11 +254,9 @@ Private Function AttachExcelToTicket(ticketID As Long, _
     On Error GoTo 0
 
     If uploadStatus = 200 Then
-        AttachExcelToTicket = "PJ Excel OK a " & xlName & vbCrLf & _
-                              dataRows.count & " ligne(s) exportee(s)"
+        AttachExcelToTicket = "PJ Excel OK a " & xlName & vbCrLf & dataRows.count & " ligne(s) exportee(s)"
     Else
-        AttachExcelToTicket = "PJ HTTP " & uploadStatus & vbCrLf & _
-                              Left(xhr.responseText, 300)
+        AttachExcelToTicket = "PJ HTTP " & uploadStatus & vbCrLf & Left(xhr.responseText, 300)
     End If
     Exit Function
 
@@ -356,30 +293,8 @@ End Function
 '   statut = "Nouveau"
 '   typedemande = "Import"
 '   outilID = 43 (ID outil ECOSLI / SIRUS dans ATMAP - a confirmer si change)
-Public Function SIRUS_CreerTicketEnvoi(ByVal digest As String, _
-                                         ByVal userID As Long, _
-                                         ByVal numeroTicket As String, _
-                                         ByVal sujet As String, _
-                                         ByVal description As String, _
-                                         ByVal attentes As String, _
-                                         ByVal priorite As String, _
-                                         ByRef ticketIDOut As Long, _
-                                         Optional ByVal numeroImport As String = "", _
-                                         Optional ByVal dateEstimee As String = "") As String
-    SIRUS_CreerTicketEnvoi = CreateTicketREST( _
-        digest:=digest, _
-        userID:=userID, _
-        outilID:=43, _
-        numeroTicket:=numeroTicket, _
-        sujet:=sujet, _
-        statut:="Nouveau", _
-        description:=description, _
-        attentes:=attentes, _
-        typedemande:="Import", _
-        priorite:=priorite, _
-        ticketIDOut:=ticketIDOut, _
-        numeroImport:=numeroImport, _
-        dateEstimee:=dateEstimee)
+Public Function SIRUS_CreerTicketEnvoi(ByVal digest As String, ByVal userID As Long, ByVal numeroTicket As String, ByVal sujet As String, ByVal description As String, ByVal attentes As String, ByVal priorite As String, ByRef ticketIDOut As Long, Optional ByVal numeroImport As String = "", Optional ByVal dateEstimee As String = "") As String
+    SIRUS_CreerTicketEnvoi = CreateTicketREST( digest:=digest, userID:=userID, outilID:=43, numeroTicket:=numeroTicket, sujet:=sujet, statut:="Nouveau", description:=description, attentes:=attentes, typedemande:="Import", priorite:=priorite, ticketIDOut:=ticketIDOut, numeroImport:=numeroImport, dateEstimee:=dateEstimee)
 End Function
 
 ' =========================================================================
@@ -453,8 +368,7 @@ Private Function ChercherMaxNumeroVBN() As Long
     Set xhr = CreateObject("MSXML2.XMLHTTP.6.0")
     ' Recupere les 500 derniers tickets (tous types). Suffisant pour le
     ' max courant VBN_<nb>.
-    url = SITE_URL & "/_api/web/lists/getbytitle('" & LIST_NAME & "')/items" & _
-          "?$select=Numero_ticket&$orderby=Id desc&$top=500"
+    url = SITE_URL & "/_api/web/lists/getbytitle('" & LIST_NAME & "')/items?$select=Numero_ticket&$orderby=Id desc&$top=500"
 
     xhr.Open "GET", url, False
     xhr.setRequestHeader "Accept", "application/json;odata=verbose"
@@ -545,9 +459,7 @@ Private Function ChercherMaxNumeroImport(ByVal annee As Long) As Long
     ' Recupere les 500 derniers tickets Import. Suffisant pour trouver le
     ' max de l annee en cours (au-dela les tickets sont vieux d au moins
     ' plusieurs annees).
-    url = SITE_URL & "/_api/web/lists/getbytitle('" & LIST_NAME & "')/items" & _
-          "?$select=Numero_Import,Typedemande&$filter=Typedemande eq 'Import'" & _
-          "&$orderby=Id desc&$top=500"
+    url = SITE_URL & "/_api/web/lists/getbytitle('" & LIST_NAME & "')/items?$select=Numero_Import,Typedemande&$filter=Typedemande eq 'Import'&$orderby=Id desc&$top=500"
 
     xhr.Open "GET", url, False
     xhr.setRequestHeader "Accept", "application/json;odata=verbose"
@@ -596,8 +508,7 @@ End Function
 ' depuis le classeur projet actif. Retourne le chemin du fichier sauve.
 ' Cas multi-feuilles (Extraction ATM) : InfoATM + TachesATM dans un meme
 ' classeur (logique : 1 livrable = 1 PJ).
-Public Function SIRUS_ConstruirePJ(ByRef feuillesNoms As Variant, _
-                                     ByVal sNomBase As String) As String
+Public Function SIRUS_ConstruirePJ(ByRef feuillesNoms As Variant, ByVal sNomBase As String) As String
     Dim xlPath As String
     Dim xlName As String
     Dim wbProjet As Workbook
@@ -657,9 +568,7 @@ End Function
 ' Upload un fichier deja construit (chemin local) en PJ a un ticket ATMAP
 ' existant. Utilise le digest fourni. Lit en binaire puis POST en
 ' octet-stream via XMLHTTP.
-Public Function SIRUS_AttacherFichierAuTicket(ByVal ticketID As Long, _
-                                                ByVal digest As String, _
-                                                ByVal cheminFichier As String) As String
+Public Function SIRUS_AttacherFichierAuTicket(ByVal ticketID As Long, ByVal digest As String, ByVal cheminFichier As String) As String
     Dim fileData As Variant
     Dim xhr As Object
     Dim stream As Object
@@ -683,8 +592,7 @@ Public Function SIRUS_AttacherFichierAuTicket(ByVal ticketID As Long, _
     stream.Position = 0
 
     Set xhr = CreateObject("MSXML2.XMLHTTP.6.0")
-    xhr.Open "POST", SITE_URL & "/_api/web/lists/getbytitle('" & LIST_NAME & "')" & _
-             "/items(" & ticketID & ")/AttachmentFiles/add(FileName='" & xlName & "')", False
+    xhr.Open "POST", SITE_URL & "/_api/web/lists/getbytitle('" & LIST_NAME & "')/items(" & ticketID & ")/AttachmentFiles/add(FileName='" & xlName & "')", False
     xhr.setRequestHeader "Accept", "application/json;odata=verbose"
     xhr.setRequestHeader "Content-Type", "application/octet-stream"
     xhr.setRequestHeader "X-RequestDigest", digest
@@ -697,8 +605,7 @@ Public Function SIRUS_AttacherFichierAuTicket(ByVal ticketID As Long, _
     If uploadStatus = 200 Then
         SIRUS_AttacherFichierAuTicket = "PJ uploadee : " & xlName
     Else
-        SIRUS_AttacherFichierAuTicket = "PJ HTTP " & uploadStatus & vbCrLf & _
-                                          Left$(xhr.responseText, 300)
+        SIRUS_AttacherFichierAuTicket = "PJ HTTP " & uploadStatus & vbCrLf & Left$(xhr.responseText, 300)
     End If
     Exit Function
 
@@ -713,37 +620,15 @@ End Function
 Private Function GetHeadersForTable(tableName As String) As Variant
     Select Case UCase(tableName)
         Case "PRODUIT"
-            GetHeadersForTable = Array( _
-                "DTR", "Designation", "Node Type", "Fournisseur", _
-                "Ref. Fournisseur", "Drawing Number", "MTBF Intrinseque (h)", _
-                "DVL HARD (ans)", "DVL SOFT (ans)", "Devise")
+            GetHeadersForTable = Array( "DTR", "Designation", "Node Type", "Fournisseur", "Ref. Fournisseur", "Drawing Number", "MTBF Intrinseque (h)", "DVL HARD (ans)", "DVL SOFT (ans)", "Devise")
         Case "INFO_ATM", "INFOATM"
-            GetHeadersForTable = Array( _
-                "DTR", "Descriptif FR", "Descriptif EN", "HARD/SOFT", _
-                "Indice", "Plan ATM", "Commentaire FR", "Commentaire EN", _
-                "Reparabilite", "Poids (kg)", "DVL generique (ans)", _
-                "DVL spe. projet (ans)", "Tps generique (h)", "Tps analytique cumula (h)")
+            GetHeadersForTable = Array( "DTR", "Descriptif FR", "Descriptif EN", "HARD/SOFT", "Indice", "Plan ATM", "Commentaire FR", "Commentaire EN", "Reparabilite", "Poids (kg)", "DVL generique (ans)", "DVL spe. projet (ans)", "Tps generique (h)", "Tps analytique cumula (h)")
         Case "TACHES_ATM", "TACHESATM"
-            GetHeadersForTable = Array( _
-                "DTR", "Langue", "Rang", "HARD/SOFT", "Categorie", _
-                "Niveau Qualif", "Description", "Criteres dim.", _
-                "Outillage specifique", "Outillage standard", _
-                "Pieces rech./conso.", "Nb Operateurs", _
-                "Tps estima (h)", "Tps analytique cumula (h)", _
-                "Pictogramme", "Commentaire picto")
+            GetHeadersForTable = Array( "DTR", "Langue", "Rang", "HARD/SOFT", "Categorie", "Niveau Qualif", "Description", "Criteres dim.", "Outillage specifique", "Outillage standard", "Pieces rech./conso.", "Nb Operateurs", "Tps estima (h)", "Tps analytique cumula (h)", "Pictogramme", "Commentaire picto")
         Case "EMMST"
-            GetHeadersForTable = Array( _
-                "DTR", "Dim. Nu L (mm)", "Dim. Nu l (mm)", "Dim. Nu H (mm)", "Poids Nu (kg)", _
-                "Dim. Cond. L (mm)", "Dim. Cond. l (mm)", "Dim. Cond. H (mm)", "Poids Cond. (kg)", _
-                "Date Peremption", "Unita Cond.", "Duree Peremption", _
-                "Commentaire Emballage FR", "Commentaire Emballage EN", _
-                "Commentaire Stockage FR", "Commentaire Stockage EN", _
-                "Commentaire Transport FR", "Commentaire Transport EN", "Version")
+            GetHeadersForTable = Array( "DTR", "Dim. Nu L (mm)", "Dim. Nu l (mm)", "Dim. Nu H (mm)", "Poids Nu (kg)", "Dim. Cond. L (mm)", "Dim. Cond. l (mm)", "Dim. Cond. H (mm)", "Poids Cond. (kg)", "Date Peremption", "Unita Cond.", "Duree Peremption", "Commentaire Emballage FR", "Commentaire Emballage EN", "Commentaire Stockage FR", "Commentaire Stockage EN", "Commentaire Transport FR", "Commentaire Transport EN", "Version")
         Case "PROJET_ASL", "PROJETASL"
-            GetHeadersForTable = Array( _
-                "Projet", "DTR", "Sous-Systeme", "Designation", "Quantite", _
-                "MTBF Fonctionnel (h)", "DVL analytique HARD (ans)", _
-                "DVL analytique SOFT (ans)", "ISP TIS (archive)")
+            GetHeadersForTable = Array( "Projet", "DTR", "Sous-Systeme", "Designation", "Quantite", "MTBF Fonctionnel (h)", "DVL analytique HARD (ans)", "DVL analytique SOFT (ans)", "ISP TIS (archive)")
         Case Else
             GetHeadersForTable = Array("Colonne 1", "Colonne 2", "Colonne 3")
     End Select
@@ -866,8 +751,7 @@ Sub GetFieldInternalNames()
     Dim ligne As Long
 
     Set xhr = CreateObject("MSXML2.XMLHTTP.6.0")
-    xhr.Open "GET", SITE_URL & "/_api/web/lists/getbytitle('" & LIST_NAME & "')" & _
-             "/fields?$select=Title,InternalName,TypeAsString&$filter=Hidden eq false", False
+    xhr.Open "GET", SITE_URL & "/_api/web/lists/getbytitle('" & LIST_NAME & "')/fields?$select=Title,InternalName,TypeAsString&$filter=Hidden eq false", False
     xhr.setRequestHeader "Accept", "application/json;odata=verbose"
     xhr.Send
     resp = xhr.responseText
@@ -912,14 +796,12 @@ Sub GetListItemEntityType()
     Dim resp As String
 
     Set xhr = CreateObject("MSXML2.XMLHTTP.6.0")
-    xhr.Open "GET", SITE_URL & "/_api/web/lists/getbytitle('" & LIST_NAME & "')" & _
-             "?$select=ListItemEntityTypeFullName", False
+    xhr.Open "GET", SITE_URL & "/_api/web/lists/getbytitle('" & LIST_NAME & "')?$select=ListItemEntityTypeFullName", False
     xhr.setRequestHeader "Accept", "application/json;odata=verbose"
     xhr.Send
     resp = xhr.responseText
 
-    MsgBox "ListItemEntityTypeFullName = " & _
-           ParseJsonString(resp, """ListItemEntityTypeFullName"":"""), vbInformation, "ATMAP"
+    MsgBox "ListItemEntityTypeFullName = " & ParseJsonString(resp, """ListItemEntityTypeFullName"":"""), vbInformation, "ATMAP"
 
 End Sub
 
@@ -931,8 +813,7 @@ Sub Diagnostic_Connexion()
     xhr.setRequestHeader "Accept", "application/json;odata=verbose"
     xhr.Send
 
-    MsgBox "Status : " & xhr.Status & vbCrLf & Left(xhr.responseText, 300), _
-           vbInformation, "Diagnostic connexion SharePoint"
+    MsgBox "Status : " & xhr.Status & vbCrLf & Left(xhr.responseText, 300), vbInformation, "Diagnostic connexion SharePoint"
 
 End Sub
 

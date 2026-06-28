@@ -65,8 +65,7 @@ End Function
 ' pas la BdD de PROD. La chaine est construite en remplacant 'UserProfile'
 ' par le vrai chemin utilisateur via Environ$.
 Private Function ChaineConnexionSIRUS() As String
-    ChaineConnexionSIRUS = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, _
-                                    "UserProfile", Environ$("UserProfile"))
+    ChaineConnexionSIRUS = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
 End Function
 
 ' =========================================================================
@@ -90,9 +89,7 @@ End Function
 '   - Operation "Modifier" : ouvre ADODB, SELECT par cle, remplit ligne par ligne.
 '     Cle absente en base : colonne Statut = "Cle non trouvee".
 '
-Public Sub SIRUS_GenererFeuilleAnalyse(ByVal sTable As String, _
-                                       ByVal sOperation As String, _
-                                       Optional ByRef vCles As Variant)
+Public Sub SIRUS_GenererFeuilleAnalyse(ByVal sTable As String, ByVal sOperation As String, Optional ByRef vCles As Variant)
 
     Dim wb As Workbook
     Dim wsCible As Worksheet
@@ -107,11 +104,8 @@ Public Sub SIRUS_GenererFeuilleAnalyse(ByVal sTable As String, _
         MsgBox "SIRUS : nom de table manquant.", vbCritical
         Exit Sub
     End If
-    If sOperation <> SIRUS_OP_CREER _
-       And sOperation <> SIRUS_OP_MODIFIER _
-       And sOperation <> SIRUS_OP_EXTRACTION Then
-        MsgBox "SIRUS : operation invalide ('" & sOperation & "'). " & _
-               "Doit etre 'Creer', 'Modifier' ou 'Extraction'.", vbCritical
+    If sOperation <> SIRUS_OP_CREER And sOperation <> SIRUS_OP_MODIFIER And sOperation <> SIRUS_OP_EXTRACTION Then
+        MsgBox "SIRUS : operation invalide ('" & sOperation & "'). Doit etre 'Creer', 'Modifier' ou 'Extraction'.", vbCritical
         Exit Sub
     End If
 
@@ -127,19 +121,14 @@ Public Sub SIRUS_GenererFeuilleAnalyse(ByVal sTable As String, _
         Exit Sub
     End If
     If Not FeuilleExiste(wb, "DATA_ASL") Then
-        resp = MsgBox("Le classeur actif '" & wb.Name & "' ne contient pas de feuille DATA_ASL " & _
-                      "(habituellement le marqueur d'un classeur projet SLI)." & vbCrLf & vbCrLf & _
-                      "Voulez-vous quand meme generer la feuille SIRUS dans ce classeur ?", _
-                      vbYesNo + vbQuestion + vbDefaultButton2, _
-                      "SIRUS - Classeur cible inhabituel")
+        resp = MsgBox("Le classeur actif '" & wb.Name & "' ne contient pas de feuille DATA_ASL (habituellement le marqueur d'un classeur projet SLI)." & vbCrLf & vbCrLf & "Voulez-vous quand meme generer la feuille SIRUS dans ce classeur ?", vbYesNo + vbQuestion + vbDefaultButton2, "SIRUS - Classeur cible inhabituel")
         If resp <> vbYes Then Exit Sub
     End If
 
     ' -- 3. Lire le config -----------------------------------
     Set col = SIRUS_LireConfig(sTable)
     If col.Count = 0 Then
-        MsgBox "Aucun champ defini dans SIRUS_Config pour la table '" & sTable & "'. " & _
-               "Lancer SIRUS_InitConfigSheet d'abord.", vbCritical
+        MsgBox "Aucun champ defini dans SIRUS_Config pour la table '" & sTable & "'. Lancer SIRUS_InitConfigSheet d'abord.", vbCritical
         Exit Sub
     End If
 
@@ -148,11 +137,7 @@ Public Sub SIRUS_GenererFeuilleAnalyse(ByVal sTable As String, _
     If Len(nomFeuille) > 31 Then nomFeuille = Left$(nomFeuille, 31)  ' limite Excel
 
     If FeuilleExiste(wb, nomFeuille) Then
-        resp = MsgBox("La feuille '" & nomFeuille & "' existe deja dans le classeur '" & _
-                      wb.Name & "'." & vbCrLf & vbCrLf & _
-                      "Voulez-vous l'ecraser ?", _
-                      vbYesNo + vbQuestion + vbDefaultButton2, _
-                      "SIRUS - Generation de feuille")
+        resp = MsgBox("La feuille '" & nomFeuille & "' existe deja dans le classeur '" & wb.Name & "'." & vbCrLf & vbCrLf & "Voulez-vous l'ecraser ?", vbYesNo + vbQuestion + vbDefaultButton2, "SIRUS - Generation de feuille")
         If resp <> vbYes Then Exit Sub
         Application.DisplayAlerts = False
         wb.Worksheets(nomFeuille).Delete
@@ -169,8 +154,7 @@ Public Sub SIRUS_GenererFeuilleAnalyse(ByVal sTable As String, _
     ' -- 7. Pre-remplissage si Modifier ---------------------
     If sOperation = SIRUS_OP_MODIFIER Then
         If IsMissing(vCles) Then
-            MsgBox "Operation 'Modifier' : il faut fournir des cles (DTR ou Nom projet) " & _
-                   "a pre-remplir. La feuille a ete creee vierge.", vbExclamation
+            MsgBox "Operation 'Modifier' : il faut fournir des cles (DTR ou Nom projet) a pre-remplir. La feuille a ete creee vierge.", vbExclamation
         Else
             Call PreRemplirDepuisBdD(wsCible, sTable, col, vCles)
         End If
@@ -208,9 +192,7 @@ Public Sub SIRUS_GenererFeuilleAnalyse(ByVal sTable As String, _
     ' Curseur sur 1re cellule de saisie (col 2, juste apres Statut)
     wsCible.Cells(SIRUS_LIGNE_DONNEES_DEBUT, 2).Select
 
-    MsgBox "Feuille '" & nomFeuille & "' generee avec succes." & vbCrLf & _
-           "Statut (col 1) + " & col.Count & " champs + Commentaires (col " & _
-           (col.Count + 2) & ").", vbInformation, "SIRUS"
+    MsgBox "Feuille '" & nomFeuille & "' generee avec succes." & vbCrLf & "Statut (col 1) + " & col.Count & " champs + Commentaires (col " & (col.Count + 2) & ").", vbInformation, "SIRUS"
     Exit Sub
 
 Sortie:
@@ -259,8 +241,7 @@ Private Sub PoserEntetes(ws As Worksheet, col As Collection)
     ws.Cells(SIRUS_LIGNE_ENTETE_BDD, colCommentaires).Value = "_commentaires"
 
     ' Formatage ligne 1 (humain)
-    With ws.Range(ws.Cells(SIRUS_LIGNE_ENTETE_HUMAIN, 1), _
-                  ws.Cells(SIRUS_LIGNE_ENTETE_HUMAIN, colCommentaires))
+    With ws.Range(ws.Cells(SIRUS_LIGNE_ENTETE_HUMAIN, 1), ws.Cells(SIRUS_LIGNE_ENTETE_HUMAIN, colCommentaires))
         .Font.Bold = True
         .Interior.Color = COULEUR_ENTETE
         .HorizontalAlignment = xlCenter
@@ -269,8 +250,7 @@ Private Sub PoserEntetes(ws As Worksheet, col As Collection)
     End With
 
     ' Formatage ligne 2 (BdD) + masquage
-    With ws.Range(ws.Cells(SIRUS_LIGNE_ENTETE_BDD, 1), _
-                  ws.Cells(SIRUS_LIGNE_ENTETE_BDD, colCommentaires))
+    With ws.Range(ws.Cells(SIRUS_LIGNE_ENTETE_BDD, 1), ws.Cells(SIRUS_LIGNE_ENTETE_BDD, colCommentaires))
         .Font.Color = COULEUR_ENTETE_BDD
         .Font.Size = 8
         .Font.Italic = True
@@ -280,12 +260,11 @@ Private Sub PoserEntetes(ws As Worksheet, col As Collection)
     ' Largeur auto (basee sur le contenu de l'entete) avec bornes :
     ' AutoFit pur avec WrapText donne des largeurs minimales (Excel essaie
     ' d'ajuster en hauteur). On force un min/max raisonnable pour la
-    ' lisibilite : 14 (champs courts) <= largeur <= 35 (libellés longs).
+    ' lisibilite : 14 (champs courts) <= largeur <= 35 (libelles longs).
     Const LARG_MIN As Double = 14
     Const LARG_MAX As Double = 35
     Dim cIdx As Long
-    ws.Range(ws.Cells(SIRUS_LIGNE_ENTETE_HUMAIN, 1), _
-             ws.Cells(SIRUS_LIGNE_ENTETE_HUMAIN, colCommentaires)).EntireColumn.AutoFit
+    ws.Range(ws.Cells(SIRUS_LIGNE_ENTETE_HUMAIN, 1), ws.Cells(SIRUS_LIGNE_ENTETE_HUMAIN, colCommentaires)).EntireColumn.AutoFit
     For cIdx = 1 To colCommentaires
         If ws.Columns(cIdx).ColumnWidth < LARG_MIN Then
             ws.Columns(cIdx).ColumnWidth = LARG_MIN
@@ -295,7 +274,7 @@ Private Sub PoserEntetes(ws As Worksheet, col As Collection)
     Next cIdx
 
     ' Hauteur entete + figer. Hauteur 45 pour laisser le wrap text afficher
-    ' les libellés sur 2 lignes sans coupure.
+    ' les libelles sur 2 lignes sans coupure.
     ws.Rows(SIRUS_LIGNE_ENTETE_HUMAIN).RowHeight = 45
 End Sub
 
@@ -307,9 +286,8 @@ End Sub
 '   - Obligatoire = "Oui"          ==> suffixe " *"   en rouge
 '   - Obligatoire = "Conditionnel" ==> suffixe " (*)" en rouge
 '   - Obligatoire = "Non"          ==> rien
-' Le libellé principal reste dans la couleur d'entete (noir gras).
-Private Sub PoserLibelleEntete(ByVal cellEntete As Range, _
-                                ByVal def As SIRUS_Champ_Config)
+' Le libelle principal reste dans la couleur d'entete (noir gras).
+Private Sub PoserLibelleEntete(ByVal cellEntete As Range, ByVal def As SIRUS_Champ_Config)
     Dim sLibelle As String
     Dim sSuffixe As String
     Dim posSuffixe As Long
@@ -355,19 +333,13 @@ Private Sub AppliquerListes(ws As Worksheet, col As Collection)
         If def.TypeChamp = "Liste" Or def.TypeChamp = "Booleen" Then
             sFormula = SIRUS_ListeEnChaine(def.ListeSource)
             If LenB(sFormula) > 0 Then
-                Set plage = ws.Range( _
-                    ws.Cells(SIRUS_LIGNE_DONNEES_DEBUT, i), _
-                    ws.Cells(SIRUS_LIGNE_DONNEES_DEBUT + SIRUS_NB_LIGNES_VALIDATION - 1, i))
+                Set plage = ws.Range( ws.Cells(SIRUS_LIGNE_DONNEES_DEBUT, i), ws.Cells(SIRUS_LIGNE_DONNEES_DEBUT + SIRUS_NB_LIGNES_VALIDATION - 1, i))
                 On Error Resume Next
                 plage.Validation.Delete
-                plage.Validation.Add Type:=xlValidateList, _
-                                     AlertStyle:=xlValidAlertStop, _
-                                     Operator:=xlBetween, _
-                                     Formula1:=sFormula
+                plage.Validation.Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Operator:=xlBetween, Formula1:=sFormula
                 On Error GoTo 0
             Else
-                Debug.Print "AppliquerListes : liste '" & def.ListeSource & _
-                            "' vide ou inconnue pour le champ '" & def.Champ & "'."
+                Debug.Print "AppliquerListes : liste '" & def.ListeSource & "' vide ou inconnue pour le champ '" & def.Champ & "'."
             End If
         End If
         i = i + 1
@@ -391,9 +363,7 @@ Private Sub GriserChampsAutoHerite(ws As Worksheet, col As Collection)
     i = 2
     For Each def In col
         If def.Source = "Auto" Or def.Source = "Herite" Then
-            Set plage = ws.Range( _
-                ws.Cells(SIRUS_LIGNE_DONNEES_DEBUT, i), _
-                ws.Cells(SIRUS_LIGNE_DONNEES_DEBUT + SIRUS_NB_LIGNES_VALIDATION - 1, i))
+            Set plage = ws.Range( ws.Cells(SIRUS_LIGNE_DONNEES_DEBUT, i), ws.Cells(SIRUS_LIGNE_DONNEES_DEBUT + SIRUS_NB_LIGNES_VALIDATION - 1, i))
             plage.Interior.Color = COULEUR_AUTO_HERITE
         End If
         i = i + 1
@@ -443,9 +413,7 @@ Private Sub VerrouillerEtProteger(ws As Worksheet, col As Collection)
     i = 2
     For Each def In col
         If def.Source = "Auto" Or def.Source = "Herite" Then
-            Set plage = ws.Range( _
-                ws.Cells(SIRUS_LIGNE_DONNEES_DEBUT, i), _
-                ws.Cells(SIRUS_LIGNE_DONNEES_DEBUT + SIRUS_NB_LIGNES_VALIDATION - 1, i))
+            Set plage = ws.Range( ws.Cells(SIRUS_LIGNE_DONNEES_DEBUT, i), ws.Cells(SIRUS_LIGNE_DONNEES_DEBUT + SIRUS_NB_LIGNES_VALIDATION - 1, i))
             plage.Locked = True
         End If
         i = i + 1
@@ -461,12 +429,7 @@ Private Sub VerrouillerEtProteger(ws As Worksheet, col As Collection)
     '      le detail des alertes (sinon AddComment leve "Erreur 1004 :
     '      Impossible de definir la propriete Comment, la feuille est protegee").
     '    - AllowFormattingColumns/Rows : utile pour AutoFit, masquage de lignes.
-    ws.Protect Password:=SIRUS_PROTECTION_PWD, _
-               DrawingObjects:=False, _
-               UserInterfaceOnly:=True, _
-               AllowFormattingCells:=False, _
-               AllowFormattingColumns:=True, _
-               AllowFormattingRows:=True
+    ws.Protect Password:=SIRUS_PROTECTION_PWD, DrawingObjects:=False, UserInterfaceOnly:=True, AllowFormattingCells:=False, AllowFormattingColumns:=True, AllowFormattingRows:=True
 End Sub
 
 ' =========================================================================
@@ -478,8 +441,7 @@ End Sub
 ' Champs avec ColonneBdD vide (ex. MTBF intrinseque info Produit dans
 ' ProjetASL) : ignores pour le SELECT, laisses vides cote feuille.
 ' Cle absente en BdD : ligne marquee dans la colonne Statut.
-Private Sub PreRemplirDepuisBdD(ws As Worksheet, ByVal sTable As String, _
-                                 col As Collection, ByRef vCles As Variant)
+Private Sub PreRemplirDepuisBdD(ws As Worksheet, ByVal sTable As String, col As Collection, ByRef vCles As Variant)
 
     Dim def As SIRUS_Champ_Config
     Dim cleColBdD As String
@@ -499,8 +461,7 @@ Private Sub PreRemplirDepuisBdD(ws As Worksheet, ByVal sTable As String, _
     Next def
 
     If LenB(cleColBdD) = 0 Then
-        MsgBox "Cle BdD introuvable pour la table '" & sTable & _
-               "' (1er champ du config sans ColonneBdD).", vbCritical
+        MsgBox "Cle BdD introuvable pour la table '" & sTable & "' (1er champ du config sans ColonneBdD).", vbCritical
         Exit Sub
     End If
 
@@ -533,9 +494,7 @@ Private Sub PreRemplirDepuisBdD(ws As Worksheet, ByVal sTable As String, _
     ' Plus robuste qu un SELECT explicite qui plante en bloc des qu'une
     ' seule colonne demandee n'existe pas.
     For Each cle In vCles
-        sSQL = "SELECT * FROM [" & sNomTableSQL & "]" & _
-               " WHERE [" & TronquerColonneBdD(cleColBdD) & "] = '" & _
-               Replace(CStr(cle), "'", "''") & "'"
+        sSQL = "SELECT * FROM [" & sNomTableSQL & "] WHERE [" & TronquerColonneBdD(cleColBdD) & "] = '" & Replace(CStr(cle), "'", "''") & "'"
         Debug.Print "PreRemplirDepuisBdD SQL : " & sSQL
         Call open_REQSEL(sSQL)
 
@@ -595,8 +554,7 @@ Private Sub PreRemplirDepuisBdD(ws As Worksheet, ByVal sTable As String, _
     Next cle
 
     Call Close_CONN(ChaineConnexionSIRUS)
-    Debug.Print "PreRemplirDepuisBdD : " & nbOk & " trouve(s), " & nbKo & " absent(es)" & _
-                ", " & dictAbsentes.count & " colonne(s) BdD absente(s)."
+    Debug.Print "PreRemplirDepuisBdD : " & nbOk & " trouve(s), " & nbKo & " absent(es), " & dictAbsentes.count & " colonne(s) BdD absente(s)."
     Exit Sub
 
 SortieBdD:
@@ -605,9 +563,7 @@ SortieBdD:
     On Error Resume Next
     Call Close_CONN(ChaineConnexionSIRUS)
     On Error GoTo 0
-    MsgBox "Erreur lors du pre-remplissage BdD :" & vbCrLf & vbCrLf & _
-           sErr & vbCrLf & vbCrLf & _
-           "SQL en cours :" & vbCrLf & sSQL, vbCritical, "SIRUS"
+    MsgBox "Erreur lors du pre-remplissage BdD :" & vbCrLf & vbCrLf & sErr & vbCrLf & vbCrLf & "SQL en cours :" & vbCrLf & sSQL, vbCritical, "SIRUS"
 End Sub
 
 ' =========================================================================
@@ -640,8 +596,7 @@ End Sub
 '     n a pas de PBS active, on ne touche pas).
 '   - Cols absentes en DATA_ASL (manqueOptionnel) : skip silencieux du
 '     champ correspondant.
-Public Sub SIRUS_EnrichirProjetASL_DepuisDATA_ASL(ByVal sOperation As String, _
-                                                    ByVal sProjet As String)
+Public Sub SIRUS_EnrichirProjetASL_DepuisDATA_ASL(ByVal sOperation As String, ByVal sProjet As String)
     Dim wb As Workbook
     Dim wsCible As Worksheet
     Dim wsPBS As Worksheet
@@ -657,8 +612,7 @@ Public Sub SIRUS_EnrichirProjetASL_DepuisDATA_ASL(ByVal sOperation As String, _
     Set wsCible = wb.Worksheets(nomFeuille)
     On Error GoTo 0
     If wsCible Is Nothing Then
-        Debug.Print "SIRUS_EnrichirProjetASL_DepuisDATA_ASL : feuille '" & _
-                    nomFeuille & "' introuvable."
+        Debug.Print "SIRUS_EnrichirProjetASL_DepuisDATA_ASL : feuille '" & nomFeuille & "' introuvable."
         Exit Sub
     End If
 
@@ -676,12 +630,12 @@ Public Sub SIRUS_EnrichirProjetASL_DepuisDATA_ASL(ByVal sOperation As String, _
     Dim colPrixRepairArch As Long, colLeadRepairArch As Long
 
     colNomProjet = TrouverColParColonneBdD(wsCible, "PROJET_PROJETASL")
-    colSousSysteme = TrouverColParColonneBdD(wsCible, "Sous Système_PROJETASL")
+    colSousSysteme = TrouverColParColonneBdD(wsCible, "Sous Systeme_PROJETASL")
     colDTR = TrouverColParColonneBdD(wsCible, "DTR_PROJETASL")
-    colDesignation = TrouverColParColonneBdD(wsCible, "Désignation_PROJETASL")
+    colDesignation = TrouverColParColonneBdD(wsCible, "Designation_PROJETASL")
     colQte = TrouverColParColonneBdD(wsCible, "Q PBS_PROJETASL")
     colNodeType = TrouverColParColonneBdD(wsCible, "Node typed PROJET_PROJETASL")
-    colMTBFIntr = TrouverColParColonneBdD(wsCible, "MTBF intrinsèque Projet (h) issu du RAM report projet_PROJETASL")
+    colMTBFIntr = TrouverColParColonneBdD(wsCible, "MTBF intrinseque Projet (h) issu du RAM report projet_PROJETASL")
     colMTBFFonct = TrouverColParColonneBdD(wsCible, "MTBF fonctionnel (h) issu du RAM report projet_PROJETASL")
     colDVL_HARD = TrouverColParColonneBdD(wsCible, "DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) HARDWARE_PROJET ASL")
     colDVL_SOFT = TrouverColParColonneBdD(wsCible, "DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) SOFTWARE_PROJET ASL")
@@ -741,60 +695,38 @@ Public Sub SIRUS_EnrichirProjetASL_DepuisDATA_ASL(ByVal sOperation As String, _
         End If
 
         ' Nom Projet (toujours = sProjet)
-        If colNomProjet > 0 Then _
-            wsCible.Cells(ligneCible, colNomProjet).Value = sProjet
+        If colNomProjet > 0 Then wsCible.Cells(ligneCible, colNomProjet).Value = sProjet
         ' Sous Systeme
-        If colSousSysteme > 0 And DATA_ASL_type.SousSysteme > 0 Then _
-            wsCible.Cells(ligneCible, colSousSysteme).Value = _
-                wsPBS.Cells(lignePBS, DATA_ASL_type.SousSysteme).Value
+        If colSousSysteme > 0 And DATA_ASL_type.SousSysteme > 0 Then wsCible.Cells(ligneCible, colSousSysteme).Value = wsPBS.Cells(lignePBS, DATA_ASL_type.SousSysteme).Value
         ' DTR
         wsCible.Cells(ligneCible, colDTR).Value = dtrPBS
         ' Designation PBS
-        If colDesignation > 0 And DATA_ASL_type.Designation_PBS > 0 Then _
-            wsCible.Cells(ligneCible, colDesignation).Value = _
-                wsPBS.Cells(lignePBS, DATA_ASL_type.Designation_PBS).Value
+        If colDesignation > 0 And DATA_ASL_type.Designation_PBS > 0 Then wsCible.Cells(ligneCible, colDesignation).Value = wsPBS.Cells(lignePBS, DATA_ASL_type.Designation_PBS).Value
         ' Qte
-        If colQte > 0 And DATA_ASL_type.Qte > 0 Then _
-            wsCible.Cells(ligneCible, colQte).Value = _
-                wsPBS.Cells(lignePBS, DATA_ASL_type.Qte).Value
+        If colQte > 0 And DATA_ASL_type.Qte > 0 Then wsCible.Cells(ligneCible, colQte).Value = wsPBS.Cells(lignePBS, DATA_ASL_type.Qte).Value
         ' Node Type
-        If colNodeType > 0 And DATA_ASL_type.NodeType > 0 Then _
-            wsCible.Cells(ligneCible, colNodeType).Value = _
-                wsPBS.Cells(lignePBS, DATA_ASL_type.NodeType).Value
+        If colNodeType > 0 And DATA_ASL_type.NodeType > 0 Then wsCible.Cells(ligneCible, colNodeType).Value = wsPBS.Cells(lignePBS, DATA_ASL_type.NodeType).Value
 
         ' MTBF intrinseque Projet (RAM report specifique projet)
-        If colMTBFIntr > 0 And DATA_ASL_type.MTBF_Intr > 0 Then _
-            wsCible.Cells(ligneCible, colMTBFIntr).Value = _
-                wsPBS.Cells(lignePBS, DATA_ASL_type.MTBF_Intr).Value
+        If colMTBFIntr > 0 And DATA_ASL_type.MTBF_Intr > 0 Then wsCible.Cells(ligneCible, colMTBFIntr).Value = wsPBS.Cells(lignePBS, DATA_ASL_type.MTBF_Intr).Value
 
         ' MTBF fonctionnel (RAM report specifique projet)
-        If colMTBFFonct > 0 And DATA_ASL_type.MTBF_Fonct > 0 Then _
-            wsCible.Cells(ligneCible, colMTBFFonct).Value = _
-                wsPBS.Cells(lignePBS, DATA_ASL_type.MTBF_Fonct).Value
+        If colMTBFFonct > 0 And DATA_ASL_type.MTBF_Fonct > 0 Then wsCible.Cells(ligneCible, colMTBFFonct).Value = wsPBS.Cells(lignePBS, DATA_ASL_type.MTBF_Fonct).Value
 
         ' DVL fonctionnel HARD/SOFT (analytique = specifique projet CGR)
-        If colDVL_HARD > 0 And DATA_ASL_type.DureeVie_Ana_HARD > 0 Then _
-            wsCible.Cells(ligneCible, colDVL_HARD).Value = _
-                wsPBS.Cells(lignePBS, DATA_ASL_type.DureeVie_Ana_HARD).Value
-        If colDVL_SOFT > 0 And DATA_ASL_type.DureeVie_Ana_SOFT > 0 Then _
-            wsCible.Cells(ligneCible, colDVL_SOFT).Value = _
-                wsPBS.Cells(lignePBS, DATA_ASL_type.DureeVie_Ana_SOFT).Value
+        If colDVL_HARD > 0 And DATA_ASL_type.DureeVie_Ana_HARD > 0 Then wsCible.Cells(ligneCible, colDVL_HARD).Value = wsPBS.Cells(lignePBS, DATA_ASL_type.DureeVie_Ana_HARD).Value
+        If colDVL_SOFT > 0 And DATA_ASL_type.DureeVie_Ana_SOFT > 0 Then wsCible.Cells(ligneCible, colDVL_SOFT).Value = wsPBS.Cells(lignePBS, DATA_ASL_type.DureeVie_Ana_SOFT).Value
 
         ' Lead time Spare/Repair archive (en jours calendaires)
-        If colLeadSpareArch > 0 And DATA_ASL_type.LeadTimeSpareCalend > 0 Then _
-            wsCible.Cells(ligneCible, colLeadSpareArch).Value = _
-                wsPBS.Cells(lignePBS, DATA_ASL_type.LeadTimeSpareCalend).Value
-        If colLeadRepairArch > 0 And DATA_ASL_type.LeadTimeRepairCalend > 0 Then _
-            wsCible.Cells(ligneCible, colLeadRepairArch).Value = _
-                wsPBS.Cells(lignePBS, DATA_ASL_type.LeadTimeRepairCalend).Value
+        If colLeadSpareArch > 0 And DATA_ASL_type.LeadTimeSpareCalend > 0 Then wsCible.Cells(ligneCible, colLeadSpareArch).Value = wsPBS.Cells(lignePBS, DATA_ASL_type.LeadTimeSpareCalend).Value
+        If colLeadRepairArch > 0 And DATA_ASL_type.LeadTimeRepairCalend > 0 Then wsCible.Cells(ligneCible, colLeadRepairArch).Value = wsPBS.Cells(lignePBS, DATA_ASL_type.LeadTimeRepairCalend).Value
 
         ' Prix Spare archive : cascade Fournisseur -> Cat D&IS -> Cat FCS
         ' calcule (col AB) -> Archive. Une valeur valide = IsNumeric AND <> 0.
         If colPrixSpareArch > 0 Then
             Dim vPrixSpare As Variant
             vPrixSpare = CascadePrixSpareDATA_ASL(wsPBS, lignePBS)
-            If Not IsEmpty(vPrixSpare) Then _
-                wsCible.Cells(ligneCible, colPrixSpareArch).Value = vPrixSpare
+            If Not IsEmpty(vPrixSpare) Then wsCible.Cells(ligneCible, colPrixSpareArch).Value = vPrixSpare
         End If
 
         ' Prix Repair archive : cascade Fournisseur -> Cat D&IS -> Archive
@@ -802,8 +734,7 @@ Public Sub SIRUS_EnrichirProjetASL_DepuisDATA_ASL(ByVal sOperation As String, _
         If colPrixRepairArch > 0 Then
             Dim vPrixRepair As Variant
             vPrixRepair = CascadePrixRepairDATA_ASL(wsPBS, lignePBS)
-            If Not IsEmpty(vPrixRepair) Then _
-                wsCible.Cells(ligneCible, colPrixRepairArch).Value = vPrixRepair
+            If Not IsEmpty(vPrixRepair) Then wsCible.Cells(ligneCible, colPrixRepairArch).Value = vPrixRepair
         End If
 
 NextPBS:
@@ -815,8 +746,7 @@ NextPBS:
     wsCible.UsedRange.VerticalAlignment = xlCenter
     On Error GoTo 0
 
-    Debug.Print "SIRUS_EnrichirProjetASL_DepuisDATA_ASL : " & nbOverwrite & _
-                " overwrite, " & nbAjout & " ajout(s) depuis DATA_ASL."
+    Debug.Print "SIRUS_EnrichirProjetASL_DepuisDATA_ASL : " & nbOverwrite & " overwrite, " & nbAjout & " ajout(s) depuis DATA_ASL."
 End Sub
 
 ' Cascade prix Spare DATA_ASL : retourne la 1re valeur non-zero numerique
@@ -825,16 +755,12 @@ End Sub
 ' (col AN). Une cellule est "connue" si IsNumeric ET <> 0. Renvoie Empty
 ' si aucune source ne donne de valeur connue (le pre-fill BdD n est alors
 ' pas ecrase).
-Private Function CascadePrixSpareDATA_ASL(ByVal wsPBS As Worksheet, _
-                                           ByVal lignePBS As Long) As Variant
+Private Function CascadePrixSpareDATA_ASL(ByVal wsPBS As Worksheet, ByVal lignePBS As Long) As Variant
     Dim v As Variant
     Dim cols As Variant
     Dim i As Long
 
-    cols = Array(DATA_ASL_type.CoutSpare_AlstomFR_FRS, _
-                 DATA_ASL_type.PrixSpareCatalogue, _
-                 DATA_ASL_type.PrixSpareCalcule, _
-                 DATA_ASL_type.PrixSpare_ProjetArchive)
+    cols = Array(DATA_ASL_type.CoutSpare_AlstomFR_FRS, DATA_ASL_type.PrixSpareCatalogue, DATA_ASL_type.PrixSpareCalcule, DATA_ASL_type.PrixSpare_ProjetArchive)
 
     For i = LBound(cols) To UBound(cols)
         If cols(i) > 0 Then
@@ -853,15 +779,12 @@ End Function
 
 ' Cascade prix Repair DATA_ASL : Fournisseur -> Catalogue D&IS -> Archive.
 ' Pas de FCS Repair dans la BdD. Memes regles que CascadePrixSpareDATA_ASL.
-Private Function CascadePrixRepairDATA_ASL(ByVal wsPBS As Worksheet, _
-                                            ByVal lignePBS As Long) As Variant
+Private Function CascadePrixRepairDATA_ASL(ByVal wsPBS As Worksheet, ByVal lignePBS As Long) As Variant
     Dim v As Variant
     Dim cols As Variant
     Dim i As Long
 
-    cols = Array(DATA_ASL_type.PrixRepair_Alstom_FRS, _
-                 DATA_ASL_type.PrixRepairCatalogue, _
-                 DATA_ASL_type.PrixRepair_ProjetArchive)
+    cols = Array(DATA_ASL_type.PrixRepair_Alstom_FRS, DATA_ASL_type.PrixRepairCatalogue, DATA_ASL_type.PrixRepair_ProjetArchive)
 
     For i = LBound(cols) To UBound(cols)
         If cols(i) > 0 Then
@@ -880,8 +803,7 @@ End Function
 
 ' Cherche la colonne d une feuille SIRUS par son ColonneBdD (entete ligne 2).
 ' Renvoie 0 si introuvable. Permet une lookup tolerante a l ordre du config.
-Private Function TrouverColParColonneBdD(ByVal ws As Worksheet, _
-                                          ByVal sColBdD As String) As Long
+Private Function TrouverColParColonneBdD(ByVal ws As Worksheet, ByVal sColBdD As String) As Long
     Dim c As Long, lastCol As Long
     On Error Resume Next
     lastCol = ws.Cells(2, ws.Columns.count).End(xlToLeft).Column
@@ -1013,8 +935,7 @@ Public Sub Test_DiagnostiquerColonnesBdDFeuille()
     End With
 
     ' -- 4. Connexion BdD + parcours des tables ------------
-    tables = Array("Produit$", "Info_ATM$", "Taches_ATM$", "EMMST$", _
-                   "Projet_SLI$", "Projet_ASL$")
+    tables = Array("Produit$", "Info_ATM$", "Taches_ATM$", "EMMST$", "Projet_SLI$", "Projet_ASL$")
 
     Call Open_CONN(ChaineConnexionSIRUS)
     ligne = 2
@@ -1049,9 +970,7 @@ Public Sub Test_DiagnostiquerColonnesBdDFeuille()
     ws.Range("A2").Select
     ActiveWindow.FreezePanes = True
 
-    MsgBox "Feuille '" & FEUILLE & "' generee avec " & (ligne - 2) & _
-           " colonnes BdD au total." & vbCrLf & _
-           "Filtrer la colonne A pour isoler une table.", vbInformation, "SIRUS Diag"
+    MsgBox "Feuille '" & FEUILLE & "' generee avec " & (ligne - 2) & " colonnes BdD au total." & vbCrLf & "Filtrer la colonne A pour isoler une table.", vbInformation, "SIRUS Diag"
     Exit Sub
 
 Sortie:
@@ -1131,12 +1050,7 @@ Public Sub Test_DiagnostiquerEcartsAvecCandidats()
         .Interior.Color = COULEUR_ENTETE
     End With
 
-    tables = Array(Array("Produit", "Produit$"), _
-                   Array("InfoATM", "Info_ATM$"), _
-                   Array("TachesATM", "Taches_ATM$"), _
-                   Array("EMMST", "EMMST$"), _
-                   Array("ProjetSLI", "Projet_SLI$"), _
-                   Array("ProjetASL", "Projet_ASL$"))
+    tables = Array(Array("Produit", "Produit$"), Array("InfoATM", "Info_ATM$"), Array("TachesATM", "Taches_ATM$"), Array("EMMST", "EMMST$"), Array("ProjetSLI", "Projet_SLI$"), Array("ProjetASL", "Projet_ASL$"))
 
     Call Open_CONN(ChaineConnexionSIRUS)
     ligne = 2
@@ -1196,14 +1110,7 @@ Public Sub Test_DiagnostiquerEcartsAvecCandidats()
     ws.Range("A2").Select
     ActiveWindow.FreezePanes = True
 
-    MsgBox "Feuille '" & FEUILLE & "' generee. " & (ligne - 2) & _
-           " ecart(s) identifie(s)." & vbCrLf & vbCrLf & _
-           "Codes Unicode courants a surveiller :" & vbCrLf & _
-           "  39  = ' apostrophe ASCII" & vbCrLf & _
-           "  8217 = ' apostrophe typographique" & vbCrLf & _
-           "  32  = espace normal" & vbCrLf & _
-           "  160 = espace insecable (NBSP)" & vbCrLf & _
-           "  233 = e accent aigu", vbInformation, "SIRUS Diag Diff"
+    MsgBox "Feuille '" & FEUILLE & "' generee. " & (ligne - 2) & " ecart(s) identifie(s)." & vbCrLf & vbCrLf & "Codes Unicode courants a surveiller :" & vbCrLf & "  39  = ' apostrophe ASCII" & vbCrLf & "  8217 = ' apostrophe typographique" & vbCrLf & "  32  = espace normal" & vbCrLf & "  160 = espace insecable (NBSP)" & vbCrLf & "  233 = e accent aigu", vbInformation, "SIRUS Diag Diff"
     Exit Sub
 
 Sortie:
@@ -1278,8 +1185,7 @@ Public Sub Test_DiagnostiquerColonnesBdD()
     Dim i As Long
     Dim sNom As String
 
-    tables = Array("Produit$", "Info_ATM$", "Taches_ATM$", "EMMST$", _
-                   "Projet_SLI$", "Projet_ASL$")
+    tables = Array("Produit$", "Info_ATM$", "Taches_ATM$", "EMMST$", "Projet_SLI$", "Projet_ASL$")
 
     On Error GoTo Sortie
 

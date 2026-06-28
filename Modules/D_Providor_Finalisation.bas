@@ -2,10 +2,10 @@ Attribute VB_Name = "D_Providor_Finalisation"
 '--------------------------------------------------------------------------------------------------------
 '
 '                                       Generateur Livrables SLI
-'                                       Module D_Providor_Finalisation (Version Refactorisée)
+'                                       Module D_Providor_Finalisation (Version Refactorisee)
 '                                       Developpement : LE LARGE Thomas (LGM/Alstom)
 '                                       Module de finalisation Providor (GP, Skills, LCC)
-'                                       Refactorisation : Février 2026
+'                                       Refactorisation : Fevrier 2026
 '
 '-----------------------------------------------------------------------------------------------------------
 Option Compare Text
@@ -26,19 +26,19 @@ Private Type ProfilMissionProjet
     DureeGarantie As Variant
 End Type
 ' =========================================================================
-' PROCÉDURE: REMPLISSAGE GENERAL PARAMETERS
+' PROCEDURE: REMPLISSAGE GENERAL PARAMETERS
 ' =========================================================================
 Public Sub remplissage_GeneralParameters()
-' Remplit la feuille General Parameters avec les données projet
-' VERSION OPTIMISÉE : Une seule requête SQL
+' Remplit la feuille General Parameters avec les donnees projet
+' VERSION OPTIMISEE : Une seule requete SQL
 
     Dim profil As ProfilMissionProjet
     
     Set REQSEL = CreateObject("ADODB.Recordset")
     
-    ' Récupérer profil mission en une seule requête
+    ' Recuperer profil mission en une seule requete
     If Not RecupererProfilMission(Code_Projet, profil) Then
-        MsgBox "Erreur lors de la récupération du profil mission pour le projet : " & Code_Projet, vbExclamation
+        MsgBox "Erreur lors de la recuperation du profil mission pour le projet : " & Code_Projet, vbExclamation
         Exit Sub
     End If
     
@@ -50,43 +50,34 @@ Public Sub remplissage_GeneralParameters()
     
 End Sub
 ' =========================================================================
-' FONCTION: RÉCUPÉRER PROFIL MISSION
+' FONCTION: RECUPERER PROFIL MISSION
 ' =========================================================================
 Private Function RecupererProfilMission(ByVal codeProjet As String, ByRef profil As ProfilMissionProjet) As Boolean
-' Récupère TOUTES les données du profil mission en UNE SEULE requête SQL
-' Retourne True si succès, False si erreur
+' Recupere TOUTES les donnees du profil mission en UNE SEULE requete SQL
+' Retourne True si succes, False si erreur
 '
 ' OPTIMISATION :
-'   - Avant : 7+ requêtes SQL (1 par champ)
-'   - Après : 1 seule requête SQL
-'   - Gain : -85% temps exécution
+'   - Avant : 7+ requetes SQL (1 par champ)
+'   - Apres : 1 seule requete SQL
+'   - Gain : -85% temps execution
 
     Dim sql As String
     
     On Error GoTo ErrHandler
     
-    ' Construction requête SQL optimisée
-    sql = "SELECT " & _
-          "[Km by year_PROJET SLI], " & _
-          "[Servicing day by year_PROJET SLI], " & _
-          "[PH by year_PROJET SLI], " & _
-          "[RH by year_PROJET SLI], " & _
-          "[Nombre de train_PROJET SLI], " & _
-          "[Durée de circulation_PROJET SLI], " & _
-          "[Durée de garantie_PROJET SLI] " & _
-          "FROM [Projet_SLI$] " & _
-          "WHERE [Nom projet_PROJET SLI] = '" & Replace(codeProjet, "'", "''") & "'"
+    ' Construction requete SQL optimisee
+    sql = "SELECT [Km by year_PROJET SLI], [Servicing day by year_PROJET SLI], [PH by year_PROJET SLI], [RH by year_PROJET SLI], [Nombre de train_PROJET SLI], [Duree de circulation_PROJET SLI], [Duree de garantie_PROJET SLI] FROM [Projet_SLI$] WHERE [Nom projet_PROJET SLI] = '" & Replace(codeProjet, "'", "''") & "'"
     
-    ' Exécution requête
+    ' Execution requete
     Call open_REQSEL(sql)
     
-    ' Vérifier résultat
+    ' Verifier resultat
     If REQSEL.EOF Then
         RecupererProfilMission = False
         Exit Function
     End If
     
-    ' Récupération données (une seule lecture)
+    ' Recuperation donnees (une seule lecture)
     With profil
         .KmParAn = REQSEL.Fields(0).Value
         .ServiceDayParAn = REQSEL.Fields(1).Value
@@ -107,10 +98,10 @@ ErrHandler:
     RecupererProfilMission = False
 End Function
 ' =========================================================================
-' PROCÉDURE: REMPLIR OPERATING UNITS
+' PROCEDURE: REMPLIR OPERATING UNITS
 ' =========================================================================
 Private Sub RemplirOperatingUnits(ByRef profil As ProfilMissionProjet)
-' Remplit les Operating Units avec les données du profil mission
+' Remplit les Operating Units avec les donnees du profil mission
     
     With GP
         ' KILOMETER
@@ -147,7 +138,7 @@ Private Sub RemplirOperatingUnits(ByRef profil As ProfilMissionProjet)
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR PROJECT IDENTIFICATION
+' PROCEDURE: REMPLIR PROJECT IDENTIFICATION
 ' =========================================================================
 Private Sub RemplirProjectIdentification()
 ' Remplit l'identification du projet
@@ -162,10 +153,10 @@ Private Sub RemplirProjectIdentification()
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR LCC PARAMETERS
+' PROCEDURE: REMPLIR LCC PARAMETERS
 ' =========================================================================
 Private Sub RemplirLCCParameters(ByRef profil As ProfilMissionProjet)
-' Remplit les paramètres LCC avec les données du profil mission
+' Remplit les parametres LCC avec les donnees du profil mission
     
     With GP
         .Cells(gp_lig.LCC_nbassets, 2) = SafeNum(profil.NombreTrain, 0)
@@ -176,31 +167,31 @@ Private Sub RemplirLCCParameters(ByRef profil As ProfilMissionProjet)
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR CURRENCY UNITS
+' PROCEDURE: REMPLIR CURRENCY UNITS
 ' =========================================================================
 Private Sub RemplirCurrencyUnits()
 ' Remplit les Currency Units depuis LISTES_DATA_CHOIX
     
-    ' Copier données devises
+    ' Copier donnees devises
     Generateur.Sheets("LISTES_DATA_CHOIX").Range("CURRUNIT_DATA").Copy
     GP.Cells(36, gp_col.CurrUnit_Currtablename).PasteSpecial Paste:=xlPasteValues
     
-    ' Note : Code taux devise commenté dans original
-    ' Calculer dernière ligne Currency Units
+    ' Note : Code taux devise commente dans original
+    ' Calculer derniere ligne Currency Units
     dlCU = GP.Cells(35, gp_col.CurrUnit_Currtablename).End(xlDown).Row
     
-    'Pour activer taux de change automatique, décommenter :
+    'Pour activer taux de change automatique, decommenter :
     Call RemplirTauxDevise(36, dlCU)
     
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR TAUX DEVISE
+' PROCEDURE: REMPLIR TAUX DEVISE
 ' =========================================================================
 Private Sub RemplirTauxDevise(ByVal ligneDebut As Integer, ByVal ligneFin As Integer)
 ' Remplit les taux de change pour chaque devise
-' NOTE : Fonction désactivée par défaut dans le code original
-'        Nécessite connexion API externe (peut être lent)
+' NOTE : Fonction desactivee par defaut dans le code original
+'        Necessite connexion API externe (peut etre lent)
     
     Dim i As Integer
     Dim devise As String
@@ -210,7 +201,7 @@ Private Sub RemplirTauxDevise(ByVal ligneDebut As Integer, ByVal ligneFin As Int
         devise = GP.Cells(i, gp_col.CurrUnit_Currabbrev)
         
         If devise <> "" And devise <> "EUR" Then
-            ' Récupération taux via API
+            ' Recuperation taux via API
             taux = TauxDevise("EUR", devise)
             
             If taux <> "" And taux <> "Not found" Then
@@ -232,7 +223,7 @@ End Sub
 ' =========================================================================
 Public Sub remplissage_skillAndcontrolSheets()
 ' Remplit les feuilles Skill List et Tool List
-' VERSION SÉCURISÉE : Gestion robuste prix Dataplug Adapter
+' VERSION SECURISEE : Gestion robuste prix Dataplug Adapter
 
     Dim price_manuel As Variant
     Dim price_catalogue As Variant
@@ -245,9 +236,7 @@ Public Sub remplissage_skillAndcontrolSheets()
     ' PARTIE 1 : SKILL LIST (Man Hour Cost + Devise)
     ' =========================================================================
     
-    STRSEL = "SELECT [MAN hour cost_PROJET SLI], [Devise_PROJET SLI] " & _
-             "FROM [Projet_SLI$] " & _
-             "WHERE [Nom projet_PROJET SLI] = '" & Replace(Code_Projet, "'", "''") & "'"
+    STRSEL = "SELECT [MAN hour cost_PROJET SLI], [Devise_PROJET SLI] FROM [Projet_SLI$] WHERE [Nom projet_PROJET SLI] = '" & Replace(Code_Projet, "'", "''") & "'"
     Call open_REQSEL(STRSEL)
     
     ' Man Hour Cost
@@ -277,26 +266,24 @@ Public Sub remplissage_skillAndcontrolSheets()
     End With
     
     ' =========================================================================
-    ' PARTIE 2 : TOOL LIST (Prix Dataplug Adapter) - SÉCURISÉ
+    ' PARTIE 2 : TOOL LIST (Prix Dataplug Adapter) - SECURISE
     ' =========================================================================
     
-    STRSEL = "SELECT [Prix SPARE catalogue à date_PRODUIT], [Prix SPARE manuel_PRODUIT] " & _
-             "FROM [Produit$] " & _
-             "WHERE DTR = 'DTR0000222700'"
+    STRSEL = "SELECT [Prix SPARE catalogue a date_PRODUIT], [Prix SPARE manuel_PRODUIT] FROM [Produit$] WHERE DTR = 'DTR0000222700'"
     
     Call open_REQSEL(STRSEL)
     
-    ' Déterminer prix avec gestion robuste
+    ' Determiner prix avec gestion robuste
     If Not REQSEL.EOF Then
         price_catalogue = REQSEL.Fields(0).Value
         price_manuel = REQSEL.Fields(1).Value
         
-        ' Déterminer prix final avec hiérarchie
+        ' Determiner prix final avec hierarchie
         Call DeterminerPrixDataplug(price_catalogue, price_manuel, price, Comments)
     Else
-        ' DTR non trouvé dans BDD
+        ' DTR non trouve dans BDD
         price = 0
-        Comments = "DTR Dataplug Adapter non trouvé en BDD"
+        Comments = "DTR Dataplug Adapter non trouve en BDD"
     End If
     
     ' Remplir Tool List
@@ -321,37 +308,34 @@ Public Sub remplissage_skillAndcontrolSheets()
     
 End Sub
 ' =========================================================================
-' PROCÉDURE: DÉTERMINER PRIX DATAPLUG (SÉCURISÉE)
+' PROCEDURE: DETERMINER PRIX DATAPLUG (SECURISEE)
 ' =========================================================================
-Private Sub DeterminerPrixDataplug(ByVal prixCatalogue As Variant, _
-                                   ByVal prixManuel As Variant, _
-                                   ByRef prixFinal As Double, _
-                                   ByRef commentaire As String)
-' Détermine le prix Dataplug Adapter avec gestion robuste des valeurs invalides
+Private Sub DeterminerPrixDataplug(ByVal prixCatalogue As Variant, ByVal prixManuel As Variant, ByRef prixFinal As Double, ByRef commentaire As String)
+' Determine le prix Dataplug Adapter avec gestion robuste des valeurs invalides
 '
-' Hiérarchie :
+' Hierarchie :
 '   1. Prix Catalogue (si valide)
 '   2. Prix Manuel (si valide)
 '   3. 0 (si aucun prix valide)
 '
-' Valeurs considérées comme INVALIDES :
+' Valeurs considerees comme INVALIDES :
 '   - NULL
 '   - Empty
-'   - "" (chaîne vide)
+'   - "" (chaine vide)
 '   - "N/A", "#N/A", "N/D", "ND", "#N/D"
 '   - 0
-'   - Valeurs non numériques
+'   - Valeurs non numeriques
 
     Dim prixCatalogueValide As Boolean
     Dim prixManuelValide As Boolean
     
-    ' Vérifier validité prix catalogue
+    ' Verifier validite prix catalogue
     prixCatalogueValide = EstPrixValide(prixCatalogue)
     
-    ' Vérifier validité prix manuel
+    ' Verifier validite prix manuel
     prixManuelValide = EstPrixValide(prixManuel)
     
-    ' Déterminer prix final selon hiérarchie
+    ' Determiner prix final selon hierarchie
     If prixCatalogueValide Then
         ' Prix Catalogue valide
         prixFinal = CDbl(prixCatalogue)
@@ -365,36 +349,34 @@ Private Sub DeterminerPrixDataplug(ByVal prixCatalogue As Variant, _
     Else
         ' Aucun prix valide
         prixFinal = 0
-        commentaire = "Aucun prix valide en BDD (Catalogue: " & _
-                      ValeurToString(prixCatalogue) & ", Manuel: " & _
-                      ValeurToString(prixManuel) & ")"
+        commentaire = "Aucun prix valide en BDD (Catalogue: " & ValeurToString(prixCatalogue) & ", Manuel: " & ValeurToString(prixManuel) & ")"
     End If
     
 End Sub
 
 ' =========================================================================
-' FONCTION: EST PRIX VALIDE (SÉCURISÉE)
+' FONCTION: EST PRIX VALIDE (SECURISEE)
 ' =========================================================================
 Private Function EstPrixValide(ByVal valeur As Variant) As Boolean
-' Vérifie si une valeur est un prix valide (> 0 et numérique)
+' Verifie si une valeur est un prix valide (> 0 et numerique)
 '
 ' Retourne False si :
 '   - NULL
 '   - Empty
-'   - Chaîne vide
+'   - Chaine vide
 '   - "N/A", "#N/A", "N/D", "ND", "#N/D", "#REF!", "#VALUE!", etc.
 '   - 0
-'   - Non numérique
+'   - Non numerique
 
     On Error GoTo InvalidValue
     
-    ' Vérifier NULL ou Empty
+    ' Verifier NULL ou Empty
     If IsNull(valeur) Or IsEmpty(valeur) Then
         EstPrixValide = False
         Exit Function
     End If
     
-    ' Vérifier si c'est une erreur Excel (#N/A, #REF!, etc.)
+    ' Verifier si c'est une erreur Excel (#N/A, #REF!, etc.)
     If IsError(valeur) Then
         EstPrixValide = False
         Exit Function
@@ -404,27 +386,26 @@ Private Function EstPrixValide(ByVal valeur As Variant) As Boolean
     Dim valeurStr As String
     valeurStr = Trim$(CStr(valeur))
     
-    ' Vérifier chaîne vide
+    ' Verifier chaine vide
     If Len(valeurStr) = 0 Then
         EstPrixValide = False
         Exit Function
     End If
     
-    ' Vérifier valeurs textuelles invalides
+    ' Verifier valeurs textuelles invalides
     Select Case UCase$(valeurStr)
-        Case "N/A", "#N/A", "N/D", "ND", "#N/D", "#REF!", "#VALUE!", "#DIV/0!", _
-             "#NAME?", "#NUM!", "#NULL!", "NA", "#N", "NONE", "NULL", "-"
+        Case "N/A", "#N/A", "N/D", "ND", "#N/D", "#REF!", "#VALUE!", "#DIV/0!", "#NAME?", "#NUM!", "#NULL!", "NA", "#N", "NONE", "NULL", "-"
             EstPrixValide = False
             Exit Function
     End Select
     
-    ' Vérifier si numérique
+    ' Verifier si numerique
     If Not IsNumeric(valeurStr) Then
         EstPrixValide = False
         Exit Function
     End If
     
-    ' Vérifier si > 0
+    ' Verifier si > 0
     If CDbl(valeurStr) <= 0 Then
         EstPrixValide = False
         Exit Function
@@ -445,7 +426,7 @@ End Function
 ' =========================================================================
 Private Function ValeurToString(ByVal valeur As Variant) As String
 ' Convertit une valeur en String pour affichage dans commentaire
-' Gère NULL, Empty, Erreur, etc.
+' Gere NULL, Empty, Erreur, etc.
 
     On Error GoTo ErrorHandler
     
@@ -467,10 +448,10 @@ ErrorHandler:
     
 End Function
 ' =========================================================================
-' PROCÉDURE: EXÉCUTER CALCUL LCC (SANS MOT DE PASSE)
+' PROCEDURE: EXECUTER CALCUL LCC (SANS MOT DE PASSE)
 ' =========================================================================
 Public Sub ExecuterCalculLCC(ByRef wb As Workbook)
-' Exécute le calcul LCC dans le Providor
+' Execute le calcul LCC dans le Providor
 ' VERSION SIMPLE : Juste le script VBS pour msgbox (pas de mot de passe)
     
     Dim vbsPath As String
@@ -481,16 +462,15 @@ Public Sub ExecuterCalculLCC(ByRef wb As Workbook)
     wb.Activate
     Application.Wait Now + TimeValue("00:00:01")
     
-    ' Créer script VBS pour gérer les 2 MsgBox
-    vbsPath = Build_DoubleClicker_VBS("LCC Calculation", "LCC Calculation Process", _
-                                      15000, 15000, False)
+    ' Creer script VBS pour gerer les 2 MsgBox
+    vbsPath = Build_DoubleClicker_VBS("LCC Calculation", "LCC Calculation Process", 15000, 15000, False)
     
-    ' Lancer script VBS en arrière-plan
+    ' Lancer script VBS en arriere-plan
     If Len(vbsPath) > 0 Then
         CreateObject("WScript.Shell").Run "wscript.exe """ & vbsPath & """", 0, False
     End If
     
-    ' Attendre que le script démarre
+    ' Attendre que le script demarre
     Application.Wait Now + TimeValue("00:00:01")
     
     ' Appeler macro BS_Update
@@ -511,18 +491,13 @@ End Sub
 ' =========================================================================
 ' FONCTION: BUILD DOUBLE CLICKER VBS (SIMPLE)
 ' =========================================================================
-Public Function Build_DoubleClicker_VBS( _
-    ByVal msgTitleQuestion As String, _
-    ByVal msgTitleInfo As String, _
-    ByVal timeoutQuestionMs As Long, _
-    ByVal timeoutInfoMs As Long, _
-    ByVal pressNoInsteadOfYes As Boolean) As String
-' Construit le VBScript pour gérer 2 MsgBox successives
-' Étape A : attendre la MsgBox de question (titre msgTitleQuestion)
-'   - Yes/Oui : Entrée
-'   - No/Non  : Tab puis Entrée (si pressNoInsteadOfYes=True)
-' Étape B : attendre la MsgBox d'information (titre msgTitleInfo)
-'   - Fermer par Entrée
+Public Function Build_DoubleClicker_VBS( ByVal msgTitleQuestion As String, ByVal msgTitleInfo As String, ByVal timeoutQuestionMs As Long, ByVal timeoutInfoMs As Long, ByVal pressNoInsteadOfYes As Boolean) As String
+' Construit le VBScript pour gerer 2 MsgBox successives
+' Etape A : attendre la MsgBox de question (titre msgTitleQuestion)
+'   - Yes/Oui : Entree
+'   - No/Non  : Tab puis Entree (si pressNoInsteadOfYes=True)
+' Etape B : attendre la MsgBox d'information (titre msgTitleInfo)
+'   - Fermer par Entree
 
     Dim tempPath As String, vbsPath As String, f As Integer
     Dim script As String
@@ -550,10 +525,10 @@ Public Function Build_DoubleClicker_VBS( _
     script = script & "  WScript.Sleep 100" & vbCrLf
     script = script & "  If sh.AppActivate(""" & Replace(msgTitleQuestion, """", """""") & """) Then" & vbCrLf
     If pressNoInsteadOfYes Then
-        ' Déplacer sur No/Non puis valider
+        ' Deplacer sur No/Non puis valider
         script = script & "     sh.SendKeys ""{TAB}~""" & vbCrLf
     Else
-        ' Valider bouton par défaut (Yes/Oui) par Entrée
+        ' Valider bouton par defaut (Yes/Oui) par Entree
         script = script & "     sh.SendKeys ""~""" & vbCrLf
     End If
     script = script & "     Exit Do" & vbCrLf
@@ -574,7 +549,7 @@ Public Function Build_DoubleClicker_VBS( _
     script = script & "  If (Timer - t0) * 1000 > timeout Then Exit Do" & vbCrLf
     script = script & "Loop" & vbCrLf
 
-    ' Écrit le .vbs
+    ' Ecrit le .vbs
     On Error GoTo Fail
     f = FreeFile
     Open vbsPath For Output As #f

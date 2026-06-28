@@ -2,7 +2,7 @@ Attribute VB_Name = "E_Extraction_ATM"
 '--------------------------------------------------------------------------------------------------------
 '
 '                                       Generateur Livrables SLI
-'                                       Module M_Extraction_ATM (Version Refactorisée)
+'                                       Module M_Extraction_ATM (Version Refactorisee)
 '                                       Developpement : LE LARGE Thomas (LGM/Alstom)
 '                                       Module d'extraction fiches ATM vers format BDD
 '
@@ -18,7 +18,7 @@ Private REQSEL_TACHES As Object
 ' PROCEDURE PRINCIPALE: EXTRACTION FICHES ATM
 ' =========================================================================
 Public Sub Extraction_Fiches_ATM(ByRef wb As Workbook, ByVal langue As String, ByVal nbFiches As Integer)
-' Extrait toutes les données ATM d'un fichier et les structure au format BDD
+' Extrait toutes les donnees ATM d'un fichier et les structure au format BDD
     
     Dim ws As Worksheet
     Dim indexFiche As Integer
@@ -31,12 +31,12 @@ Public Sub Extraction_Fiches_ATM(ByRef wb As Workbook, ByVal langue As String, B
     Call InitialiserRecordsetsATM
     
     ' ======================================================================
-    ' ETAPE 2 : Création feuilles extraction
+    ' ETAPE 2 : Creation feuilles extraction
     ' ======================================================================
     Call CreerFeuillesExtractionATM(wb)
     
     ' ======================================================================
-    ' ETAPE 3 : Extraction données de chaque fiche DTR
+    ' ETAPE 3 : Extraction donnees de chaque fiche DTR
     ' ======================================================================
     indexFiche = 0
     
@@ -47,10 +47,10 @@ Public Sub Extraction_Fiches_ATM(ByRef wb As Workbook, ByVal langue As String, B
             ' Extraire Info ATM (cartouche)
             Call ExtraireInfoATM(ws, langue)
             
-            ' Extraire Tâches ATM
+            ' Extraire Taches ATM
             Call ExtraireTachesATM(ws, langue)
             
-            ' Mettre à jour barre progression
+            ' Mettre a jour barre progression
             Call barprogress(indexFiche, nbFiches)
         End If
     Next ws
@@ -78,7 +78,7 @@ End Sub
 ' PROCEDURE: INITIALISER RECORDSETS ATM
 ' =========================================================================
 Private Sub InitialiserRecordsetsATM()
-' Crée les recordsets pour vérifier existence DTR en BDD
+' Cree les recordsets pour verifier existence DTR en BDD
     
     Dim sqlInfo As String
     Dim sqlTaches As String
@@ -86,25 +86,11 @@ Private Sub InitialiserRecordsetsATM()
     Set REQSEL_INFO = CreateObject("ADODB.Recordset")
     Set REQSEL_TACHES = CreateObject("ADODB.Recordset")
     
-    ' Requête Info ATM
-    sqlInfo = "SELECT [DTR_INFOATM], [DescriptifATMFR_INFOATM], [DesignationATM_INFOATM], " & _
-              "[LocalisationATM_INFOATM], [PLANATM_INFOATM], [CommentaireATM_INFOATM], " & _
-              "[Version_INFOATM], [DescriptifATMEN_INFOATM], [LocalisationATMEN_INFOATM], " & _
-              "[CommentairesATMEN_INFOATM], [Reparabilite_INFOATM], [HARD/SOFT], [Poids_INFOATM], " & _
-              "[Temps générique de la tâche_INFOATM], [Temps générique de la tâche SOFTWARE_INFOATM], " & _
-              "[Temps analytique cumulé de la tache HARDWARE_INFOATM], " & _
-              "[Temps analytique cumulé de la tache SOFTWARE_INFOATM] " & _
-              "FROM [Info_ATM$]"
+    ' Requete Info ATM
+    sqlInfo = "SELECT [DTR_INFOATM], [DescriptifATMFR_INFOATM], [DesignationATM_INFOATM], [LocalisationATM_INFOATM], [PLANATM_INFOATM], [CommentaireATM_INFOATM], [Version_INFOATM], [DescriptifATMEN_INFOATM], [LocalisationATMEN_INFOATM], [CommentairesATMEN_INFOATM], [Reparabilite_INFOATM], [HARD/SOFT], [Poids_INFOATM], [Temps generique de la tache_INFOATM], [Temps generique de la tache SOFTWARE_INFOATM], [Temps analytique cumule de la tache HARDWARE_INFOATM], [Temps analytique cumule de la tache SOFTWARE_INFOATM] FROM [Info_ATM$]"
     
-    ' Requête Tâches ATM
-    sqlTaches = "SELECT [DTR_TACHEATM], [Langue_TACHEATM], [Rang_TACHEATM], [HARD/SOFT], " & _
-                "[Categorie_TACHEATM], [Niveau qualif_TACHEATM], [Description_TACHEATM], " & _
-                "[CritèresDimensionnels_TACHEATM], [OutillageSpécifique_TACHEATM], " & _
-                "[OutillageStandard_TACHEATM], [PiècedeRechangeConsommable_TACHEATM], " & _
-                "[NbOpérateurs_TACHEATM], [TempsEstiméHeures_TACHEATM], " & _
-                "[Temps analytique cumulé de la tache HARD_TACHEATM], " & _
-                "[Temps analytique cumulé de la tache SOFT_TACHEATM] " & _
-                "FROM [Taches_ATM$]"
+    ' Requete Taches ATM
+    sqlTaches = "SELECT [DTR_TACHEATM], [Langue_TACHEATM], [Rang_TACHEATM], [HARD/SOFT], [Categorie_TACHEATM], [Niveau qualif_TACHEATM], [Description_TACHEATM], [CriteresDimensionnels_TACHEATM], [OutillageSpecifique_TACHEATM], [OutillageStandard_TACHEATM], [PiecedeRechangeConsommable_TACHEATM], [NbOperateurs_TACHEATM], [TempsEstimeHeures_TACHEATM], [Temps analytique cumule de la tache HARD_TACHEATM], [Temps analytique cumule de la tache SOFT_TACHEATM] FROM [Taches_ATM$]"
     
     ' Ouvrir recordsets
     Call open_REQSEL1(sqlInfo, "REQSEL_INFO")
@@ -113,10 +99,10 @@ Private Sub InitialiserRecordsetsATM()
 End Sub
 
 ' =========================================================================
-' PROCEDURE: CRÉER FEUILLES EXTRACTION ATM
+' PROCEDURE: CREER FEUILLES EXTRACTION ATM
 ' =========================================================================
 Private Sub CreerFeuillesExtractionATM(ByRef wb As Workbook)
-' Crée les feuilles "Info_ATM" et "Taches_ATM" avec en-têtes
+' Cree les feuilles "Info_ATM" et "Taches_ATM" avec en-tetes
     
     Dim wsInfo As Worksheet
     Dim wsTaches As Worksheet
@@ -142,10 +128,10 @@ Private Sub CreerFeuillesExtractionATM(ByRef wb As Workbook)
         .Range("K1").Value = "Reparabilite_INFOATM"
         .Range("L1").Value = "HARD/SOFT"
         .Range("M1").Value = "Poids_INFOATM"
-        .Range("N1").Value = "Temps générique de la tâche HARDWARE_INFOATM"
-        .Range("O1").Value = "Temps générique de la tâche SOFTWARE_INFOATM"
-        .Range("P1").Value = "Temps analytique cumulé de la tache HARDWARE_INFOATM"
-        .Range("Q1").Value = "Temps analytique cumulé de la tache SOFTWARE_INFOATM"
+        .Range("N1").Value = "Temps generique de la tache HARDWARE_INFOATM"
+        .Range("O1").Value = "Temps generique de la tache SOFTWARE_INFOATM"
+        .Range("P1").Value = "Temps analytique cumule de la tache HARDWARE_INFOATM"
+        .Range("Q1").Value = "Temps analytique cumule de la tache SOFTWARE_INFOATM"
         .Range("R1").Value = "Connu en BDD ?"
     End With
     
@@ -164,14 +150,14 @@ Private Sub CreerFeuillesExtractionATM(ByRef wb As Workbook)
         .Range("E1").Value = "Categorie_TACHEATM"
         .Range("F1").Value = "Niveau qualif_TACHEATM"
         .Range("G1").Value = "Description_TACHEATM"
-        .Range("H1").Value = "CritèresDimensionnels_TACHEATM"
-        .Range("I1").Value = "OutillageSpécifique_TACHEATM"
+        .Range("H1").Value = "CriteresDimensionnels_TACHEATM"
+        .Range("I1").Value = "OutillageSpecifique_TACHEATM"
         .Range("J1").Value = "OutillageStandard_TACHEATM"
-        .Range("K1").Value = "PiècedeRechangeConsommable_TACHEATM"
-        .Range("L1").Value = "NbOpérateurs_TACHEATM"
-        .Range("M1").Value = "TempsEstiméHeures_TACHEATM"
-        .Range("N1").Value = "Temps analytique cumulé de la tache HARD_TACHEATM"
-        .Range("O1").Value = "Temps analytique cumulé de la tache SOFT_TACHEATM"
+        .Range("K1").Value = "PiecedeRechangeConsommable_TACHEATM"
+        .Range("L1").Value = "NbOperateurs_TACHEATM"
+        .Range("M1").Value = "TempsEstimeHeures_TACHEATM"
+        .Range("N1").Value = "Temps analytique cumule de la tache HARD_TACHEATM"
+        .Range("O1").Value = "Temps analytique cumule de la tache SOFT_TACHEATM"
         .Range("P1").Value = "Pictogramme pour ATM2.0_TACHEATM"
         .Range("Q1").Value = "Texte / commentaire picto2_TACHEATM"
         .Range("R1").Value = "Connu en BDD ?"
@@ -183,7 +169,7 @@ End Sub
 ' PROCEDURE: EXTRAIRE INFO ATM
 ' =========================================================================
 Private Sub ExtraireInfoATM(ByRef ws As Worksheet, ByVal langue As String)
-' Extrait les données du cartouche ATM d'une feuille vers Info_ATM
+' Extrait les donnees du cartouche ATM d'une feuille vers Info_ATM
     
     Dim wsInfo As Worksheet
     Dim derniereLigne As Long
@@ -196,44 +182,44 @@ Private Sub ExtraireInfoATM(ByRef ws As Worksheet, ByVal langue As String)
     Set wsInfo = ws.Parent.Sheets("Info_ATM")
     derniereLigne = wsInfo.Range("A100000").End(xlUp).Row
     
-    ' Récupérer données de base
+    ' Recuperer donnees de base
     dtr = Left(ws.Name, 13)
     hardSoft = DeterminerHardSoft(ws.Name)
     nvMaint = ws.Range("I7").Value
     tempsTotal = RecupererTempsTotal(ws, langue)
     
-    ' Vérifier présence en BDD
+    ' Verifier presence en BDD
     dtrPresent = RechercheValeurdansRS(REQSEL_INFO, dtr, "DTR_INFOATM")
     
     ' Remplir ligne Info_ATM
     With wsInfo
         .Cells(derniereLigne + 1, 1).Value = dtr                                        ' DTR
         .Cells(derniereLigne + 1, 2).Value = ws.Range("D5").Value                       ' Descriptif FR
-        .Cells(derniereLigne + 1, 3).Value = ws.Range("D4").Value                       ' Désignation
+        .Cells(derniereLigne + 1, 3).Value = ws.Range("D4").Value                       ' Designation
         .Cells(derniereLigne + 1, 4).Value = ""                                         ' Localisation
         .Cells(derniereLigne + 1, 5).Value = ws.Range("I8").Value                       ' Plan
         .Cells(derniereLigne + 1, 6).Value = ws.Range("D10").Value                      ' Commentaires FR
         .Cells(derniereLigne + 1, 7).Value = "A1"                                       ' Version
         
-        ' Descriptif EN (préfixe REPLACE si nécessaire)
+        ' Descriptif EN (prefixe REPLACE si necessaire)
         If Not IsError(ws.Range("D5").Value) And ws.Range("D5").Value <> "" Then
             .Cells(derniereLigne + 1, 8).Value = "REPLACE " & ws.Range("D5").Value
         End If
         
         .Cells(derniereLigne + 1, 9).Value = ""                                         ' Localisation EN
         .Cells(derniereLigne + 1, 10).Value = ws.Range("D10").Value                     ' Commentaires EN
-        .Cells(derniereLigne + 1, 11).Value = ws.Range("I9").Value                      ' Réparabilité
+        .Cells(derniereLigne + 1, 11).Value = ws.Range("I9").Value                      ' Reparabilite
         .Cells(derniereLigne + 1, 12).Value = hardSoft                                  ' HARD/SOFT
         .Cells(derniereLigne + 1, 13).Value = ws.Range("I6").Value                      ' Poids
         
-        ' Temps générique selon HARD/SOFT
+        ' Temps generique selon HARD/SOFT
         Select Case hardSoft
             Case "HARD"
                 .Cells(derniereLigne + 1, 14).Value = tempsTotal                        ' Temps HARD
             Case "SOFT"
                 .Cells(derniereLigne + 1, 15).Value = tempsTotal                        ' Temps SOFT
             Case Else
-                .Cells(derniereLigne + 1, 14).Value = tempsTotal                        ' Temps par défaut
+                .Cells(derniereLigne + 1, 14).Value = tempsTotal                        ' Temps par defaut
         End Select
         
         ' Marqueur BDD
@@ -250,7 +236,7 @@ End Sub
 ' PROCEDURE: EXTRAIRE TACHES ATM
 ' =========================================================================
 Private Sub ExtraireTachesATM(ByRef ws As Worksheet, ByVal langue As String)
-' Extrait toutes les tâches ATM d'une feuille vers Taches_ATM
+' Extrait toutes les taches ATM d'une feuille vers Taches_ATM
     
     Dim wsTaches As Worksheet
     Dim derniereLigne As Long
@@ -265,38 +251,36 @@ Private Sub ExtraireTachesATM(ByRef ws As Worksheet, ByVal langue As String)
     
     Set wsTaches = ws.Parent.Sheets("Taches_ATM")
     
-    ' Récupérer données de base
+    ' Recuperer donnees de base
     dtr = Left(ws.Name, 13)
     hardSoft = DeterminerHardSoft(ws.Name)
     nvMaint = ws.Range("I7").Value
     tempsTotal = RecupererTempsTotal(ws, langue)
     dtrPresent = RechercheValeurdansRS(REQSEL_TACHES, dtr, "DTR_TACHEATM")
     
-    ' Vérifier si feuille contient des tâches
+    ' Verifier si feuille contient des taches
     If EstFeuilleVide(ws) Then Exit Sub
     
-    ' Déterminer plage de tâches
+    ' Determiner plage de taches
     ligneDebut = 13
     ligneFin = ws.Range("B10000").End(xlUp).Row
     
-    ' Parcourir toutes les lignes de tâches
+    ' Parcourir toutes les lignes de taches
     For i = ligneDebut To ligneFin
         
         ' Ignorer lignes vides
         If Len(ws.Cells(i, 2).Value) = 0 Then
             ' Ligne vide ? passer
             
-        ' Ligne catégorie (1 seul caractère)
+        ' Ligne categorie (1 seul caractere)
         ElseIf Len(ws.Cells(i, 2).Value) = 1 Then
             categorieTache = ws.Cells(i, 3).Value
             
-        ' Ligne tâche (rang avec format x-y)
+        ' Ligne tache (rang avec format x-y)
         Else
             derniereLigne = wsTaches.Range("A100000").End(xlUp).Row
             
-            Call AjouterTacheATM(wsTaches, derniereLigne + 1, ws, i, _
-                                 dtr, langue, hardSoft, nvMaint, tempsTotal, _
-                                 categorieTache, dtrPresent)
+            Call AjouterTacheATM(wsTaches, derniereLigne + 1, ws, i, dtr, langue, hardSoft, nvMaint, tempsTotal, categorieTache, dtrPresent)
         End If
         
     Next i
@@ -306,42 +290,32 @@ End Sub
 ' =========================================================================
 ' PROCEDURE: AJOUTER TACHE ATM
 ' =========================================================================
-Private Sub AjouterTacheATM(ByRef wsTaches As Worksheet, _
-                            ByVal ligne As Long, _
-                            ByRef wsDTR As Worksheet, _
-                            ByVal ligneDTR As Long, _
-                            ByVal dtr As String, _
-                            ByVal langue As String, _
-                            ByVal hardSoft As String, _
-                            ByVal nvMaint As String, _
-                            ByVal tempsTotal As Double, _
-                            ByVal categorie As String, _
-                            ByVal dtrPresent As Boolean)
-' Ajoute une ligne de tâche dans la feuille Taches_ATM
+Private Sub AjouterTacheATM(ByRef wsTaches As Worksheet, ByVal ligne As Long, ByRef wsDTR As Worksheet, ByVal ligneDTR As Long, ByVal dtr As String, ByVal langue As String, ByVal hardSoft As String, ByVal nvMaint As String, ByVal tempsTotal As Double, ByVal categorie As String, ByVal dtrPresent As Boolean)
+' Ajoute une ligne de tache dans la feuille Taches_ATM
     
     With wsTaches
         .Cells(ligne, 1).Value = dtr                                    ' DTR
         .Cells(ligne, 2).Value = langue                                 ' Langue
         .Cells(ligne, 3).Value = "'" & wsDTR.Cells(ligneDTR, 2).Value   ' Rang (avec ')
         .Cells(ligne, 4).Value = hardSoft                               ' HARD/SOFT
-        .Cells(ligne, 5).Value = categorie                              ' Catégorie
+        .Cells(ligne, 5).Value = categorie                              ' Categorie
         .Cells(ligne, 6).Value = nvMaint                                ' Niveau qualif
         .Cells(ligne, 7).Value = wsDTR.Cells(ligneDTR, 3).Value         ' Description
-        .Cells(ligne, 8).Value = wsDTR.Cells(ligneDTR, 5).Value         ' Critères dim
-        .Cells(ligne, 9).Value = wsDTR.Cells(ligneDTR, 6).Value         ' Outillage spé
+        .Cells(ligne, 8).Value = wsDTR.Cells(ligneDTR, 5).Value         ' Criteres dim
+        .Cells(ligne, 9).Value = wsDTR.Cells(ligneDTR, 6).Value         ' Outillage spe
         .Cells(ligne, 10).Value = wsDTR.Cells(ligneDTR, 7).Value        ' Outillage std
-        .Cells(ligne, 11).Value = wsDTR.Cells(ligneDTR, 8).Value        ' Pièces rechange
-        .Cells(ligne, 12).Value = wsDTR.Cells(ligneDTR, 9).Value        ' Nb opérateurs
-        .Cells(ligne, 13).Value = wsDTR.Cells(ligneDTR, 10).Value       ' Temps estimé
+        .Cells(ligne, 11).Value = wsDTR.Cells(ligneDTR, 8).Value        ' Pieces rechange
+        .Cells(ligne, 12).Value = wsDTR.Cells(ligneDTR, 9).Value        ' Nb operateurs
+        .Cells(ligne, 13).Value = wsDTR.Cells(ligneDTR, 10).Value       ' Temps estime
         
-        ' Temps analytique cumulé selon HARD/SOFT
+        ' Temps analytique cumule selon HARD/SOFT
         Select Case hardSoft
             Case "HARD"
                 .Cells(ligne, 14).Value = tempsTotal                    ' Temps HARD
             Case "SOFT"
                 .Cells(ligne, 15).Value = tempsTotal                    ' Temps SOFT
             Case Else
-                .Cells(ligne, 14).Value = tempsTotal                    ' Temps par défaut
+                .Cells(ligne, 14).Value = tempsTotal                    ' Temps par defaut
         End Select
         
         .Cells(ligne, 16).Value = ""                                    ' Pictogramme ATM 2.0
@@ -361,7 +335,7 @@ End Sub
 ' FONCTION: DETERMINER HARD/SOFT
 ' =========================================================================
 Private Function DeterminerHardSoft(ByVal nomFeuille As String) As String
-' Détermine si la fiche est HARD ou SOFT selon le nom de feuille
+' Determine si la fiche est HARD ou SOFT selon le nom de feuille
     
     If Right(nomFeuille, 4) = "HARD" Then
         DeterminerHardSoft = "HARD"
@@ -377,14 +351,14 @@ End Function
 ' FONCTION: RECUPERER TEMPS TOTAL
 ' =========================================================================
 Private Function RecupererTempsTotal(ByRef ws As Worksheet, ByVal langue As String) As Double
-' Récupère le temps total depuis la cellule "Temps total :" ou "Total time :"
+' Recupere le temps total depuis la cellule "Temps total :" ou "Total time :"
     
     Dim celluleTemps As Range
     Dim texteRecherche As String
     
     On Error GoTo ErrorHandler
     
-    ' Déterminer texte à rechercher
+    ' Determiner texte a rechercher
     If langue = "FR" Then
         texteRecherche = "Temps total :"
     Else
@@ -411,12 +385,9 @@ End Function
 ' FONCTION: EST FEUILLE VIDE
 ' =========================================================================
 Private Function EstFeuilleVide(ByRef ws As Worksheet) As Boolean
-' Vérifie si la feuille ATM ne contient aucune tâche
+' Verifie si la feuille ATM ne contient aucune tache
     
-    If ws.Cells(14, 3).Value = "" And _
-       ws.Cells(17, 3).Value = "" And _
-       ws.Cells(20, 3).Value = "" And _
-       ws.Cells(24, 3).Value = "" Then
+    If ws.Cells(14, 3).Value = "" And ws.Cells(17, 3).Value = "" And ws.Cells(20, 3).Value = "" And ws.Cells(24, 3).Value = "" Then
         EstFeuilleVide = True
     Else
         EstFeuilleVide = False
@@ -428,7 +399,7 @@ End Function
 ' PROCEDURE: FORMATER FEUILLES EXTRACTION ATM
 ' =========================================================================
 Private Sub FormaterFeuillesExtractionATM(ByRef wb As Workbook)
-' Désactive le wrap text sur les feuilles Info_ATM et Taches_ATM
+' Desactive le wrap text sur les feuilles Info_ATM et Taches_ATM
     
     Dim wsInfo As Worksheet
     Dim wsTaches As Worksheet
@@ -436,14 +407,14 @@ Private Sub FormaterFeuillesExtractionATM(ByRef wb As Workbook)
     Set wsInfo = wb.Sheets("Info_ATM")
     Set wsTaches = wb.Sheets("Taches_ATM")
     
-    ' Désactiver wrap text Info_ATM
+    ' Desactiver wrap text Info_ATM
     wsInfo.Activate
     wsInfo.Cells.Select
     With Selection
         .WrapText = False
     End With
     
-    ' Désactiver wrap text Taches_ATM
+    ' Desactiver wrap text Taches_ATM
     wsTaches.Activate
     wsTaches.Cells.Select
     With Selection

@@ -47,10 +47,7 @@ End Sub
 ' Retour : reference vers le Workbook livrable ouvert avec les feuilles
 '          "Info_ATM" / "Taches_ATM" / "EMMST" creees. Nothing si erreur.
 '          Le caller est responsable de fermer le classeur.
-Public Function Main_Extraction_Params(ByVal sFichier As String, _
-                                        ByVal sLivrable As String, _
-                                        ByVal sLangue As String, _
-                                        Optional ByVal bAfficherMsgFin As Boolean = True) As Workbook
+Public Function Main_Extraction_Params(ByVal sFichier As String, ByVal sLivrable As String, ByVal sLangue As String, Optional ByVal bAfficherMsgFin As Boolean = True) As Workbook
     Dim nbFiches As Integer
     Dim validationOK As Boolean
     Dim ws As Worksheet
@@ -79,12 +76,7 @@ Public Function Main_Extraction_Params(ByVal sFichier As String, _
             If LenB(feuillesDispo) > 0 Then feuillesDispo = feuillesDispo & vbCrLf
             feuillesDispo = feuillesDispo & "  - " & ws.Name
         Next ws
-        MsgBox "Aucune fiche " & sLivrable & " n'est reconnue dans le fichier." & vbCrLf & vbCrLf & _
-               "Fichier : " & wb.Name & vbCrLf & _
-               wb.Worksheets.count & " feuille(s) au total :" & vbCrLf & feuillesDispo & vbCrLf & vbCrLf & _
-               "Le compteur cherche les feuilles dont le nom contient 'DTR' (sensible au pattern Like '*DTR*'). " & _
-               "Verifier que le fichier est bien un livrable " & sLivrable & " au format VBN.", _
-               vbExclamation, "Extraction"
+        MsgBox "Aucune fiche " & sLivrable & " n'est reconnue dans le fichier." & vbCrLf & vbCrLf & "Fichier : " & wb.Name & vbCrLf & wb.Worksheets.count & " feuille(s) au total :" & vbCrLf & feuillesDispo & vbCrLf & vbCrLf & "Le compteur cherche les feuilles dont le nom contient 'DTR' (sensible au pattern Like '*DTR*'). Verifier que le fichier est bien un livrable " & sLivrable & " au format VBN.", vbExclamation, "Extraction"
         wb.Close SaveChanges:=False
         Set wb = Nothing
         Set Main_Extraction_Params = Nothing
@@ -94,8 +86,7 @@ Public Function Main_Extraction_Params(ByVal sFichier As String, _
 
     validationOK = ValiderFormatLivrable(wb, sLivrable, sLangue)
     If Not validationOK Then
-        MsgBox "Les fiches " & sLivrable & " ne sont pas au format VBN, extraction impossible.", _
-               vbCritical, "Erreur Format"
+        MsgBox "Les fiches " & sLivrable & " ne sont pas au format VBN, extraction impossible.", vbCritical, "Erreur Format"
         wb.Close SaveChanges:=False
         Set wb = Nothing
         Set Main_Extraction_Params = Nothing
@@ -105,8 +96,7 @@ Public Function Main_Extraction_Params(ByVal sFichier As String, _
 
     ' ETAPE 3 : Extraction selon livrable
     On Error Resume Next
-    UserForm.Lb_Nb_Ref.Caption = "Il existe " & nbFiches & " references 'DTR' possedant une fiche " & _
-                                  sLivrable & " dans le document."
+    UserForm.Lb_Nb_Ref.Caption = "Il existe " & nbFiches & " references 'DTR' possedant une fiche " & sLivrable & " dans le document."
     On Error GoTo ErrorHandler
 
     Select Case sLivrable
@@ -126,8 +116,7 @@ Public Function Main_Extraction_Params(ByVal sFichier As String, _
 
     ' ETAPE 4 : Confirmation (optionnelle)
     If bAfficherMsgFin Then
-        MsgBox "Les donnees ont ete extraites avec succes !" & vbCrLf & _
-               "Format BDD pret pour import.", vbInformation, "Extraction Terminee"
+        MsgBox "Les donnees ont ete extraites avec succes !" & vbCrLf & "Format BDD pret pour import.", vbInformation, "Extraction Terminee"
     End If
 
     TurnOnFunctionality
@@ -164,9 +153,7 @@ End Function
 ' =========================================================================
 ' FONCTION: VALIDER FORMAT LIVRABLE
 ' =========================================================================
-Private Function ValiderFormatLivrable(ByRef wb As Workbook, _
-                                       ByVal typeLivrable As String, _
-                                       ByVal langue As String) As Boolean
+Private Function ValiderFormatLivrable(ByRef wb As Workbook, ByVal typeLivrable As String, ByVal langue As String) As Boolean
 ' Validation tolerante du format livrable VBN (revision 2026-06-10).
 ' Au lieu d'exiger que la cellule B2 de CHAQUE feuille DTR contienne le
 ' titre EXACT, on cherche un mot-cle caracteristique du livrable dans
@@ -192,7 +179,7 @@ Private Function ValiderFormatLivrable(ByRef wb As Workbook, _
     Select Case typeLivrable
         Case "ATM"
             If langue = "FR" Then
-                motsCles = Array("Maintenance", "ATM", "Taches", "T" & ChrW(226) & "ches")
+                motsCles = Array("Maintenance", "ATM", "Taches", "Taches")
             Else
                 motsCles = Array("Maintenance", "MTA", "Tasks")
             End If
@@ -225,8 +212,7 @@ NextWs:
         End If
     Next ws
 
-    Debug.Print "ValiderFormatLivrable (" & typeLivrable & ", " & langue & ") : " & _
-                nbDTRMatch & " / " & nbDTRTestees & " feuille(s) DTR ont matche au moins un mot-cle."
+    Debug.Print "ValiderFormatLivrable (" & typeLivrable & ", " & langue & ") : " & nbDTRMatch & " / " & nbDTRTestees & " feuille(s) DTR ont matche au moins un mot-cle."
 
     ' On accepte si au moins 1 feuille DTR contient un mot-cle.
     ValiderFormatLivrable = (nbDTRMatch > 0)

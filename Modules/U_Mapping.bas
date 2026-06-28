@@ -4,7 +4,7 @@ Attribute VB_Name = "U_Mapping"
 '                                       Generateur Livrables SLI
 '                                       Module H_Mapping
 '                                       Developpement : LE LARGE Thomas (LGM/Alstom)
-'                                       Module permettant d'effectuer le mapping des données
+'                                       Module permettant d'effectuer le mapping des donnees
 '
 '
 '-----------------------------------------------------------------------------------------------------------
@@ -14,34 +14,34 @@ Public Function GetChampsProjetsSLI() As Object
 
     Set Champs_ProjetsSLI = CreateObject("Scripting.Dictionary")
 
-    ' Page General : 1 à 13
+    ' Page General : 1 a 13
     Champs_ProjetsSLI.Add "Nom projet_PROJET SLI", "Gen_NomProjet"
     Champs_ProjetsSLI.Add "Projet / Offre_PROJET SLI", "Gen_Type"
     Champs_ProjetsSLI.Add "Region_PROJET SLI", "Gen_Region"
     Champs_ProjetsSLI.Add "CT Code_PROJET SLI", "Gen_CTCode"
     Champs_ProjetsSLI.Add "Type de train_PROJET SLI", "Gen_TypeTrain"
     Champs_ProjetsSLI.Add "Client final_PROJET SLI", "Gen_Customer"
-    Champs_ProjetsSLI.Add "Date de début de production_PROJET SLI", "Gen_DateDébut"
+    Champs_ProjetsSLI.Add "Date de debut de production_PROJET SLI", "Gen_DateDebut"
     Champs_ProjetsSLI.Add "Date de fin de production_PROJET SLI", "Gen_DateFin"
     Champs_ProjetsSLI.Add "Type de pack (complexe/standard/mini)_PROJET SLI", "Gen_TypePack"
-    Champs_ProjetsSLI.Add "UO ""grand père"" du pack_PROJET SLI", "Gen_UOPack"
-    Champs_ProjetsSLI.Add "Statut (terminé/En cours/A planifier)_PROJET SLI", "Gen_StatutUO"
+    Champs_ProjetsSLI.Add "UO ""grand pere"" du pack_PROJET SLI", "Gen_UOPack"
+    Champs_ProjetsSLI.Add "Statut (termine/En cours/A planifier)_PROJET SLI", "Gen_StatutUO"
     Champs_ProjetsSLI.Add "Nombre de DTR dans l'EAP ou la PBS_PROJET SLI", "Gen_NbDTRPBS"
-    Champs_ProjetsSLI.Add "Nombre de fournisseur soumis à CDRL_PROJET SLI", "Gen_NbFRS"
+    Champs_ProjetsSLI.Add "Nombre de fournisseur soumis a CDRL_PROJET SLI", "Gen_NbFRS"
 
-    ' Page Profil de mission : 14 à 23
-    Champs_ProjetsSLI.Add "Durée de circulation_PROJET SLI", "Gen_DureeCirculation"
+    ' Page Profil de mission : 14 a 23
+    Champs_ProjetsSLI.Add "Duree de circulation_PROJET SLI", "Gen_DureeCirculation"
     Champs_ProjetsSLI.Add "Nombre de train_PROJET SLI", "Gen_NbTrains"
     Champs_ProjetsSLI.Add "Servicing day by year_PROJET SLI", "Gen_ServicingbyDay"
     Champs_ProjetsSLI.Add "PH by year_PROJET SLI", "Gen_PowerHour"
     Champs_ProjetsSLI.Add "RH by year_PROJET SLI", "Gen_RunningHour"
     Champs_ProjetsSLI.Add "Km by year_PROJET SLI", "Gen_KMbyYear"
-    Champs_ProjetsSLI.Add "Durée de garantie_PROJET SLI", "Gen_DureeGarantie"
+    Champs_ProjetsSLI.Add "Duree de garantie_PROJET SLI", "Gen_DureeGarantie"
     Champs_ProjetsSLI.Add "Devise_PROJET SLI", "Gen_Devise"
     Champs_ProjetsSLI.Add "MAN hour cost_PROJET SLI", "Gen_ManHourCost"
     Champs_ProjetsSLI.Add "Niv de maintenance_PROJET SLI", "Gen_NiveauMaintenance"
     
-    ' Page Interlocuteurs : 24 à 48
+    ' Page Interlocuteurs : 24 a 48
     ' --- Villeurbanne ---
     Champs_ProjetsSLI.Add "RSLI_PROJET SLI", "Gen_RSLI"
     Champs_ProjetsSLI.Add "RASL_PROJET SLI", "Gen_RASL"
@@ -72,25 +72,25 @@ Public Function GetChampsProjetsSLI() As Object
     Champs_ProjetsSLI.Add "DL GSM REPEATER_PROJET SLI", "GEN_DLGSMREPEATER"
     Champs_ProjetsSLI.Add "DL SRS_PROJET SLI", "GEN_DLSRS"
 
-    ' Champs Livrables : 49 à 63
+    ' Champs Livrables : 49 a 63
     'Requis client
     Champs_ProjetsSLI.Add "Requis client : Acceptance_PROJET SLI", "Gen_RequisAcceptance"
     Champs_ProjetsSLI.Add "Requis client : Clausing_PROJET SLI", "Gen_RequisClausing"
     Champs_ProjetsSLI.Add "Requis client : MoP_PROJET SLI", "Gen_RequisMoP"
     Champs_ProjetsSLI.Add "Requis fournisseur : Clausing_PROJET SLI", "Gen_RequisFournisseurClausing"
     ' Champs PSLI et Providor
-    Champs_ProjetsSLI.Add "PSLI préliminaire_PROJET SLI", "Gen_PSLIPreliminaire"
+    Champs_ProjetsSLI.Add "PSLI preliminaire_PROJET SLI", "Gen_PSLIPreliminaire"
     Champs_ProjetsSLI.Add "PSLI final_PROJET SLI", "Gen_PSLIFinal"
-    Champs_ProjetsSLI.Add "PROVIDOR/BASL préliminaire_PROJET SLI", "Gen_ProvidorPreliminaire"
+    Champs_ProjetsSLI.Add "PROVIDOR/BASL preliminaire_PROJET SLI", "Gen_ProvidorPreliminaire"
     Champs_ProjetsSLI.Add "PROVIDOR/BASL final_PROJET SLI", "Gen_ProvidorFinal"
     Champs_ProjetsSLI.Add "PROVIDOR/BASL update_PROJET SLI", "Gen_ProvidorUpdate"
     ' Champs ATM et EMMST
-    Champs_ProjetsSLI.Add "ATM préliminaire_PROJET SLI", "Gen_ATMPreliminaire"
+    Champs_ProjetsSLI.Add "ATM preliminaire_PROJET SLI", "Gen_ATMPreliminaire"
     Champs_ProjetsSLI.Add "ATM final_PROJET SLI", "Gen_ATMFinal"
-    Champs_ProjetsSLI.Add "EMMST prélimianire_PROJET SLI", "Gen_EMMSTPreliminaire"
+    Champs_ProjetsSLI.Add "EMMST prelimianire_PROJET SLI", "Gen_EMMSTPreliminaire"
     Champs_ProjetsSLI.Add "EMMST final_PROJET SLI", "Gen_EMMSTFinal"
     ' Champs MUL
-    Champs_ProjetsSLI.Add "MUL préliminaire_PROJET SLI", "Gen_MULPreliminaire"
+    Champs_ProjetsSLI.Add "MUL preliminaire_PROJET SLI", "Gen_MULPreliminaire"
     Champs_ProjetsSLI.Add "MUL final_PROJET SLI", "Gen_MULFinal"
     ' Champs LCC et MC8
     'Champs_ProjetsSLI.Add "MC8_PROJET SLI", "Gen_MC8"
@@ -98,7 +98,7 @@ Public Function GetChampsProjetsSLI() As Object
     'Champs_ProjetsSLI.Add "LCC CCAP_PROJET SLI", "Gen_LCC_CCAP"
     'Champs_ProjetsSLI.Add "Dossiers de justification_PROJET SLI", "Gen_DossiersJustification"
 
-    ' Champs Dates : 64 à 146
+    ' Champs Dates : 64 a 146
     ' --- Date DFQ ---
     Champs_ProjetsSLI.Add "Date de check OdyC_PROJET SLI", "Gen_DateCheckOdyC"
     Champs_ProjetsSLI.Add "Date NTP_PROJET SLI", "Gen_DateNTP"
@@ -118,8 +118,8 @@ Public Function GetChampsProjetsSLI() As Object
     ' Champs GDP
 '    Champs_ProjetsSLI.Add "nbre GDP classique_PROJET SLI", "Gen_NbGDPClassique"
 '    Champs_ProjetsSLI.Add "nbre GDP fournisseur_PROJET SLI", "Gen_NbGDPFournisseur"
-'    Champs_ProjetsSLI.Add "% de GDP classique consommée_PROJET SLI", "Gen_PctGDPClassique"
-'    Champs_ProjetsSLI.Add "% de GDP fournisseur consommée_PROJET SLI", "Gen_PctGDPFournisseur"
+'    Champs_ProjetsSLI.Add "% de GDP classique consommee_PROJET SLI", "Gen_PctGDPClassique"
+'    Champs_ProjetsSLI.Add "% de GDP fournisseur consommee_PROJET SLI", "Gen_PctGDPFournisseur"
 '
 '
 '
@@ -160,10 +160,10 @@ Public Function GetChampsProjetsSLI() As Object
 '    Champs_ProjetsSLI.Add "DL 4_PROJET SLI", "Gen_DL4"
 '    Champs_ProjetsSLI.Add "DL 5_PROJET SLI", "Gen_DL5"
 '    Champs_ProjetsSLI.Add "Autres_PROJET SLI", "Gen_Autres"
-'    Champs_ProjetsSLI.Add "Réf PBS/EAP_PROJET SLI", "Gen_RefPBS"
-'    Champs_ProjetsSLI.Add "Réf RAM report projet_PROJET SLI", "Gen_RefRAMReport"
-'    Champs_ProjetsSLI.Add "Version du Providor/BASL intégré en BdD_PROJET SLI", "Gen_VProvidor"
-'    Champs_ProjetsSLI.Add "Prix de la Formation (s'il y en a une) scope PACIS – CCTV - Rear", "Gen_PrixFormPACIS"
+'    Champs_ProjetsSLI.Add "Ref PBS/EAP_PROJET SLI", "Gen_RefPBS"
+'    Champs_ProjetsSLI.Add "Ref RAM report projet_PROJET SLI", "Gen_RefRAMReport"
+'    Champs_ProjetsSLI.Add "Version du Providor/BASL integre en BdD_PROJET SLI", "Gen_VProvidor"
+'    Champs_ProjetsSLI.Add "Prix de la Formation (s'il y en a une) scope PACIS - CCTV - Rear", "Gen_PrixFormPACIS"
 '    Champs_ProjetsSLI.Add "Prix de la Formation (s'il y en a une) scope IOB_PROJET SLI", "Gen_PrixFormIOB"
 '    Champs_ProjetsSLI.Add "Prix de la Formation (s'il y en a une) scope APC_PROJET SLI", "Gen_PrixFormAPC"
 '    Champs_ProjetsSLI.Add "Prix de la Formation (s'il y en a une) scope DAS_PROJET SLI", "Gen_PrixFormDAS"
@@ -172,22 +172,22 @@ Public Function GetChampsProjetsSLI() As Object
 '    Champs_ProjetsSLI.Add "Prix de la Formation (s'il y en a une) scope LECTEUR DE BADGE_PR", "Gen_PrixFormLECTEURBADGE"
 '    Champs_ProjetsSLI.Add "Prix de la Formation (s'il y en a une) scope GSM REPEATER_PROJET", "Gen_PrixFormGSM"
 '    Champs_ProjetsSLI.Add "BTE_PROJET SLI", "Gen_BTE"
-'    Champs_ProjetsSLI.Add "Référence du/des BTE (s'il y en a) : DTR/DTRs_PROJET SLI", "Gen_RefBTE"
+'    Champs_ProjetsSLI.Add "Reference du/des BTE (s'il y en a) : DTR/DTRs_PROJET SLI", "Gen_RefBTE"
 '    Champs_ProjetsSLI.Add "Prix du BTE_PROJET SLI", "Gen_PrixBTE"
 '    Champs_ProjetsSLI.Add "Date d 'installation BTE_PROJET SLI", "Gen_DateInstallationBTE"
-'    Champs_ProjetsSLI.Add "Date de dernière visite BTE_PROJET SLI", "Gen_DateVisiteBTE"
-'    Champs_ProjetsSLI.Add "Durée de garantie BTE_PROJET SLI", "Gen_GarantieBTE"
+'    Champs_ProjetsSLI.Add "Date de derniere visite BTE_PROJET SLI", "Gen_DateVisiteBTE"
+'    Champs_ProjetsSLI.Add "Duree de garantie BTE_PROJET SLI", "Gen_GarantieBTE"
 '    Champs_ProjetsSLI.Add "MCO_PROJET SLI", "Gen_MCO"
-'    Champs_ProjetsSLI.Add "Durée MCO (s'il y en a un)_PROJET SLI", "Gen_DureeMCO"
+'    Champs_ProjetsSLI.Add "Duree MCO (s'il y en a un)_PROJET SLI", "Gen_DureeMCO"
 '    Champs_ProjetsSLI.Add "Prix du MCO  (s'il y en a un)_PROJET SLI", "Gen_PrixMCO"
 '    Champs_ProjetsSLI.Add "OBSO_PROJET SLI", "Gen_OBSO"
-'    Champs_ProjetsSLI.Add "Durée de couverture des activités OBSO (s'il y en a)_PROJET SLI", "Gen_DureeOBSO"
-'    Champs_ProjetsSLI.Add "Prix des activités OBSO (s'il y en a)_PROJET SLI", "Gen_PrixOBSO"
+'    Champs_ProjetsSLI.Add "Duree de couverture des activites OBSO (s'il y en a)_PROJET SLI", "Gen_DureeOBSO"
+'    Champs_ProjetsSLI.Add "Prix des activites OBSO (s'il y en a)_PROJET SLI", "Gen_PrixOBSO"
 '    Champs_ProjetsSLI.Add "LCC valeur scope total_PROJET SLI", "Gen_LCCValeurTotal"
-'    Champs_ProjetsSLI.Add "LCC valeur scope TCMS – T2G – OMS_PROJET SLI", "Gen_LCCValeurTCMS"
+'    Champs_ProjetsSLI.Add "LCC valeur scope TCMS - T2G - OMS_PROJET SLI", "Gen_LCCValeurTCMS"
 '    Champs_ProjetsSLI.Add "LCC valeur scope TRACTION - BMS_PROJET SLI", "Gen_LCCValeurBMS"
 '    Champs_ProjetsSLI.Add "LCC valeur scope N&T_PROJET SLI", "Gen_LCCValeurN&T"
-'    Champs_ProjetsSLI.Add "LCC valeur scope PACIS – CCTV - Rearview_PROJET SLI", "Gen_LCCValeurPACIS"
+'    Champs_ProjetsSLI.Add "LCC valeur scope PACIS - CCTV - Rearview_PROJET SLI", "Gen_LCCValeurPACIS"
 '    Champs_ProjetsSLI.Add "LCC valeur scope IOB_PROJET SLI", "Gen_LCCValeurIOB"
 '    Champs_ProjetsSLI.Add "LCC valeur scope APC_PROJET SLI", "Gen_LCCValeurAPC"
 '    Champs_ProjetsSLI.Add "LCC valeur scope DAS_PROJET SLI", "Gen_LCCValeurDAS"
@@ -286,9 +286,9 @@ Public Function GetChampsDates() As Object
 End Function
 Public Function MappingProjetsSLI() As Variant
     
-    ' Page General : 1 à 13
-    ' Page Profil de mission : 14 à 23
-    ' Page Interlocuteurs : 24 à 48
+    ' Page General : 1 a 13
+    ' Page Profil de mission : 14 a 23
+    ' Page Interlocuteurs : 24 a 48
     ' --- Villeurbanne ---
     ' --- Leading Unit ---
     ' --- Domain Leader ---

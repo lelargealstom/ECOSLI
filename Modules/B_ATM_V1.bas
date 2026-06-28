@@ -93,7 +93,7 @@ Public Sub ATM_V1()
     Call Cadrage_Infos_ATM(Infos_tab)
 
     ' Indexation DTR -> ligne en O(1). Doit etre APRES les Cadrage_* sinon
-    ' Taches_type.dtr / Info_type.dtr valent 0 et l'index est cassé.
+    ' Taches_type.dtr / Info_type.dtr valent 0 et l'index est casse.
     Call IndexerTachesEtInfos
 
     ' Recuperation PBS
@@ -216,7 +216,7 @@ Private Sub RemplirIndexV1(ByRef index As Worksheet, ByRef Template As Workbook)
     ' Constantes selon langue
     If langue = "FR" Then
         colDes = "Designation"
-        colSS = "Sous syst" & ChrW(232) & "me"
+        colSS = "Sous systeme"
         colTitre = "ATM Projet "
     Else
         colDes = "Designation"
@@ -338,9 +338,7 @@ End Function
 ' =========================================================================
 ' PROCEDURE: GENERER FICHE ATM V1 POUR UN DTR
 ' =========================================================================
-Private Sub GenererFicheATM_V1(ByRef Template As Workbook, ByRef index As Worksheet, _
-                               ByRef Template_HARD As Worksheet, ByRef Template_SOFT As Worksheet, _
-                               ByVal indexDTR As Integer)
+Private Sub GenererFicheATM_V1(ByRef Template As Workbook, ByRef index As Worksheet, ByRef Template_HARD As Worksheet, ByRef Template_SOFT As Worksheet, ByVal indexDTR As Integer)
     Dim dest As Worksheet
     Dim system As String
     Dim cpt As Integer
@@ -463,10 +461,7 @@ End Function
 ' la position consecutive mapLigneHARD(indexDTR) + 1 (DTR/Designation/Sous
 ' systeme). On a juste a poser le lien hypertexte vers la feuille SOFT et
 ' le statut "A faire" si pas de taches SOFT en BdD.
-Private Sub PoserLienSommaireSOFT(ByRef index As Worksheet, _
-                                    ByVal indexDTR As Integer, _
-                                    ByRef destSOFT As Worksheet, _
-                                    ByVal hasTachesSOFT As Boolean)
+Private Sub PoserLienSommaireSOFT(ByRef index As Worksheet, ByVal indexDTR As Integer, ByRef destSOFT As Worksheet, ByVal hasTachesSOFT As Boolean)
     Dim TabIndex As ListObject
     Dim colLien As String
     Dim ligneSOFT As Long
@@ -481,11 +476,7 @@ Private Sub PoserLienSommaireSOFT(ByRef index As Worksheet, _
     End If
 
     ' Lien hypertexte vers la feuille SOFT
-    index.Hyperlinks.Add _
-        Anchor:=TabIndex.ListColumns(colLien).DataBodyRange(ligneSOFT), _
-        Address:="", _
-        SubAddress:="'" & destSOFT.Name & "'!A1", _
-        TextToDisplay:=destSOFT.Name
+    index.Hyperlinks.Add Anchor:=TabIndex.ListColumns(colLien).DataBodyRange(ligneSOFT), Address:="", SubAddress:="'" & destSOFT.Name & "'!A1", TextToDisplay:=destSOFT.Name
 
     ' Statut "A faire" si pas de taches SOFT en BdD pour ce DTR (col 5)
     If Not hasTachesSOFT Then
@@ -514,9 +505,7 @@ End Sub
 ' =========================================================================
 ' FONCTION: COMPTER DOUBLONS FEUILLES
 ' =========================================================================
-Private Function CompterDoublonsFeuilles(ByRef Template As Workbook, ByRef index As Worksheet, _
-                                         ByVal indexDTR As Integer, ByVal system As String, _
-                                         ByVal typeHS As String) As Integer
+Private Function CompterDoublonsFeuilles(ByRef Template As Workbook, ByRef index As Worksheet, ByVal indexDTR As Integer, ByVal system As String, ByVal typeHS As String) As Integer
     ' Compte le nombre de feuilles existantes qui matchent EXACTEMENT
     ' baseName + suffixe (_HARD ou _SOFT). Distingue donc les fiches HARD
     ' et SOFT du meme DTR (fix bug DTR_xxx (2) sans suffixe).
@@ -548,9 +537,7 @@ End Function
 ' =========================================================================
 ' PROCEDURE: NOMMER FEUILLE V1
 ' =========================================================================
-Private Sub NommerFeuilleV1(ByRef dest As Worksheet, ByRef index As Worksheet, _
-                            ByVal indexDTR As Integer, ByVal system As String, _
-                            ByVal cpt As Integer, ByVal typeHS As String)
+Private Sub NommerFeuilleV1(ByRef dest As Worksheet, ByRef index As Worksheet, ByVal indexDTR As Integer, ByVal system As String, ByVal cpt As Integer, ByVal typeHS As String)
     Dim baseName As String
     Dim suffixe As String
     Dim nomComplet As String
@@ -585,8 +572,7 @@ End Sub
 ' donc on ne filtre plus que sur HARD/SOFT cote VBA.
 ' typeHARDSOFT : "HARD" ou "SOFT" -> filtre exact. Tout autre valeur ->
 ' on filtre par "HARD" par defaut (comportement legacy).
-Private Sub RemplirTachesV1(ByRef dest As Worksheet, ByRef arrTaches As Variant, _
-                            ByVal typeHARDSOFT As String)
+Private Sub RemplirTachesV1(ByRef dest As Worksheet, ByRef arrTaches As Variant, ByVal typeHARDSOFT As String)
     Dim j As Long
     Dim nvx As Integer
     Dim rang As String
@@ -667,10 +653,7 @@ End Sub
 ' =========================================================================
 ' PROCEDURE: INSERER TACHE V1 (depuis tableau local)
 ' =========================================================================
-Private Sub InsererTacheV1(ByRef dest As Worksheet, ByRef arrTaches As Variant, _
-                           ByVal indexTache As Long, _
-                           ByVal rangChiffre As String, ByVal niveau As Integer, _
-                           Optional ByVal rangAffiche As String = "")
+Private Sub InsererTacheV1(ByRef dest As Worksheet, ByRef arrTaches As Variant, ByVal indexTache As Long, ByVal rangChiffre As String, ByVal niveau As Integer, Optional ByVal rangAffiche As String = "")
     Dim ligneBase As Integer
     Dim ligneInsert As Integer
     Dim temps As Double
@@ -691,8 +674,7 @@ Private Sub InsererTacheV1(ByRef dest As Worksheet, ByRef arrTaches As Variant, 
         ' de 3 (Insert + Range.Copy + CutCopyMode) -> beaucoup plus rapide
         ' et plus d'erreur Presse-Papier en cascade.
         ligneInsert = ligneBase + 1
-        dest.Range("B" & ligneInsert).EntireRow.Insert _
-            Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
+        dest.Range("B" & ligneInsert).EntireRow.Insert Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
     Else
         ' Premiere tache du rang (x-1)
         ligneInsert = ligneBase
@@ -733,9 +715,7 @@ End Sub
 ' =========================================================================
 ' PROCEDURE: REMPLIR INFOS V1
 ' =========================================================================
-Private Sub RemplirInfosV1(ByRef dest As Worksheet, ByVal indexDTR As Integer, _
-                            ByRef arrInfo As Variant, ByVal hasInfo As Boolean, _
-                            ByVal typeHS As String)
+Private Sub RemplirInfosV1(ByRef dest As Worksheet, ByVal indexDTR As Integer, ByRef arrInfo As Variant, ByVal hasInfo As Boolean, ByVal typeHS As String)
     Dim j As Long
     Dim filtre As String
 
@@ -793,9 +773,7 @@ End Sub
 '   - typeHS = "HARD" : MTBF + DVL HARD (col P avant CGR / col R apres CGR).
 '   - Detection libelle scalable : libelle "MTBF" -> I4, "Periodicite" -> I5
 '     dans la zone d'entete (A1:K12), avec fallback positions historiques.
-Private Sub RemplirDonneesRAM_V1(ByRef dest As Worksheet, _
-                                  ByVal indexDTR As Integer, _
-                                  ByVal typeHS As String)
+Private Sub RemplirDonneesRAM_V1(ByRef dest As Worksheet, ByVal indexDTR As Integer, ByVal typeHS As String)
     Dim valMTBF As Variant
     Dim valDVL As Variant
 
@@ -803,17 +781,14 @@ Private Sub RemplirDonneesRAM_V1(ByRef dest As Worksheet, _
     If typeHS <> "SOFT" Then
         valMTBF = CalculerMTBF(indexDTR)
         If Not IsEmpty(valMTBF) Then
-            Call PoserValeurApresLibelle(dest, _
-                Array("MTBF"), valMTBF, "I4")
+            Call PoserValeurApresLibelle(dest, Array("MTBF"), valMTBF, "I4")
         End If
     End If
 
     ' --- DVL (Duree de vie limitee = periodicite) : pour HARD ET SOFT ---
     valDVL = CalculerDVL(indexDTR, typeHS)
     If Not IsEmpty(valDVL) Then
-        Call PoserValeurApresLibelle(dest, _
-            Array("P" & ChrW(233) & "riodicit", "Periodicit", "Periodicity"), _
-            valDVL, "I5")
+        Call PoserValeurApresLibelle(dest, Array("Periodicit", "Periodicit", "Periodicity"), valDVL, "I5")
     End If
 End Sub
 
@@ -902,10 +877,7 @@ End Function
 ' la cellule a droite du libelle trouve. Si aucun libelle ne matche,
 ' fallback sur la cellule par defaut (compat ancien template VBN).
 ' Rend la generation independante des coordonnees fixes du template.
-Private Sub PoserValeurApresLibelle(ByRef dest As Worksheet, _
-                                      ByRef libelles As Variant, _
-                                      ByVal valeur As Variant, _
-                                      ByVal celluleFallback As String)
+Private Sub PoserValeurApresLibelle(ByRef dest As Worksheet, ByRef libelles As Variant, ByVal valeur As Variant, ByVal celluleFallback As String)
     Dim cellLibelle As Range
     Dim mc As Variant
     Dim plage As Range
@@ -915,8 +887,7 @@ Private Sub PoserValeurApresLibelle(ByRef dest As Worksheet, _
     For Each mc In libelles
         Set cellLibelle = Nothing
         On Error Resume Next
-        Set cellLibelle = plage.Find(What:=CStr(mc), LookIn:=xlValues, _
-                                       lookat:=xlPart, MatchCase:=False)
+        Set cellLibelle = plage.Find(What:=CStr(mc), LookIn:=xlValues, lookat:=xlPart, MatchCase:=False)
         On Error GoTo 0
         If Not cellLibelle Is Nothing Then
             dest.Cells(cellLibelle.Row, cellLibelle.Column + 1).Value = valeur
@@ -965,20 +936,14 @@ Private Sub CreerLienHypertexte(ByRef index As Worksheet, ByVal indexDTR As Inte
     ligneTab = mapLigneHARD(indexDTR)
 
     With index
-        .Hyperlinks.Add _
-            Anchor:=.Range("Tableau1").ListObject.ListColumns(colonneNom).DataBodyRange(ligneTab), _
-            Address:="", _
-            SubAddress:="'" & dest.Name & "'!A1", _
-            TextToDisplay:=dest.Name
+        .Hyperlinks.Add Anchor:=.Range("Tableau1").ListObject.ListColumns(colonneNom).DataBodyRange(ligneTab), Address:="", SubAddress:="'" & dest.Name & "'!A1", TextToDisplay:=dest.Name
     End With
 End Sub
 
 ' =========================================================================
 ' PROCEDURE: FINALISER FICHIER V1
 ' =========================================================================
-Private Sub FinaliserFichierV1(ByRef Template As Workbook, ByRef index As Worksheet, _
-                                ByRef CoverPage As Worksheet, ByRef Template_HARD As Worksheet, _
-                                ByRef Template_SOFT As Worksheet)
+Private Sub FinaliserFichierV1(ByRef Template As Workbook, ByRef index As Worksheet, ByRef CoverPage As Worksheet, ByRef Template_HARD As Worksheet, ByRef Template_SOFT As Worksheet)
     Dim TabIndex As ListObject
     
     ' Remplir couverture

@@ -22,12 +22,11 @@ Private Sub Update_AddIn_Entry(Optional ByVal skipConfirm As Boolean = False)
     Set wsh = CreateObject("WScript.Shell")
 
     ' Chemin source SharePoint (fixe)
-    sourcePath = Environ("USERPROFILE") & "\Alstom\Svcs_DIS_Fr_VBN - Documents\01_Metiers\01_ISR\007 - Outils métier ISR\01. BDD SLI\11_Livraison de l'OUTIL excel BDD\ecosli.xlam"
+    sourcePath = Environ("USERPROFILE") & "\Alstom\Svcs_DIS_Fr_VBN - Documents\01_Metiers\01_ISR\007 - Outils metier ISR\01. BDD SLI\11_Livraison de l'OUTIL excel BDD\ecosli.xlam"
 
     ' Verifier que le fichier source existe
     If Dir(sourcePath) = "" Then
-        MsgBox "Fichier source introuvable sur SharePoint." & vbCrLf & vbCrLf & _
-               "Verifiez que le dossier est synchronise.", vbExclamation, "Erreur"
+        MsgBox "Fichier source introuvable sur SharePoint." & vbCrLf & vbCrLf & "Verifiez que le dossier est synchronise.", vbExclamation, "Erreur"
         Set wsh = Nothing
         Exit Sub
     End If
@@ -39,8 +38,7 @@ Private Sub Update_AddIn_Entry(Optional ByVal skipConfirm As Boolean = False)
 
     ' Si pas de chemin enregistre, demander a l'utilisateur (une seule fois)
     If destPath = "" Or Dir(destPath) = "" Then
-        MsgBox "Premiere utilisation : vous devez indiquer ou se trouve votre add-in actuel." & vbCrLf & vbCrLf & _
-               "(Cette question ne sera posee qu'une seule fois)", vbInformation
+        MsgBox "Premiere utilisation : vous devez indiquer ou se trouve votre add-in actuel." & vbCrLf & vbCrLf & "(Cette question ne sera posee qu'une seule fois)", vbInformation
 
         destPath = SelectAddinPath()
         If destPath = "" Then
@@ -58,11 +56,7 @@ Private Sub Update_AddIn_Entry(Optional ByVal skipConfirm As Boolean = False)
         sourceDate = FileDateTime(sourcePath)
         destDate = FileDateTime(destPath)
 
-        result = MsgBox("Mise a jour de l'add-in :" & vbCrLf & vbCrLf & _
-                       "Version actuelle : " & Format(destDate, "DD/MM/YYYY HH:MM") & vbCrLf & _
-                       "Nouvelle version : " & Format(sourceDate, "DD/MM/YYYY HH:MM") & vbCrLf & vbCrLf & _
-                       "Excel va se fermer et se rouvrir automatiquement.", _
-                       vbQuestion + vbYesNo, "Mise a jour")
+        result = MsgBox("Mise a jour de l'add-in :" & vbCrLf & vbCrLf & "Version actuelle : " & Format(destDate, "DD/MM/YYYY HH:MM") & vbCrLf & "Nouvelle version : " & Format(sourceDate, "DD/MM/YYYY HH:MM") & vbCrLf & vbCrLf & "Excel va se fermer et se rouvrir automatiquement.", vbQuestion + vbYesNo, "Mise a jour")
 
         If result <> vbYes Then
             Set wsh = Nothing
@@ -159,9 +153,7 @@ Private Function SelectAddinPath() As String
     ChDir initialPath
     On Error GoTo 0
 
-    result = Application.GetOpenFilename( _
-        FileFilter:="Add-in Excel (*.xlam), *.xlam", _
-        Title:="Selectionner votre add-in ACTUEL (celui a remplacer)")
+    result = Application.GetOpenFilename( FileFilter:="Add-in Excel (*.xlam), *.xlam", Title:="Selectionner votre add-in ACTUEL (celui a remplacer)")
 
     If VarType(result) = vbBoolean Then
         SelectAddinPath = ""
@@ -261,7 +253,7 @@ Public Sub CheckForUpdatesOnStartup()
     End If
 
     ' Chemin du fichier source sur SharePoint
-    sourcePath = Environ("USERPROFILE") & "\Alstom\Svcs_DIS_Fr_VBN - Documents\01_Metiers\01_ISR\007 - Outils métier ISR\01. BDD SLI\11_Livraison de l'OUTIL excel BDD\ecosli.xlam"
+    sourcePath = Environ("USERPROFILE") & "\Alstom\Svcs_DIS_Fr_VBN - Documents\01_Metiers\01_ISR\007 - Outils metier ISR\01. BDD SLI\11_Livraison de l'OUTIL excel BDD\ecosli.xlam"
 
     ' Verifier que le fichier source existe
     If Dir(sourcePath) = "" Then
@@ -277,11 +269,7 @@ Public Sub CheckForUpdatesOnStartup()
 
     ' Si la source est plus recente (marge de 1 minute)
     If sourceDate > DateAdd("n", 1, destDate) Then
-        result = MsgBox("Une nouvelle version de l'add-in est disponible !" & vbCrLf & vbCrLf & _
-                       "Version installee : " & Format(destDate, "DD/MM/YYYY HH:MM") & vbCrLf & _
-                       "Nouvelle version : " & Format(sourceDate, "DD/MM/YYYY HH:MM") & vbCrLf & vbCrLf & _
-                       "Voulez-vous mettre a jour maintenant ?", _
-                       vbQuestion + vbYesNo, "Mise a jour disponible")
+        result = MsgBox("Une nouvelle version de l'add-in est disponible !" & vbCrLf & vbCrLf & "Version installee : " & Format(destDate, "DD/MM/YYYY HH:MM") & vbCrLf & "Nouvelle version : " & Format(sourceDate, "DD/MM/YYYY HH:MM") & vbCrLf & vbCrLf & "Voulez-vous mettre a jour maintenant ?", vbQuestion + vbYesNo, "Mise a jour disponible")
 
         If result = vbYes Then
             Call Update_AddIn_Entry(True)  ' True = skip confirmation (deja faite)

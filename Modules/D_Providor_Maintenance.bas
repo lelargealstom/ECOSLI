@@ -2,17 +2,17 @@ Attribute VB_Name = "D_Providor_Maintenance"
 '--------------------------------------------------------------------------------------------------------
 '
 '                                       Generateur Livrables SLI
-'                                       Module D_Providor_Maintenance (Version Refactorisée)
+'                                       Module D_Providor_Maintenance (Version Refactorisee)
 '                                       Developpement : LE LARGE Thomas (LGM/Alstom)
-'                                       Module de remplissage maintenance corrective et préventive
-'                                       Refactorisation : Février 2026
+'                                       Module de remplissage maintenance corrective et preventive
+'                                       Refactorisation : Fevrier 2026
 '
 '-----------------------------------------------------------------------------------------------------------
 Option Compare Text
 Option Explicit
 
 ' =========================================================================
-' PROCÉDURE: REMPLISSAGE CORRECTIVE MAINTENANCE
+' PROCEDURE: REMPLISSAGE CORRECTIVE MAINTENANCE
 ' =========================================================================
 Public Sub remplissage_corr()
 ' Remplit la feuille de maintenance corrective (CM)
@@ -23,7 +23,7 @@ Public Sub remplissage_corr()
     
     Application.ThisWorkbook.Activate
     
-    ' Vérifications
+    ' Verifications
     If ML.Range("C4") = "" Then
         MsgBox "Merci de vous assurer que l'onglet Material List est bien rempli."
         Exit Sub
@@ -33,13 +33,13 @@ Public Sub remplissage_corr()
     dlBS = LastRowInCol(BS, bs_col.NodeName)
     dlML = LastRowInCol(ML, ml_col.Name)
     
-    ' Copier données BS vers CM avec des colonnes tampons
+    ' Copier donnees BS vers CM avec des colonnes tampons
     Call CopierDonneesBS_vers_CM
     
     ' Calculer limite CM
     dlCM = LastRowInCol(CM, cm_col.NodeName)
     
-    ' Remplir données pour chaque ligne
+    ' Remplir donnees pour chaque ligne
     For i = 4 To dlCM
         If IsNumeric(CM.Cells(i, cm_col.TamponNodeLevel)) And CM.Cells(i, cm_col.TamponNodeLevel) > 2 Then
             Call RemplirLigneCorrectiveMaintenance(i)
@@ -82,12 +82,12 @@ Public Sub remplissage_corr()
     
 End Sub
 Private Sub CopierDonneesBS_vers_CM()
-' Copie données de Breakdown Structure vers Corrective Maintenance
+' Copie donnees de Breakdown Structure vers Corrective Maintenance
 
     Dim ligneSrc As Long
     Dim ligneDst As Long
     
-    ' Copier données ligne par ligne
+    ' Copier donnees ligne par ligne
     For i = 5 To dlBS
         ligneSrc = i
         ligneDst = i - 1  ' BS ligne 5 ? CM ligne 4
@@ -96,7 +96,7 @@ Private Sub CopierDonneesBS_vers_CM()
         CM.Cells(ligneDst, cm_col.NodeName).Value = BS.Cells(ligneSrc, bs_col.ListNode).Value
         
         ' Colonnes Tampon
-        ' Ajuster selon ta structure CM (vérifier quel champ correspond)
+        ' Ajuster selon ta structure CM (verifier quel champ correspond)
         CM.Cells(ligneDst, cm_col.TamponNodeLevel).Value = BS.Cells(ligneSrc, bs_col.NodeLevel).Value
         ' Part number / DTR (BS col O ? CM col F)
         CM.Cells(ligneDst, cm_col.TamponDTR).Value = BS.Cells(ligneSrc, bs_col.PartNumber).Value
@@ -110,22 +110,22 @@ Private Sub CopierDonneesBS_vers_CM()
     
 End Sub
 ' =========================================================================
-' PROCÉDURE: REMPLIR LIGNE CORRECTIVE MAINTENANCE
+' PROCEDURE: REMPLIR LIGNE CORRECTIVE MAINTENANCE
 ' =========================================================================
 Private Sub RemplirLigneCorrectiveMaintenance(ByVal i As Integer)
 ' Remplit une ligne de maintenance corrective
     
-    ' MTBF et Temps Réparation
+    ' MTBF et Temps Reparation
     Call RemplirMTBF_Corr(i)
     Call RemplirTempsReparation_Corr(i)
     
-    ' Unité MTBF : POWER HUP HOUR par défaut
+    ' Unite MTBF : POWER HUP HOUR par defaut
     CM.Cells(i, cm_col.MTBFUnit) = "POWER-UP HOUR"
     
     ' Failure Mode et Task Description
     Call RemplirFailureMode(i)
     
-    ' Failure Rate (basé sur MTBF)
+    ' Failure Rate (base sur MTBF)
     If IsNumeric(CM.Cells(i, cm_col.MTBF)) And CM.Cells(i, cm_col.MTBF) <> 0 Then
         CM.Cells(i, cm_col.FailureRate) = (1 / CM.Cells(i, cm_col.MTBF)) * 1000000
         CM.Cells(i, cm_col.FailureRate).Value = CM.Cells(i, cm_col.FailureRate)
@@ -151,19 +151,19 @@ Private Sub RemplirLigneCorrectiveMaintenance(ByVal i As Integer)
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR MTBF CORRECTIVE (CORRIGÉE)
+' PROCEDURE: REMPLIR MTBF CORRECTIVE (CORRIGEE)
 ' =========================================================================
 Private Sub RemplirMTBF_Corr(ByVal i As Integer)
 ' Remplit MTBF selon gate en utilisant directement les tableaux variants
 '
 ' Logique AvantCGR (PGR, GO ORDER, BA, IGR):
-'   - MTBF générique uniquement (tMTBF_gen)
+'   - MTBF generique uniquement (tMTBF_gen)
 '
-' Logique AprèsCGR (CGR, FEI, IQA):
+' Logique ApresCGR (CGR, FEI, IQA):
 '   - 1. MTBF fonctionnel (tMTBF_fct)
-'   - 2. MTBF intrinsèque (tMTBF_Intr)
-'   - 3. MTBF générique (tMTBF_gen)
-'   - 4. Vide + coloré orange si rien
+'   - 2. MTBF intrinseque (tMTBF_Intr)
+'   - 3. MTBF generique (tMTBF_gen)
+'   - 4. Vide + colore orange si rien
 
     Dim j As Integer
     Dim dtrCherche As String
@@ -180,32 +180,32 @@ Private Sub RemplirMTBF_Corr(ByVal i As Integer)
         End If
     Next j
     
-    ' Si DTR non trouvé
+    ' Si DTR non trouve
     If indexDTR = 0 Then
         CM.Cells(i, cm_col.MTBF).Value = ""
-        CM.Cells(i, cm_col.MTBFSource) = "DTR non trouvé dans PBS"
+        CM.Cells(i, cm_col.MTBFSource) = "DTR non trouve dans PBS"
         CM.Cells(i, cm_col.MTBF).Interior.ColorIndex = 44
         Exit Sub
     End If
     
     ' =====================================================================
-    ' AVANT CGR : MTBF GÉNÉRIQUE UNIQUEMENT
+    ' AVANT CGR : MTBF GENERIQUE UNIQUEMENT
     ' =====================================================================
     If AvantCGR Then
         If IsNumeric(tMTBF_gen(indexDTR, 1)) And tMTBF_gen(indexDTR, 1) <> 0 And Not IsNull(tMTBF_gen(indexDTR, 1)) Then
             CM.Cells(i, cm_col.MTBF).Value = tMTBF_gen(indexDTR, 1)
             CM.Columns(cm_col.MTBF).NumberFormat = "General"
-            CM.Cells(i, cm_col.MTBFSource) = "MTBF générique"
+            CM.Cells(i, cm_col.MTBFSource) = "MTBF generique"
         Else
             CM.Cells(i, cm_col.MTBF).Value = ""
-            CM.Cells(i, cm_col.MTBFSource) = "MTBF générique inconnu en BDD"
+            CM.Cells(i, cm_col.MTBFSource) = "MTBF generique inconnu en BDD"
             CM.Cells(i, cm_col.MTBF).Interior.ColorIndex = 44
         End If
         Exit Sub
     End If
     
     ' =====================================================================
-    ' APRÈS CGR : HIÉRARCHIE FONCTIONNEL ? INTRINSÈQUE ? GÉNÉRIQUE
+    ' APRES CGR : HIERARCHIE FONCTIONNEL ? INTRINSEQUE ? GENERIQUE
     ' =====================================================================
     
     ' Tentative 1 : MTBF Fonctionnel
@@ -216,31 +216,31 @@ Private Sub RemplirMTBF_Corr(ByVal i As Integer)
         Exit Sub
     End If
     
-    ' Tentative 2 : MTBF Intrinsèque
+    ' Tentative 2 : MTBF Intrinseque
     If IsNumeric(tMTBF_Intr(indexDTR, 1)) And tMTBF_Intr(indexDTR, 1) <> 0 And Not IsNull(tMTBF_Intr(indexDTR, 1)) Then
         CM.Cells(i, cm_col.MTBF).Value = tMTBF_Intr(indexDTR, 1)
         CM.Columns(cm_col.MTBF).NumberFormat = "General"
-        CM.Cells(i, cm_col.MTBFSource) = "MTBF intrinsèque du RAM Report"
+        CM.Cells(i, cm_col.MTBFSource) = "MTBF intrinseque du RAM Report"
         Exit Sub
     End If
     
-    ' Tentative 3 : MTBF Générique
+    ' Tentative 3 : MTBF Generique
     If IsNumeric(tMTBF_gen(indexDTR, 1)) And tMTBF_gen(indexDTR, 1) <> 0 And Not IsNull(tMTBF_gen(indexDTR, 1)) Then
         CM.Cells(i, cm_col.MTBF).Value = tMTBF_gen(indexDTR, 1)
         CM.Columns(cm_col.MTBF).NumberFormat = "General"
-        CM.Cells(i, cm_col.MTBFSource) = "MTBF générique"
+        CM.Cells(i, cm_col.MTBFSource) = "MTBF generique"
         Exit Sub
     End If
     
-    ' Aucun MTBF trouvé
+    ' Aucun MTBF trouve
     CM.Cells(i, cm_col.MTBF).Value = ""
-    CM.Cells(i, cm_col.MTBFSource) = "Pas de MTBF trouvé en BDD"
+    CM.Cells(i, cm_col.MTBFSource) = "Pas de MTBF trouve en BDD"
     CM.Cells(i, cm_col.MTBF).Interior.ColorIndex = 44
     
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR FAILURE MODE
+' PROCEDURE: REMPLIR FAILURE MODE
 ' =========================================================================
 Private Sub RemplirFailureMode(ByVal i As Integer)
 ' Remplit Failure Mode et Task Description selon langue
@@ -260,7 +260,7 @@ Private Sub RemplirFailureMode(ByVal i As Integer)
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR SKILL NAME
+' PROCEDURE: REMPLIR SKILL NAME
 ' =========================================================================
 Private Sub RemplirSkillName(ByVal i As Integer)
 ' Remplit Skill Name selon maintenance level
@@ -283,17 +283,17 @@ Private Sub RemplirSkillName(ByVal i As Integer)
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR TEMPS RÉPARATION CORRECTIVE
+' PROCEDURE: REMPLIR TEMPS REPARATION CORRECTIVE
 ' =========================================================================
 Private Sub RemplirTempsReparation_Corr(ByVal i As Integer)
-' Remplit temps réparation selon gate en utilisant directement les tableaux variants
+' Remplit temps reparation selon gate en utilisant directement les tableaux variants
 '
 ' Logique AvantCGR (PGR, GO ORDER, BA, IGR):
-'   - Temps générique HARD uniquement (tTps_CorrPrev_Gen_HARD)
+'   - Temps generique HARD uniquement (tTps_CorrPrev_Gen_HARD)
 '
-' Logique AprèsCGR (CGR, FEI, IQA):
+' Logique ApresCGR (CGR, FEI, IQA):
 '   - 1. Temps analytique HARD (tTps_CorrPrev_Ana_HARD)
-'   - 2. Temps générique HARD (tTps_CorrPrev_Gen_HARD)
+'   - 2. Temps generique HARD (tTps_CorrPrev_Gen_HARD)
 '   - 3. Temps famille (Dataplug 0.45, autre 0.3)
 
     Dim j As Integer
@@ -312,29 +312,28 @@ Private Sub RemplirTempsReparation_Corr(ByVal i As Integer)
         End If
     Next j
     
-    ' Si DTR non trouvé
+    ' Si DTR non trouve
     If indexDTR = 0 Then
         tempsDefaut = CalculerTempsDefaut(CM.Cells(i, cm_col.NodeName))
         CM.Cells(i, cm_col.RepairTime) = tempsDefaut
         CM.Columns(cm_col.RepairTime).NumberFormat = "General"
         CM.Cells(i, cm_col.RepairTime).AddComment
         CM.Cells(i, cm_col.RepairTime).Comment.Visible = False
-        CM.Cells(i, cm_col.RepairTime).Comment.Text Text:="DTR non trouvé - Temps famille"
+        CM.Cells(i, cm_col.RepairTime).Comment.Text Text:="DTR non trouve - Temps famille"
         CM.Cells(i, cm_col.RepairTime).Interior.ColorIndex = 44
         Exit Sub
     End If
     
     ' =====================================================================
-    ' AVANT CGR : TEMPS GÉNÉRIQUE UNIQUEMENT
+    ' AVANT CGR : TEMPS GENERIQUE UNIQUEMENT
     ' =====================================================================
     If AvantCGR Then
-        If IsNumeric(tTps_CorrPrev_Gen_HARD(indexDTR, 1)) And tTps_CorrPrev_Gen_HARD(indexDTR, 1) <> 0 And _
-           Not IsNull(tTps_CorrPrev_Gen_HARD(indexDTR, 1)) Then
+        If IsNumeric(tTps_CorrPrev_Gen_HARD(indexDTR, 1)) And tTps_CorrPrev_Gen_HARD(indexDTR, 1) <> 0 And Not IsNull(tTps_CorrPrev_Gen_HARD(indexDTR, 1)) Then
             CM.Cells(i, cm_col.RepairTime) = tTps_CorrPrev_Gen_HARD(indexDTR, 1)
             CM.Columns(cm_col.RepairTime).NumberFormat = "General"
             CM.Cells(i, cm_col.RepairTime).AddComment
             CM.Cells(i, cm_col.RepairTime).Comment.Visible = False
-            CM.Cells(i, cm_col.RepairTime).Comment.Text Text:="Temps générique"
+            CM.Cells(i, cm_col.RepairTime).Comment.Text Text:="Temps generique"
         Else
             tempsDefaut = CalculerTempsDefaut(CM.Cells(i, cm_col.NodeName))
             CM.Cells(i, cm_col.RepairTime) = tempsDefaut
@@ -348,12 +347,11 @@ Private Sub RemplirTempsReparation_Corr(ByVal i As Integer)
     End If
     
     ' =====================================================================
-    ' APRÈS CGR : HIÉRARCHIE ANALYTIQUE ? GÉNÉRIQUE ? FAMILLE
+    ' APRES CGR : HIERARCHIE ANALYTIQUE ? GENERIQUE ? FAMILLE
     ' =====================================================================
     
     ' Tentative 1 : Temps analytique
-    If IsNumeric(tTps_CorrPrev_Ana_HARD(indexDTR, 1)) And tTps_CorrPrev_Ana_HARD(indexDTR, 1) <> 0 And _
-       Not IsNull(tTps_CorrPrev_Ana_HARD(indexDTR, 1)) Then
+    If IsNumeric(tTps_CorrPrev_Ana_HARD(indexDTR, 1)) And tTps_CorrPrev_Ana_HARD(indexDTR, 1) <> 0 And Not IsNull(tTps_CorrPrev_Ana_HARD(indexDTR, 1)) Then
         CM.Cells(i, cm_col.RepairTime) = tTps_CorrPrev_Ana_HARD(indexDTR, 1)
         CM.Columns(cm_col.RepairTime).NumberFormat = "General"
         CM.Cells(i, cm_col.RepairTime).AddComment
@@ -362,14 +360,13 @@ Private Sub RemplirTempsReparation_Corr(ByVal i As Integer)
         Exit Sub
     End If
     
-    ' Tentative 2 : Temps générique
-    If IsNumeric(tTps_CorrPrev_Gen_HARD(indexDTR, 1)) And tTps_CorrPrev_Gen_HARD(indexDTR, 1) <> 0 And _
-       Not IsNull(tTps_CorrPrev_Gen_HARD(indexDTR, 1)) Then
+    ' Tentative 2 : Temps generique
+    If IsNumeric(tTps_CorrPrev_Gen_HARD(indexDTR, 1)) And tTps_CorrPrev_Gen_HARD(indexDTR, 1) <> 0 And Not IsNull(tTps_CorrPrev_Gen_HARD(indexDTR, 1)) Then
         CM.Cells(i, cm_col.RepairTime) = tTps_CorrPrev_Gen_HARD(indexDTR, 1)
         CM.Columns(cm_col.RepairTime).NumberFormat = "General"
         CM.Cells(i, cm_col.RepairTime).AddComment
         CM.Cells(i, cm_col.RepairTime).Comment.Visible = False
-        CM.Cells(i, cm_col.RepairTime).Comment.Text Text:="Temps générique"
+        CM.Cells(i, cm_col.RepairTime).Comment.Text Text:="Temps generique"
         Exit Sub
     End If
     
@@ -385,7 +382,7 @@ Private Sub RemplirTempsReparation_Corr(ByVal i As Integer)
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR MATERIAL NAME
+' PROCEDURE: REMPLIR MATERIAL NAME
 ' =========================================================================
 Private Sub RemplirMaterialName(ByVal i As Integer)
 ' Remplit Material Name selon type (Stdex ? _REPAIR)
@@ -402,10 +399,10 @@ Private Sub RemplirMaterialName(ByVal i As Integer)
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR TOOL LIST
+' PROCEDURE: REMPLIR TOOL LIST
 ' =========================================================================
 Private Sub RemplirToolList(ByVal i As Integer)
-' Ajoute Dataplug adapter si nécessaire
+' Ajoute Dataplug adapter si necessaire
     
     If InStr(1, CM.Cells(i, cm_col.FailureName), "DATAPLUG") <> 0 And InStr(1, CM.Cells(i, cm_col.FailureName), "GES") = 0 Then
         CM.Cells(i, cm_col.ToolName) = "DATAPLUG ADAPTER"
@@ -415,11 +412,11 @@ Private Sub RemplirToolList(ByVal i As Integer)
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLISSAGE PRÉVENTIVE MAINTENANCE (REFACTORISÉE)
+' PROCEDURE: REMPLISSAGE PREVENTIVE MAINTENANCE (REFACTORISEE)
 ' =========================================================================
 Public Sub remplissage_prev()
-' Remplit la feuille de maintenance préventive
-' Version refactorisée : unifie les gates en utilisant des paramètres
+' Remplit la feuille de maintenance preventive
+' Version refactorisee : unifie les gates en utilisant des parametres
 
     Dim i As Integer
     Dim sourceHARD As Variant, sourceSOFT As Variant
@@ -429,26 +426,26 @@ Public Sub remplissage_prev()
     
     TurnOffFunctionality
     
-    ' Préparer LIST_NODE
+    ' Preparer LIST_NODE
     Call PreparerListNode
     
     Application.ThisWorkbook.Activate
     
-    ' Vérifications
+    ' Verifications
     If ML.Range("C4") = "" Then
         MsgBox "Merci de vous assurer que l'onglet Material List est bien rempli."
         GoTo CleanUp
     End If
     
-    ' Déterminer sources selon gate
+    ' Determiner sources selon gate
     If AvantCGR Then
-        ' Avant CGR : données génériques
+        ' Avant CGR : donnees generiques
         sourceHARD = tDureevie_Gen_HARD
         sourceSOFT = tDureevie_Gen_SOFT
         sourceTpsHARD = tTps_CorrPrev_Gen_HARD
         sourceTpsSOFT = tTps_Prev_Gen_SOFT
     Else
-        ' Après CGR : données analytiques
+        ' Apres CGR : donnees analytiques
         sourceHARD = tDureevie_Ana_HARD
         sourceSOFT = tDureevie_Ana_SOFT
         sourceTpsHARD = tTps_CorrPrev_Ana_HARD
@@ -460,7 +457,7 @@ Public Sub remplissage_prev()
         Call InsererLignesPreventives(i, sourceHARD, sourceSOFT, sourceTpsHARD, sourceTpsSOFT)
     Next i
     
-    ' Supprimer dernière ligne uniquement si le tableau est plein
+    ' Supprimer derniere ligne uniquement si le tableau est plein
     dlPM = LastRowInCol(PM, pm_col.TaskDescription)
     
     If dlPM > 3 Then
@@ -473,10 +470,10 @@ CleanUp:
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: PRÉPARER LIST NODE
+' PROCEDURE: PREPARER LIST NODE
 ' =========================================================================
 Private Sub PreparerListNode()
-' Prépare le tableau LIST_NODE depuis BS
+' Prepare le tableau LIST_NODE depuis BS
     
     Dim j As Integer
     
@@ -501,20 +498,18 @@ Private Sub PreparerListNode()
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: INSÉRER LIGNES PRÉVENTIVES
+' PROCEDURE: INSERER LIGNES PREVENTIVES
 ' =========================================================================
-Private Sub InsererLignesPreventives(ByVal index As Integer, _
-                                     ByRef sourceHARD As Variant, ByRef sourceSOFT As Variant, _
-                                     ByRef sourceTpsHARD As Variant, ByRef sourceTpsSOFT As Variant)
-' Détermine et insère les lignes préventives nécessaires (HARD, SOFT ou les deux)
+Private Sub InsererLignesPreventives(ByVal index As Integer, ByRef sourceHARD As Variant, ByRef sourceSOFT As Variant, ByRef sourceTpsHARD As Variant, ByRef sourceTpsSOFT As Variant)
+' Determine et insere les lignes preventives necessaires (HARD, SOFT ou les deux)
     
     Dim needHARD As Boolean, needSOFT As Boolean
     
-    ' Déterminer quelles lignes créer
+    ' Determiner quelles lignes creer
     needHARD = sourceHARD(index, 1) <> 0 And IsNumeric(sourceHARD(index, 1)) And tNTI(index, 1) = 3
     needSOFT = sourceSOFT(index, 1) <> 0 And IsNumeric(sourceSOFT(index, 1)) And tNTI(index, 1) = 3
     
-    ' Insérer lignes nécessaires
+    ' Inserer lignes necessaires
     If needHARD Then
         Call InsererLigneHARD(index, sourceHARD, sourceTpsHARD)
     End If
@@ -526,17 +521,17 @@ Private Sub InsererLignesPreventives(ByVal index As Integer, _
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: INSÉRER LIGNE HARD
+' PROCEDURE: INSERER LIGNE HARD
 ' =========================================================================
 Private Sub InsererLigneHARD(ByVal index As Integer, ByRef source As Variant, ByRef sourceTps As Variant)
-' Insère une ligne HARD dans PM
+' Insere une ligne HARD dans PM
     
     Dim dlPM As Long
     
     dlPM = LastRowInCol(PM, pm_col.TaskDescription) + 1
     
     With PM
-        ' Infos génériques
+        ' Infos generiques
         .Cells(dlPM, pm_col.NodeIndex) = LIST_NODE(index, 1)
         .Cells(dlPM, pm_col.SequenceNo) = 1
         .Cells(dlPM, pm_col.PrevMaintType) = "Progr"
@@ -551,24 +546,24 @@ Private Sub InsererLigneHARD(ByVal index As Integer, ByRef source As Variant, By
         .Cells(dlPM, pm_col.MaterialName) = tDES_MEF(index, 1)
         .Cells(dlPM, pm_col.MaterialQty) = 1
         
-        ' Temps réparation
+        ' Temps reparation
         Call RemplirTempsReparationPrev(dlPM, index, sourceTps, tTps_CorrPrev_Gen_HARD)
     End With
     
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: INSÉRER LIGNE SOFT
+' PROCEDURE: INSERER LIGNE SOFT
 ' =========================================================================
 Private Sub InsererLigneSOFT(ByVal index As Integer, ByRef source As Variant, ByRef sourceTps As Variant)
-' Insère une ligne SOFT dans PM
+' Insere une ligne SOFT dans PM
     
     Dim dlPM As Long
     
     dlPM = LastRowInCol(PM, pm_col.TaskDescription) + 1
     
     With PM
-        ' Infos génériques
+        ' Infos generiques
         .Cells(dlPM, pm_col.NodeIndex) = LIST_NODE(index, 1)
         .Cells(dlPM, pm_col.SequenceNo) = 1
         .Cells(dlPM, pm_col.PrevMaintType) = "Progr"
@@ -581,34 +576,31 @@ Private Sub InsererLigneSOFT(ByVal index As Integer, ByRef source As Variant, By
         .Cells(dlPM, pm_col.FrequencyValue) = source(index, 1)
         .Cells(dlPM, pm_col.SkillName) = "Technician"
         
-        ' Temps réparation
+        ' Temps reparation
         Call RemplirTempsReparationPrev(dlPM, index, sourceTps, tTps_Prev_Gen_SOFT)
     End With
     
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR TEMPS RÉPARATION PRÉVENTIVE
+' PROCEDURE: REMPLIR TEMPS REPARATION PREVENTIVE
 ' =========================================================================
-Private Sub RemplirTempsReparationPrev(ByVal ligne As Long, ByVal index As Integer, _
-                                       ByRef sourcePrimaire As Variant, ByRef sourceSecondaire As Variant)
-' Remplit temps réparation avec hiérarchie :
-' Analytique ? Générique ? Famille (Dataplug/PACIS/Autre)
+Private Sub RemplirTempsReparationPrev(ByVal ligne As Long, ByVal index As Integer, ByRef sourcePrimaire As Variant, ByRef sourceSecondaire As Variant)
+' Remplit temps reparation avec hierarchie :
+' Analytique ? Generique ? Famille (Dataplug/PACIS/Autre)
     
     Dim temps As Variant
     
-    ' Essayer source primaire (analytique si après CGR, générique si avant)
-    If IsNumeric(sourcePrimaire(index, 1)) And sourcePrimaire(index, 1) <> "" And _
-       sourcePrimaire(index, 1) <> "#N/A" And sourcePrimaire(index, 1) <> 0 Then
+    ' Essayer source primaire (analytique si apres CGR, generique si avant)
+    If IsNumeric(sourcePrimaire(index, 1)) And sourcePrimaire(index, 1) <> "" And sourcePrimaire(index, 1) <> "#N/A" And sourcePrimaire(index, 1) <> 0 Then
         PM.Cells(ligne, pm_col.TaskTime) = sourcePrimaire(index, 1)
         Call AddCommentPM(ligne, IIf(AvantCGR, "Tps Generique", "Tps Analytique"))
         Exit Sub
     End If
     
-    ' Essayer source secondaire (générique si après CGR uniquement)
+    ' Essayer source secondaire (generique si apres CGR uniquement)
     If Not AvantCGR Then
-        If IsNumeric(sourceSecondaire(index, 1)) And sourceSecondaire(index, 1) <> "" And _
-           sourceSecondaire(index, 1) <> "#N/A" And sourceSecondaire(index, 1) <> 0 Then
+        If IsNumeric(sourceSecondaire(index, 1)) And sourceSecondaire(index, 1) <> "" And sourceSecondaire(index, 1) <> "#N/A" And sourceSecondaire(index, 1) <> 0 Then
             PM.Cells(ligne, pm_col.TaskTime) = sourceSecondaire(index, 1)
             Call AddCommentPM(ligne, "Tps Generique")
             Exit Sub
@@ -620,7 +612,7 @@ Private Sub RemplirTempsReparationPrev(ByVal ligne As Long, ByVal index As Integ
     PM.Cells(ligne, pm_col.TaskTime) = temps
     
     If temps = "" Then
-        Call AddCommentPM(ligne, "Aucun temps de réparation trouvé")
+        Call AddCommentPM(ligne, "Aucun temps de reparation trouve")
         PM.Cells(ligne, pm_col.TaskTime).Interior.ColorIndex = 44
     Else
         Call AddCommentPM(ligne, "Tps famille")
@@ -628,10 +620,10 @@ Private Sub RemplirTempsReparationPrev(ByVal ligne As Long, ByVal index As Integ
     
 End Sub
 ' =========================================================================
-' FONCTION: CALCULER TEMPS DÉFAUT
+' FONCTION: CALCULER TEMPS DEFAUT
 ' =========================================================================
 Private Function CalculerTempsDefaut(ByVal Designation As String) As Double
-' Calcule temps réparation par défaut selon famille
+' Calcule temps reparation par defaut selon famille
 ' Dataplug (hors GES) ? 0.45h
 ' Autre ? 0.3h
     
@@ -646,8 +638,8 @@ End Function
 ' FONCTION: CALCULER TEMPS FAMILLE
 ' =========================================================================
 Private Function CalculerTempsFamille(ByVal Designation As String, ByVal systeme As String) As Variant
-' Calcule temps réparation selon famille de produit
-' Hiérarchie : Dataplug (0.45) ? PACIS (0.3) ? Autre (0.2) ? Vide ("")
+' Calcule temps reparation selon famille de produit
+' Hierarchie : Dataplug (0.45) ? PACIS (0.3) ? Autre (0.2) ? Vide ("")
     
     ' Dataplug (hors GES)
     If InStr(1, Designation, "DATAPLUG") <> 0 And InStr(1, Designation, "GES") = 0 Then
@@ -661,7 +653,7 @@ Private Function CalculerTempsFamille(ByVal Designation As String, ByVal systeme
         Exit Function
     End If
     
-    ' Pas de sous-système
+    ' Pas de sous-systeme
     If systeme = "" Then
         CalculerTempsFamille = ""
         Exit Function
@@ -673,7 +665,7 @@ Private Function CalculerTempsFamille(ByVal Designation As String, ByVal systeme
 End Function
 
 ' =========================================================================
-' PROCÉDURE: ADD COMMENT PM
+' PROCEDURE: ADD COMMENT PM
 ' =========================================================================
 Private Sub AddCommentPM(ByVal ligne As Long, ByVal texte As String)
 ' Ajoute un commentaire sur la cellule M (temps)

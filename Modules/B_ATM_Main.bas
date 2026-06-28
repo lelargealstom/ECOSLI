@@ -4,7 +4,7 @@ Attribute VB_Name = "B_ATM_Main"
 '                                       Generateur Livrables SLI
 '                                       Module A_ATM
 '                                       Developpement : LE LARGE Thomas (LGM/Alstom)
-'                                       Module permettant de générer des fiches ATM au format V1 et 2.0
+'                                       Module permettant de generer des fiches ATM au format V1 et 2.0
 '
 '
 '-----------------------------------------------------------------------------------------------------------
@@ -13,68 +13,68 @@ Option Explicit
 
 
 ' =========================================================================
-' PROCÉDURE PRINCIPALE : MAIN_ATM
+' PROCEDURE PRINCIPALE : MAIN_ATM
 ' =========================================================================
 Public Sub Main_ATM()
-' Point d'entrée principal pour la génération des ATM
+' Point d'entree principal pour la generation des ATM
 ' Orchestre le workflow complet :
-'   1. Validation des prérequis
-'   2. Récupération des données utilisateur
-'   3. Récupération des données PBS
-'   4. Validation données RAM Report (si CGR+)
-'   5. Appel de la génération (V1 ou V2)
+'   1. Validation des prerequis
+'   2. Recuperation des donnees utilisateur
+'   3. Recuperation des donnees PBS
+'   4. Validation donnees RAM Report (si CGR+)
+'   5. Appel de la generation (V1 ou V2)
 
-    ' Désactiver fonctionnalités Excel pour performance
+    ' Desactiver fonctionnalites Excel pour performance
     TurnOffFunctionality
     
-    ' Validation et récupération données UserForm
+    ' Validation et recuperation donnees UserForm
     If Not InitialiserContexteGeneration Then
         TurnOnFunctionality
         Exit Sub
     End If
     
-    ' Récupération données PBS depuis DATA_ASL
+    ' Recuperation donnees PBS depuis DATA_ASL
     Call RecupererDonneesPBS
     
-    ' Validation données RAM Report selon gate
+    ' Validation donnees RAM Report selon gate
     If Not ValiderDonneesRAMReport Then
         TurnOnFunctionality
         Exit Sub
     End If
     
-    ' Déterminer version ATM à générer
+    ' Determiner version ATM a generer
     If Not DeterminerVersionATM Then
         TurnOnFunctionality
         Exit Sub
     End If
     
-    ' Déterminer langue
+    ' Determiner langue
     If Not DeterminerLangue Then
         TurnOnFunctionality
         Exit Sub
     End If
     
-    ' Générer ATM selon version
+    ' Generer ATM selon version
     Call ExecuterGenerationATM
     
-    ' Réactiver fonctionnalités Excel
+    ' Reactiver fonctionnalites Excel
     TurnOnFunctionality
 
 End Sub
 ' =========================================================================
-' FONCTION: INITIALISER CONTEXTE GÉNÉRATION
+' FONCTION: INITIALISER CONTEXTE GENERATION
 ' =========================================================================
 Private Function InitialiserContexteGeneration() As Boolean
-' Récupère et valide les paramètres du UserForm
+' Recupere et valide les parametres du UserForm
 ' Retourne True si tout est OK, False sinon
 
     On Error GoTo ErrHandler
     
-    ' Définir classeur générateur
+    ' Definir classeur generateur
     Set Generateur = ActiveWorkbook
     Set DS1 = Generateur.Worksheets("DATA_ASL")
     
-    ' Récupérer paramètres projet
+    ' Recuperer parametres projet
     Code_Projet = UserForm.Project_List.Value
     Projet_Abrev = Abrev_Projet(Code_Projet)
     Revision = UserForm.Revision_List.Value
@@ -82,19 +82,19 @@ Private Function InitialiserContexteGeneration() As Boolean
     
     ' Validation basique
     If Code_Projet = "" Then
-        MsgBox "Veuillez sélectionner un projet", vbExclamation
+        MsgBox "Veuillez selectionner un projet", vbExclamation
         InitialiserContexteGeneration = False
         Exit Function
     End If
     
     If Revision = "" Then
-        MsgBox "Veuillez saisir une révision", vbExclamation
+        MsgBox "Veuillez saisir une revision", vbExclamation
         InitialiserContexteGeneration = False
         Exit Function
     End If
     
     If gate = "" Then
-        MsgBox "Veuillez sélectionner une gate", vbExclamation
+        MsgBox "Veuillez selectionner une gate", vbExclamation
         InitialiserContexteGeneration = False
         Exit Function
     End If
@@ -108,10 +108,10 @@ ErrHandler:
 End Function
 
 ' =========================================================================
-' PROCÉDURE: RÉCUPÉRER DONNÉES PBS
+' PROCEDURE: RECUPERER DONNEES PBS
 ' =========================================================================
 Private Sub RecupererDonneesPBS()
-' Récupère toutes les colonnes nécessaires du tableau Providor
+' Recupere toutes les colonnes necessaires du tableau Providor
 ' Stocke dans variables globales tableaux (tDTR, tDES_PBS, etc.)
 
     ' Colonnes de base
@@ -119,73 +119,72 @@ Private Sub RecupererDonneesPBS()
     tDES_PBS = DS1.Range("Providor[DESIGNATION (issue de PBS)]")
     tDES_BDD = DS1.Range("Providor[DESIGNATION (issue BdD)]")
     tDES_MEF = DS1.Range("Providor[DESIGNATION (Providor)]")
-    tSS = DS1.Range("Providor[SOUS SYSTÈME]")
+    tSS = DS1.Range("Providor[SOUS SYSTEME]")
     
-    ' Colonnes HARD/SOFT et périodicité
+    ' Colonnes HARD/SOFT et periodicite
     tHARD_SOFT = DS1.Range("Providor[HARD/SOFT]")
-    tPERIODICITE = DS1.Range("Providor[DVL HARD générique]")
+    tPERIODICITE = DS1.Range("Providor[DVL HARD generique]")
     
     ' Colonnes RAM - MTBF
-    tMTBF_gen = DS1.Range("Providor[MTBF générique (offre+PGR)]")
-    tMTBF_fct = DS1.Range("Providor[MTBF fonctionnel RAM Report spécifique]")
-    tMTBF_Intr = DS1.Range("Providor[MTBF intrinsèque RAM Report spécifique]")
+    tMTBF_gen = DS1.Range("Providor[MTBF generique (offre+PGR)]")
+    tMTBF_fct = DS1.Range("Providor[MTBF fonctionnel RAM Report specifique]")
+    tMTBF_Intr = DS1.Range("Providor[MTBF intrinseque RAM Report specifique]")
     
-    ' Colonnes RAM - Durée de vie HARDWARE
-    tDureevie_Gen_HARD = DS1.Range("Providor[DVL HARD générique]")
-    tDureevie_Ana_HARD = DS1.Range("Providor[DVL HARD spécifique]")
+    ' Colonnes RAM - Duree de vie HARDWARE
+    tDureevie_Gen_HARD = DS1.Range("Providor[DVL HARD generique]")
+    tDureevie_Ana_HARD = DS1.Range("Providor[DVL HARD specifique]")
     
-    ' Colonnes RAM - Durée de vie SOFTWARE
-    tDureevie_Gen_SOFT = DS1.Range("Providor[DVL SOFT générique]")
-    tDureevie_Ana_SOFT = DS1.Range("Providor[DVL SOFT spécifique]")
+    ' Colonnes RAM - Duree de vie SOFTWARE
+    tDureevie_Gen_SOFT = DS1.Range("Providor[DVL SOFT generique]")
+    tDureevie_Ana_SOFT = DS1.Range("Providor[DVL SOFT specifique]")
     
 End Sub
 
 ' =========================================================================
-' FONCTION: VALIDER DONNÉES RAM REPORT
+' FONCTION: VALIDER DONNEES RAM REPORT
 ' =========================================================================
 Private Function ValiderDonneesRAMReport() As Boolean
-' Vérifie si les données du RAM Report sont requises et présentes
-' Retourne True pour continuer, False pour arrêter
+' Verifie si les donnees du RAM Report sont requises et presentes
+' Retourne True pour continuer, False pour arreter
 
     Dim MTBF_pres As Boolean
     Dim Duree_vie_HARD_pres As Boolean
     Dim Duree_vie_SOFT_pres As Boolean
     
-    ' Déterminer si on est avant ou après CGR
+    ' Determiner si on est avant ou apres CGR
     Select Case gate
         Case "PGR", "GO ORDER", "BA", "IGR"
-            ' Avant CGR : pas de vérification RAM Report
+            ' Avant CGR : pas de verification RAM Report
             AvantCGR = True
             RAMReportDATA = False
             ValiderDonneesRAMReport = True
             
         Case "CGR", "FEI", "IQA"
-            ' Après CGR : vérification obligatoire
+            ' Apres CGR : verification obligatoire
             AvantCGR = False
             
-            ' Vérifier présence données
+            ' Verifier presence donnees
             MTBF_pres = IsInArray_1D("", tMTBF_fct)
             Duree_vie_HARD_pres = IsInArray_1D("", tDureevie_Ana_HARD)
             Duree_vie_SOFT_pres = IsInArray_1D("", tDureevie_Ana_SOFT)
             
             If MTBF_pres Or Duree_vie_HARD_pres Or Duree_vie_SOFT_pres Then
-                ' Données incomplètes : demander confirmation
+                ' Donnees incompletes : demander confirmation
                 If Not DemanderConfirmationRAMPartiel Then
                     ValiderDonneesRAMReport = False
                     Exit Function
                 End If
                 RAMReportDATA = False
             Else
-                ' Toutes les données présentes
-                MsgBox "Toutes les données spécifiques du RAM Report sont renseignées." & vbCrLf & _
-                       "La procédure peut continuer", vbInformation
+                ' Toutes les donnees presentes
+                MsgBox "Toutes les donnees specifiques du RAM Report sont renseignees." & vbCrLf & "La procedure peut continuer", vbInformation
                 RAMReportDATA = True
             End If
             
             ValiderDonneesRAMReport = True
             
         Case Else
-            ' Gate inconnue : considérer comme avant CGR
+            ' Gate inconnue : considerer comme avant CGR
             AvantCGR = True
             RAMReportDATA = False
             ValiderDonneesRAMReport = True
@@ -197,34 +196,27 @@ End Function
 ' FONCTION: DEMANDER CONFIRMATION RAM PARTIEL
 ' =========================================================================
 Private Function DemanderConfirmationRAMPartiel() As Boolean
-' Affiche boîte de dialogue pour données RAM incomplètes
+' Affiche boite de dialogue pour donnees RAM incompletes
 ' Retourne True si l'utilisateur souhaite continuer, False sinon
 
     Dim reponse As VbMsgBoxResult
     
-    reponse = MsgBox( _
-        "Toutes les données spécifiques du RAM Report ne sont pas renseignées (obligatoire dès CGR)" & vbCrLf & _
-        "Souhaitez-vous continuer avec les données intrinsèques ?" & vbCrLf & vbCrLf & _
-        "Les données non renseignées seront remplacées par les données intrinsèques si présentes, " & _
-        "et par les valeurs génériques si rien n'est renseigné", _
-        vbYesNo + vbQuestion, _
-        "Données RAM Report incomplètes")
+    reponse = MsgBox( "Toutes les donnees specifiques du RAM Report ne sont pas renseignees (obligatoire des CGR)" & vbCrLf & "Souhaitez-vous continuer avec les donnees intrinseques ?" & vbCrLf & vbCrLf & "Les donnees non renseignees seront remplacees par les donnees intrinseques si presentes, et par les valeurs generiques si rien n'est renseigne", vbYesNo + vbQuestion, "Donnees RAM Report incompletes")
     
     If reponse = vbYes Then
         DemanderConfirmationRAMPartiel = True
     Else
-        MsgBox "Arrêt de la procédure, vous pouvez renseigner les données du RAM Report (obligatoire à CGR)", _
-               vbInformation
+        MsgBox "Arret de la procedure, vous pouvez renseigner les donnees du RAM Report (obligatoire a CGR)", vbInformation
         DemanderConfirmationRAMPartiel = False
     End If
     
 End Function
 
 ' =========================================================================
-' FONCTION: DÉTERMINER VERSION ATM
+' FONCTION: DETERMINER VERSION ATM
 ' =========================================================================
 Private Function DeterminerVersionATM() As Boolean
-' Récupère la version ATM sélectionnée dans le UserForm
+' Recupere la version ATM selectionnee dans le UserForm
 ' Retourne True si version valide, False sinon
 
     If UserForm.V1_Option.Value = True Then
@@ -236,17 +228,17 @@ Private Function DeterminerVersionATM() As Boolean
         DeterminerVersionATM = True
         
     Else
-        MsgBox "Veuillez sélectionner une version ATM (V1 ou V2.0)", vbExclamation
+        MsgBox "Veuillez selectionner une version ATM (V1 ou V2.0)", vbExclamation
         DeterminerVersionATM = False
     End If
     
 End Function
 
 ' =========================================================================
-' FONCTION: DÉTERMINER LANGUE
+' FONCTION: DETERMINER LANGUE
 ' =========================================================================
 Private Function DeterminerLangue() As Boolean
-' Récupère la langue sélectionnée dans le UserForm
+' Recupere la langue selectionnee dans le UserForm
 ' Retourne True si langue valide, False sinon
 
     If UserForm.Langue_FR.Value = True Then
@@ -258,25 +250,25 @@ Private Function DeterminerLangue() As Boolean
         DeterminerLangue = True
         
     Else
-        MsgBox "Veuillez sélectionner une langue (FR ou EN)", vbExclamation
+        MsgBox "Veuillez selectionner une langue (FR ou EN)", vbExclamation
         DeterminerLangue = False
     End If
     
 End Function
 
 ' =========================================================================
-' PROCÉDURE: EXÉCUTER GÉNÉRATION ATM
+' PROCEDURE: EXECUTER GENERATION ATM
 ' =========================================================================
 Private Sub ExecuterGenerationATM()
-' Appelle la procédure de génération appropriée selon la version
+' Appelle la procedure de generation appropriee selon la version
     
     Select Case Version_ATM
         Case 1
-            ' Génération ATM V1 (fichier multi-feuilles)
+            ' Generation ATM V1 (fichier multi-feuilles)
             Call ATM_V1
             
         Case 2
-            ' Génération ATM V2 (multi-fichiers)
+            ' Generation ATM V2 (multi-fichiers)
             Call ATM_V2
             
         Case Else

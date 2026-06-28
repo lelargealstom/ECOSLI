@@ -107,8 +107,7 @@ Public Sub SIRUS_RafraichirDATA_ASL(Optional ByVal wbParam As Workbook = Nothing
     Set ws = wb.Worksheets(SHEET_DATA_ASL)
     On Error GoTo 0
     If ws Is Nothing Then
-        MsgBox "Feuille '" & SHEET_DATA_ASL & "' introuvable dans " & wb.Name & ".", _
-               vbCritical, "Rafraichir DATA_ASL"
+        MsgBox "Feuille '" & SHEET_DATA_ASL & "' introuvable dans " & wb.Name & ".", vbCritical, "Rafraichir DATA_ASL"
         Exit Sub
     End If
 
@@ -116,17 +115,14 @@ Public Sub SIRUS_RafraichirDATA_ASL(Optional ByVal wbParam As Workbook = Nothing
     Set lo = ws.ListObjects(LISTOBJ_DATA_ASL)
     On Error GoTo 0
     If lo Is Nothing Then
-        MsgBox "ListObject '" & LISTOBJ_DATA_ASL & "' introuvable dans " & SHEET_DATA_ASL & ".", _
-               vbCritical, "Rafraichir DATA_ASL"
+        MsgBox "ListObject '" & LISTOBJ_DATA_ASL & "' introuvable dans " & SHEET_DATA_ASL & ".", vbCritical, "Rafraichir DATA_ASL"
         Exit Sub
     End If
 
     ' -- 3. Projet courant depuis UserForm Project_List -------
     sProjet = LireProjetCourant()
     If LenB(sProjet) = 0 Then
-        MsgBox "Selectionner d abord un projet dans la liste principale du UserForm ECOSLI" & vbCrLf & _
-               "(Ctrl+W pour ouvrir le UserForm).", _
-               vbExclamation, "Rafraichir DATA_ASL"
+        MsgBox "Selectionner d abord un projet dans la liste principale du UserForm ECOSLI" & vbCrLf & "(Ctrl+W pour ouvrir le UserForm).", vbExclamation, "Rafraichir DATA_ASL"
         Exit Sub
     End If
 
@@ -174,14 +170,9 @@ CleanUp:
     End If
 
     If LenB(sErreur) > 0 Then
-        MsgBox "Erreur Rafraichir DATA_ASL :" & vbCrLf & vbCrLf & sErreur, _
-               vbCritical, "Rafraichir DATA_ASL"
+        MsgBox "Erreur Rafraichir DATA_ASL :" & vbCrLf & vbCrLf & sErreur, vbCritical, "Rafraichir DATA_ASL"
     Else
-        MsgBox "Rafraichissement termine." & vbCrLf & vbCrLf & _
-               dictDtrs.count & " DTR(s) traite(s)." & vbCrLf & _
-               "Projet : " & sProjet & vbCrLf & _
-               "Duree : " & Format$(Timer - tStart, "0.0") & " s.", _
-               vbInformation, "Rafraichir DATA_ASL"
+        MsgBox "Rafraichissement termine." & vbCrLf & vbCrLf & dictDtrs.count & " DTR(s) traite(s)." & vbCrLf & "Projet : " & sProjet & vbCrLf & "Duree : " & Format$(Timer - tStart, "0.0") & " s.", vbInformation, "Rafraichir DATA_ASL"
     End If
 End Sub
 
@@ -247,14 +238,7 @@ Private Sub RafraichirDepuisProduit(ByVal lo As ListObject, ByVal dictDtrs As Ob
     ' SELECT explicit + cast DTR en String via "& ''" (force ACE OLE DB
     ' a retourner les DTRs alphanumeriques meme si les 8 premieres lignes
     ' sont numeriques).
-    Call open_REQSEL("SELECT [DTR] & '' AS DTR_str, " & _
-                     "[Désignation_PRODUIT], " & _
-                     "[Node type Produit (LRU/SRU…)_PRODUIT], " & _
-                     "[Drawing number], " & _
-                     "[MTBF intrinsèque Produit (h) issu de la datasheet _PRODUIT], " & _
-                     "[Durée de vie générique Produit HARDWARE (année)_PRODUIT], " & _
-                     "[Durée de vie générique Produit (année) SOFTWARE _PRODUIT] " & _
-                     "FROM [Produit$]")
+    Call open_REQSEL("SELECT [DTR] & '' AS DTR_str, [Designation_PRODUIT], [Node type Produit (LRU/SRU...)_PRODUIT], [Drawing number], [MTBF intrinseque Produit (h) issu de la datasheet _PRODUIT], [Duree de vie generique Produit HARDWARE (annee)_PRODUIT], [Duree de vie generique Produit (annee) SOFTWARE _PRODUIT] FROM [Produit$]")
 
     If REQSEL Is Nothing Then GoTo Sortie
     If REQSEL.EOF And REQSEL.BOF Then GoTo Sortie
@@ -272,12 +256,12 @@ Private Sub RafraichirDepuisProduit(ByVal lo As ListObject, ByVal dictDtrs As Ob
             sUC = UCase$(sDTR)
             If dictDtrs.Exists(sUC) Then
                 ligne = CLng(dictDtrs(sUC))
-                colDesi.Cells(ligne, 1).Value = NzS(GetFieldSafe(REQSEL, "Désignation_PRODUIT"))
-                colNode.Cells(ligne, 1).Value = NzS(GetFieldSafe(REQSEL, "Node type Produit (LRU/SRU…)_PRODUIT"))
+                colDesi.Cells(ligne, 1).Value = NzS(GetFieldSafe(REQSEL, "Designation_PRODUIT"))
+                colNode.Cells(ligne, 1).Value = NzS(GetFieldSafe(REQSEL, "Node type Produit (LRU/SRU...)_PRODUIT"))
                 colPlan.Cells(ligne, 1).Value = NzS(GetFieldSafe(REQSEL, "Drawing number"))
-                colMTBFGen.Cells(ligne, 1).Value = GetFieldSafe(REQSEL, "MTBF intrinsèque Produit (h) issu de la datasheet _PRODUIT")
-                colDVLHardGen.Cells(ligne, 1).Value = GetFieldSafe(REQSEL, "Durée de vie générique Produit HARDWARE (année)_PRODUIT")
-                colDVLSoftGen.Cells(ligne, 1).Value = GetFieldSafe(REQSEL, "Durée de vie générique Produit (année) SOFTWARE _PRODUIT")
+                colMTBFGen.Cells(ligne, 1).Value = GetFieldSafe(REQSEL, "MTBF intrinseque Produit (h) issu de la datasheet _PRODUIT")
+                colDVLHardGen.Cells(ligne, 1).Value = GetFieldSafe(REQSEL, "Duree de vie generique Produit HARDWARE (annee)_PRODUIT")
+                colDVLSoftGen.Cells(ligne, 1).Value = GetFieldSafe(REQSEL, "Duree de vie generique Produit (annee) SOFTWARE _PRODUIT")
             End If
         End If
         REQSEL.MoveNext
@@ -382,10 +366,7 @@ Private Sub RafraichirDepuisInfoATM(ByVal lo As ListObject, ByVal dictDtrs As Ob
     On Error GoTo Sortie
     Call Open_CONN(cnx)
     ' Cast DTR en String (cf. note dans RafraichirDepuisProduit)
-    Call open_REQSEL("SELECT [DTR_INFOATM] & '' AS DTR_str, [HARD/SOFT], " & _
-                     "[Temps générique de la tâche_INFOATM], " & _
-                     "[Temps analytique cumulé de la tache_INFOATM] " & _
-                     "FROM [Info_ATM$]")
+    Call open_REQSEL("SELECT [DTR_INFOATM] & '' AS DTR_str, [HARD/SOFT], [Temps generique de la tache_INFOATM], [Temps analytique cumule de la tache_INFOATM] FROM [Info_ATM$]")
 
     If REQSEL Is Nothing Then GoTo Sortie
     If REQSEL.EOF And REQSEL.BOF Then GoTo Sortie
@@ -403,8 +384,8 @@ Private Sub RafraichirDepuisInfoATM(ByVal lo As ListObject, ByVal dictDtrs As Ob
         If LenB(sDTR) > 0 Then
             sUC = UCase$(sDTR)
             If dictDtrs.Exists(sUC) Then
-                vTempsGen = REQSEL.Fields("Temps générique de la tâche_INFOATM").Value
-                vTempsAna = REQSEL.Fields("Temps analytique cumulé de la tache_INFOATM").Value
+                vTempsGen = REQSEL.Fields("Temps generique de la tache_INFOATM").Value
+                vTempsAna = REQSEL.Fields("Temps analytique cumule de la tache_INFOATM").Value
 
                 ' Premier match HARD pour Temps generique (col P)
                 If sHS = "HARD" Then
@@ -548,8 +529,7 @@ Private Sub RafraichirPrixCatalogue(ByVal lo As ListObject, ByVal dictDtrs As Ob
     Next wb
 
     If wbBdD Is Nothing Then
-        Set wbBdD = Application.Workbooks.Open(sCheminBdD, _
-            UpdateLinks:=0, ReadOnly:=True, Notify:=False, IgnoreReadOnlyRecommended:=True)
+        Set wbBdD = Application.Workbooks.Open(sCheminBdD, UpdateLinks:=0, ReadOnly:=True, Notify:=False, IgnoreReadOnlyRecommended:=True)
     End If
 
     Set wsBdD = wbBdD.Worksheets("Produit_SnapShotPrix")
@@ -566,8 +546,7 @@ Private Sub RafraichirPrixCatalogue(ByVal lo As ListObject, ByVal dictDtrs As Ob
     ' Lire tout en bulk dans un array 2D (bien plus rapide que cell-by-cell)
     derLigne = wsBdD.Cells(wsBdD.rows.count, colIdxDTR).End(xlUp).Row
     If derLigne < 2 Then GoTo CleanupBdD
-    maxCol = Application.WorksheetFunction.Max(colIdxDTR, colIdxType, colIdxRef, _
-                                                colIdxDate, colIdxPrix, colIdxLT)
+    maxCol = Application.WorksheetFunction.Max(colIdxDTR, colIdxType, colIdxRef, colIdxDate, colIdxPrix, colIdxLT)
     arr = wsBdD.Range(wsBdD.Cells(2, 1), wsBdD.Cells(derLigne, maxCol)).Value
 
     Set dictBest = CreateObject("Scripting.Dictionary")
@@ -598,8 +577,7 @@ Private Sub RafraichirPrixCatalogue(ByVal lo As ListObject, ByVal dictDtrs As Ob
 
                 ' On ne stocke que les types Spare/Repair avec Date valide
                 ' et categorie DIS ou FCS reconnue.
-                If LenB(sCategorie) > 0 And _
-                   (sType = "SPARE" Or sType = "REPAIR") And IsDate(vDate) Then
+                If LenB(sCategorie) > 0 And (sType = "SPARE" Or sType = "REPAIR") And IsDate(vDate) Then
                     sKeyCat = sUC & "|" & sType & "_" & sCategorie
                     Dim conserver As Boolean
                     conserver = True
@@ -721,10 +699,9 @@ End Function
 ' on retient le projet alphabetiquement premier (StrComp asc) pour chaque
 ' DTR. Pas d AVG. Le prix retenu = celui du projet retenu, source
 ' tracable par la ListView Generation via dictProjetASL_Rows.
-'   [ISP TIS HORS FRANCE (archivé)]                  -> col AN
+'   [ISP TIS HORS FRANCE (archive)]                  -> col AN
 '   [Prix repair (DEVISE du projet (SLI))_PROJETASL] -> col AO
-Private Sub RafraichirPrixArchive(ByVal lo As ListObject, ByVal dictDtrs As Object, _
-                                    ByVal sProjetCourant As String)
+Private Sub RafraichirPrixArchive(ByVal lo As ListObject, ByVal dictDtrs As Object, ByVal sProjetCourant As String)
     Dim cnx As String
     Dim sDTR As String, sUC As String, sProjet As String
     Dim ligne As Long
@@ -739,10 +716,7 @@ Private Sub RafraichirPrixArchive(ByVal lo As ListObject, ByVal dictDtrs As Obje
     On Error GoTo Sortie
     Call Open_CONN(cnx)
     ' Cast DTR en String (cf. note dans RafraichirDepuisProduit)
-    Call open_REQSEL("SELECT [DTR_PROJETASL] & '' AS DTR_str, [PROJET_PROJETASL], " & _
-                     "[ISP TIS HORS FRANCE (archivé)], " & _
-                     "[Prix repair (DEVISE du projet (SLI))_PROJETASL] " & _
-                     "FROM [Projet_ASL$]")
+    Call open_REQSEL("SELECT [DTR_PROJETASL] & '' AS DTR_str, [PROJET_PROJETASL], [ISP TIS HORS FRANCE (archive)], [Prix repair (DEVISE du projet (SLI))_PROJETASL] FROM [Projet_ASL$]")
 
     If REQSEL Is Nothing Then GoTo Sortie
     If REQSEL.EOF And REQSEL.BOF Then GoTo Sortie
@@ -755,11 +729,10 @@ Private Sub RafraichirPrixArchive(ByVal lo As ListObject, ByVal dictDtrs As Obje
     Do While Not REQSEL.EOF
         sDTR = Trim$(NzS(REQSEL.Fields("DTR_str").Value))
         sProjet = Trim$(NzS(REQSEL.Fields("PROJET_PROJETASL").Value))
-        If LenB(sDTR) > 0 And LenB(sProjet) > 0 _
-           And UCase$(sProjet) <> UCase$(sProjetCourant) Then
+        If LenB(sDTR) > 0 And LenB(sProjet) > 0 And UCase$(sProjet) <> UCase$(sProjetCourant) Then
             sUC = UCase$(sDTR)
             If dictDtrs.Exists(sUC) Then
-                vSpare = REQSEL.Fields("ISP TIS HORS FRANCE (archivé)").Value
+                vSpare = REQSEL.Fields("ISP TIS HORS FRANCE (archive)").Value
                 vRepair = REQSEL.Fields("Prix repair (DEVISE du projet (SLI))_PROJETASL").Value
 
                 ' Spare : on retient le projet alpha 1er (StrComp ascendant)
@@ -839,20 +812,19 @@ End Sub
 '   AM COL_PRIX_REPAIR_ALSTOM = Cout Repair FRS Not ISP (col AJ)* coeff AM2
 '
 ' Regle source vide (Thomas 2026-06-28) : si la source est Empty, Null,
-' non-numerique OU egale a 0, la cellule cible reste vide (pas de "0,00 €"
+' non-numerique OU egale a 0, la cellule cible reste vide (pas de "0,00 ?"
 ' qui serait reinterprete par la ListView comme un prix Fournisseur connu).
 '
 ' Prix arrondis a 2 decimales avant ecriture (sinon les multiplications
 ' par coeff genere des longs decimaux qui s affichent comme "373,179.39"
 ' avec separateur de milliers).
 '
-' Format Comptabilite € applique aux colonnes de prix (Z/AA/AB/AE/AH/
-' AJ/AL/AM/AN/AO) en sortie pour homogeneiser l affichage "350,00 €".
+' Format Comptabilite ? applique aux colonnes de prix (Z/AA/AB/AE/AH/
+' AJ/AL/AM/AN/AO) en sortie pour homogeneiser l affichage "350,00 ?".
 '
 ' Les coefficients sont lus depuis la ligne 2 du worksheet (hors ListObject,
 ' au-dessus de la ligne d en-tete row 3).
-Private Sub RafraichirCalculs(ByVal ws As Worksheet, ByVal lo As ListObject, _
-                               ByVal dictDtrs As Object)
+Private Sub RafraichirCalculs(ByVal ws As Worksheet, ByVal lo As ListObject, ByVal dictDtrs As Object)
     Dim colDesPBS As Range, colDesBDD As Range, colDesProv As Range
     Dim colNode As Range, colNTI As Range
     Dim colMTBFFonct As Range, colMTBFGen As Range
@@ -958,7 +930,7 @@ Private Sub RafraichirCalculs(ByVal ws As Worksheet, ByVal lo As ListObject, _
         End If
     Next key
 
-    ' Format Comptabilite € sur toutes les colonnes de prix (cf. comment
+    ' Format Comptabilite ? sur toutes les colonnes de prix (cf. comment
     ' tete de sub). Idempotent : reapplique a chaque Refresh.
     Call AppliquerFormatPrix(lo)
     Exit Sub
@@ -969,7 +941,7 @@ End Sub
 
 ' Helper : True si v est numerique ET different de 0. Filtre Empty, Null,
 ' "", strings non-numeriques et 0. Utilise par RafraichirCalculs pour
-' eviter d ecrire "0,00 €" quand la source est vide (qui serait alors
+' eviter d ecrire "0,00 ?" quand la source est vide (qui serait alors
 ' interprete par la ListView Generation comme un prix Fournisseur connu).
 Private Function EstNumeriqueNonNul(ByVal v As Variant) As Boolean
     If IsEmpty(v) Then Exit Function
@@ -986,14 +958,14 @@ Private Function ArrondiPrix(ByVal v As Double) As Double
     ArrondiPrix = Application.WorksheetFunction.Round(v, 2)
 End Function
 
-' Helper : applique le format Comptabilite € (style "350,00 €") aux
+' Helper : applique le format Comptabilite ? (style "350,00 ?") aux
 ' colonnes de prix de DATA_ASL. Format VBA US-style (decimal=point,
 ' thousand=comma) ; Excel le traduit en local (FR : decimal=virgule,
-' thousand=espace, donc "1 234,56 €").
+' thousand=espace, donc "1 234,56 ?").
 '
 ' Pour les cellules vides, ce format affiche rien (Empty -> blank).
 ' Pour les zeros (qu on ne devrait pas avoir vu la regle EstNumerique
-' NonNul mais defensive), il affiche "-   €" qui est l indicateur
+' NonNul mais defensive), il affiche "-   ?" qui est l indicateur
 ' standard de "valeur zero" en comptabilite.
 Private Sub AppliquerFormatPrix(ByVal lo As ListObject)
     Dim fmt As String
@@ -1001,14 +973,11 @@ Private Sub AppliquerFormatPrix(ByVal lo As ListObject)
     Dim i As Long
     Dim colIdx As Variant
 
-    ' Format Comptabilite € standard. Le \  represente un espace insecable
+    ' Format Comptabilite ? standard. Le \  represente un espace insecable
     ' avant le symbole. Les ?? alignent les "-" sur les decimales.
-    fmt = "_-* #,##0.00\ ""€""_-;-* #,##0.00\ ""€""_-;_-* ""-""??\ ""€""_-;_-@_-"
+    fmt = "_-* #,##0.00\ ""?""_-;-* #,##0.00\ ""?""_-;_-* ""-""??\ ""?""_-;_-@_-"
 
-    cols = Array(COL_PRIX_FCS, COL_PRIX_SPARE_CAT, COL_PRIX_SPARE_CALC, _
-                 COL_PRIX_REPAIR_CAT, COL_COUT_SPARE_FRS, COL_COUT_REPAIR_FRS, _
-                 COL_COUT_SPARE_ALSTOM, COL_PRIX_REPAIR_ALSTOM, _
-                 COL_PRIX_SPARE_ARCHIVE, COL_PRIX_REPAIR_ARCHIVE)
+    cols = Array(COL_PRIX_FCS, COL_PRIX_SPARE_CAT, COL_PRIX_SPARE_CALC, COL_PRIX_REPAIR_CAT, COL_COUT_SPARE_FRS, COL_COUT_REPAIR_FRS, COL_COUT_SPARE_ALSTOM, COL_PRIX_REPAIR_ALSTOM, COL_PRIX_SPARE_ARCHIVE, COL_PRIX_REPAIR_ARCHIVE)
 
     On Error Resume Next
     For i = LBound(cols) To UBound(cols)
@@ -1034,8 +1003,7 @@ Private Sub EcrireCellulesProjetDate(ByVal wb As Workbook, ByVal sProjet As Stri
         ws.Cells(1, 9).Value = sProjet   ' I1
         Err.Clear
     End If
-    wb.Names("DATA_ASL_DERNIERE_MAJ").RefersToRange.Value = _
-        Format$(Now(), "yyyy-mm-dd hh:mm")
+    wb.Names("DATA_ASL_DERNIERE_MAJ").RefersToRange.Value = Format$(Now(), "yyyy-mm-dd hh:mm")
     If Err.Number <> 0 Then
         ws.Cells(2, 9).Value = Format$(Now(), "yyyy-mm-dd hh:mm")
         Err.Clear
@@ -1052,8 +1020,7 @@ End Sub
 ' =========================================================================
 ' Append d une ligne dans la feuille _RefreshLog : Date / Projet / nbDTR /
 ' Duree (secondes) / Utilisateur. Cree la feuille si absente.
-Private Sub TracerRefreshLog(ByVal wb As Workbook, ByVal sProjet As String, _
-                              ByVal nbDtrs As Long, ByVal duree As Double)
+Private Sub TracerRefreshLog(ByVal wb As Workbook, ByVal sProjet As String, ByVal nbDtrs As Long, ByVal duree As Double)
     Dim ws As Worksheet
     Dim ligne As Long
 
@@ -1089,14 +1056,7 @@ End Sub
 
 Private Sub ProtegerFeuille(ByVal ws As Worksheet, ByVal wb As Workbook)
     On Error Resume Next
-    ws.Protect Password:=SIRUS_PROTECTION_DATA_ASL, _
-               DrawingObjects:=True, Contents:=True, Scenarios:=True, _
-               UserInterfaceOnly:=True, _
-               AllowFormattingCells:=False, AllowFormattingColumns:=False, _
-               AllowFormattingRows:=False, AllowInsertingColumns:=False, _
-               AllowInsertingRows:=True, AllowInsertingHyperlinks:=True, _
-               AllowDeletingColumns:=False, AllowDeletingRows:=True, _
-               AllowSorting:=True, AllowFiltering:=True, AllowUsingPivotTables:=True
+    ws.Protect Password:=SIRUS_PROTECTION_DATA_ASL, DrawingObjects:=True, Contents:=True, Scenarios:=True, UserInterfaceOnly:=True, AllowFormattingCells:=False, AllowFormattingColumns:=False, AllowFormattingRows:=False, AllowInsertingColumns:=False, AllowInsertingRows:=True, AllowInsertingHyperlinks:=True, AllowDeletingColumns:=False, AllowDeletingRows:=True, AllowSorting:=True, AllowFiltering:=True, AllowUsingPivotTables:=True
     wb.Protect Password:=SIRUS_PROTECTION_DATA_ASL, Structure:=True
     On Error GoTo 0
 End Sub
@@ -1160,8 +1120,7 @@ Public Sub Test_DumpFeuillesBdD()
     Debug.Print "TABLES / FEUILLES de la BdD TRAVAIL"
     Debug.Print String(60, "=")
     Do While Not rs.EOF
-        Debug.Print "  [" & rs.Fields("TABLE_TYPE").Value & "] " & _
-                    rs.Fields("TABLE_NAME").Value
+        Debug.Print "  [" & rs.Fields("TABLE_TYPE").Value & "] " & rs.Fields("TABLE_NAME").Value
         rs.MoveNext
     Loop
 
@@ -1266,8 +1225,7 @@ Public Sub Test_RafraichirPrixDryRun()
     On Error GoTo Sortie
     Call Open_CONN(cnx)
     ' Cast DTR en String (cf. note RafraichirDepuisProduit)
-    Call open_REQSEL("SELECT [DTR] & '' AS DTR_str, [Type], [Prix], [LeadTime], " & _
-                     "[Ref Catalogue], [Date Source] FROM [Produit_SnapShotPrix$]")
+    Call open_REQSEL("SELECT [DTR] & '' AS DTR_str, [Type], [Prix], [LeadTime], [Ref Catalogue], [Date Source] FROM [Produit_SnapShotPrix$]")
 
     If REQSEL Is Nothing Then GoTo Sortie
     If REQSEL.EOF And REQSEL.BOF Then GoTo Sortie
@@ -1305,10 +1263,7 @@ Public Sub Test_RafraichirPrixDryRun()
                 End If
             End If
 
-            Debug.Print "  [" & sType & "] '" & REQSEL.Fields("Ref Catalogue").Value & _
-                        "'  Prix=" & NzS(vPrix) & "  Date=" & NzS(vDate) & _
-                        "  IsDate=" & IsDate(vDate) & _
-                        "  -> " & IIf(sTypeRefUC = "", "(skip)", sTypeRefUC)
+            Debug.Print "  [" & sType & "] '" & REQSEL.Fields("Ref Catalogue").Value & "'  Prix=" & NzS(vPrix) & "  Date=" & NzS(vDate) & "  IsDate=" & IsDate(vDate) & "  -> " & IIf(sTypeRefUC = "", "(skip)", sTypeRefUC)
 
             If LenB(sTypeRefUC) > 0 And IsDate(vDate) Then
                 nbMatchFiltre = nbMatchFiltre + 1
@@ -1336,10 +1291,7 @@ Public Sub Test_RafraichirPrixDryRun()
     Debug.Print String(60, "-")
     Debug.Print "Lignes retenues :"
     For Each key In dictBest.Keys
-        Debug.Print "  " & key & "  ->  Date=" & dictBest(key)(0) & _
-                    "  Prix=" & dictBest(key)(1) & _
-                    "  Ref='" & dictBest(key)(2) & "'" & _
-                    "  LT=" & dictBest(key)(3)
+        Debug.Print "  " & key & "  ->  Date=" & dictBest(key)(0) & "  Prix=" & dictBest(key)(1) & "  Ref='" & dictBest(key)(2) & "'  LT=" & dictBest(key)(3)
     Next key
 
 Sortie:

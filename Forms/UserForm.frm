@@ -26,28 +26,20 @@ Public userpath
 ' On modifie le style de la fenetre via SetWindowLong pour ajouter
 ' WS_MINIMIZEBOX. Compatible Excel 32-bit (VBA6) et 64-bit (VBA7).
 '
-' Comportement utilisateur : clic sur le bouton ↘ minimise le UserForm
+' Comportement utilisateur : clic sur le bouton ? minimise le UserForm
 ' dans la barre des taches Windows. Clic sur l icone Excel re-affiche.
 ' Indispensable pour le va-et-vient PBS / UserForm (consultation
 ' DATA_ASL pendant la generation Generation/Rafraichir).
 #If VBA7 Then
-    Private Declare PtrSafe Function FindWindow_API Lib "user32" Alias "FindWindowA" _
-        (ByVal lpClassName As String, ByVal lpWindowName As String) As LongPtr
-    Private Declare PtrSafe Function GetWindowLong_API Lib "user32" Alias "GetWindowLongA" _
-        (ByVal hWnd As LongPtr, ByVal nIndex As Long) As Long
-    Private Declare PtrSafe Function SetWindowLong_API Lib "user32" Alias "SetWindowLongA" _
-        (ByVal hWnd As LongPtr, ByVal nIndex As Long, ByVal dwNewLong As Long) As Long
-    Private Declare PtrSafe Function DrawMenuBar_API Lib "user32" Alias "DrawMenuBar" _
-        (ByVal hWnd As LongPtr) As Long
+    Private Declare PtrSafe Function FindWindow_API Lib "user32" Alias "FindWindowA" (ByVal lpClassName As String, ByVal lpWindowName As String) As LongPtr
+    Private Declare PtrSafe Function GetWindowLong_API Lib "user32" Alias "GetWindowLongA" (ByVal hWnd As LongPtr, ByVal nIndex As Long) As Long
+    Private Declare PtrSafe Function SetWindowLong_API Lib "user32" Alias "SetWindowLongA" (ByVal hWnd As LongPtr, ByVal nIndex As Long, ByVal dwNewLong As Long) As Long
+    Private Declare PtrSafe Function DrawMenuBar_API Lib "user32" Alias "DrawMenuBar" (ByVal hWnd As LongPtr) As Long
 #Else
-    Private Declare Function FindWindow_API Lib "user32" Alias "FindWindowA" _
-        (ByVal lpClassName As String, ByVal lpWindowName As String) As Long
-    Private Declare Function GetWindowLong_API Lib "user32" Alias "GetWindowLongA" _
-        (ByVal hWnd As Long, ByVal nIndex As Long) As Long
-    Private Declare Function SetWindowLong_API Lib "user32" Alias "SetWindowLongA" _
-        (ByVal hWnd As Long, ByVal nIndex As Long, ByVal dwNewLong As Long) As Long
-    Private Declare Function DrawMenuBar_API Lib "user32" Alias "DrawMenuBar" _
-        (ByVal hWnd As Long) As Long
+    Private Declare Function FindWindow_API Lib "user32" Alias "FindWindowA" (ByVal lpClassName As String, ByVal lpWindowName As String) As Long
+    Private Declare Function GetWindowLong_API Lib "user32" Alias "GetWindowLongA" (ByVal hWnd As Long, ByVal nIndex As Long) As Long
+    Private Declare Function SetWindowLong_API Lib "user32" Alias "SetWindowLongA" (ByVal hWnd As Long, ByVal nIndex As Long, ByVal dwNewLong As Long) As Long
+    Private Declare Function DrawMenuBar_API Lib "user32" Alias "DrawMenuBar" (ByVal hWnd As Long) As Long
 #End If
 
 Private Const GWL_STYLE      As Long = -16
@@ -311,22 +303,19 @@ Private Sub Btn_SearchDTR_ATM_Click()
     dtr = Trim(UserForm.DTRATM_txt.Value)
 
     If dtr = "" Then
-        MsgBox "Veuillez renseigner un DTR avant de lancer la recherche.", _
-               vbExclamation, "SIRUS a Recherche DTR"
+        MsgBox "Veuillez renseigner un DTR avant de lancer la recherche.", vbExclamation, "SIRUS a Recherche DTR"
         Exit Sub
     End If
 
     ' -- Requete sur la table Produit ----------------------
     Set REQSEL = CreateObject("ADODB.Recordset")
 
-    STRSEL = "SELECT * FROM [Produit$] WHERE [DTR] = '" & _
-             Replace(dtr, "'", "''") & "'"
+    STRSEL = "SELECT * FROM [Produit$] WHERE [DTR] = '" & Replace(dtr, "'", "''") & "'"
 
     Call open_REQSEL(STRSEL)
 
     If REQSEL.EOF Then
-        MsgBox "DTR '" & dtr & "' introuvable dans la table Produit. Veuillez creer le DTR avant de creer les informations relatives aux fiches ATM", _
-               vbExclamation, "SIRUS a Recherche DTR"
+        MsgBox "DTR '" & dtr & "' introuvable dans la table Produit. Veuillez creer le DTR avant de creer les informations relatives aux fiches ATM", vbExclamation, "SIRUS a Recherche DTR"
         Exit Sub
     End If
 
@@ -350,16 +339,14 @@ Private Sub Btn_SearchDTR_ATM_Click()
 
     ' Famille generique
     If Not IsNull(REQSEL.Fields("Famille generique_PRODUIT").Value) Then
-        UserForm.FamPrdATM_txt.Value = _
-            Trim(REQSEL.Fields("Famille generique_PRODUIT").Value)
+        UserForm.FamPrdATM_txt.Value = Trim(REQSEL.Fields("Famille generique_PRODUIT").Value)
     Else
         UserForm.FamPrdATM_txt.Value = ""
     End If
 
     ' Reference Plan (Drawing Number)
     If Not IsNull(REQSEL.Fields("Drawing number").Value) Then
-        UserForm.RefPlanATM_txt.Value = _
-            Trim(REQSEL.Fields("Drawing number").Value)
+        UserForm.RefPlanATM_txt.Value = Trim(REQSEL.Fields("Drawing number").Value)
     Else
         UserForm.RefPlanATM_txt.Value = ""
     End If
@@ -562,8 +549,7 @@ ElseIf Base.State <> 1 Then  ' adStateOpen = 1
 End If
 
 ' -- Requete projet ---------------------------------------
-STRSEL = "SELECT * FROM [Projet_SLI$] WHERE [Nom projet_PROJET SLI] = '" & _
-         Replace(CStr(Project_List.Value), "'", "''") & "'"
+STRSEL = "SELECT * FROM [Projet_SLI$] WHERE [Nom projet_PROJET SLI] = '" & Replace(CStr(Project_List.Value), "'", "''") & "'"
 Call open_REQSEL(STRSEL)
 
 If REQSEL.RecordCount = 0 Then
@@ -620,8 +606,7 @@ On Error GoTo 0
 Exit Sub
 
 Sortie:
-    MsgBox "Erreur Project_List_Change : " & Err.Description & vbCrLf & vbCrLf & _
-           "Verifier que la BdD TRAVAIL est accessible.", vbExclamation, "SIRUS"
+    MsgBox "Erreur Project_List_Change : " & Err.Description & vbCrLf & vbCrLf & "Verifier que la BdD TRAVAIL est accessible.", vbExclamation, "SIRUS"
 End Sub
 Private Sub Refresh_BDD_Button_Click()
 'Ouvre la base de donnees et ferme direct
@@ -714,13 +699,7 @@ End If
 'Definir la liste des gates dans un tableau
 gates = Array("BA", "GO Order", "IGR", "PGR", "CGR", "FEI", "IQA")
 family = Array("PACIS", "IOB", "APC", "DAS", "EVR", "SRS", "Lecteur Badge", "GSM Repeater")
-revisions = Array( _
-    "1A", "2A", "3A", "A", _
-    "1B", "2B", "3B", "B", _
-    "1C", "2C", "3C", "C", _
-    "1D", "2D", "3D", "D", _
-    "1E", "2E", "3E", "E", _
-    "1F", "2F", "3F")
+revisions = Array( "1A", "2A", "3A", "A", "1B", "2B", "3B", "B", "1C", "2C", "3C", "C", "1D", "2D", "3D", "D", "1E", "2E", "3E", "E", "1F", "2F", "3F")
 livrables = Array("ATM", "EMMST")
 HARD_SOFT = Array("HARD", "SOFT")
 langue = Array("FR", "EN")

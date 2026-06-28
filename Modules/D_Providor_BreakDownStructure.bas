@@ -2,24 +2,24 @@ Attribute VB_Name = "D_Providor_BreakDownStructure"
 '--------------------------------------------------------------------------------------------------------
 '
 '                                       Generateur Livrables SLI
-'                                       Module D_Providor_BreakdownStructure (Version Refactorisée)
+'                                       Module D_Providor_BreakdownStructure (Version Refactorisee)
 '                                       Developpement : LE LARGE Thomas (LGM/Alstom)
 '                                       Module de remplissage BS et Material List
-'                                       Refactorisation : Février 2026
+'                                       Refactorisation : Fevrier 2026
 '
 '-----------------------------------------------------------------------------------------------------------
 Option Compare Text
 Option Explicit
 
 ' =========================================================================
-' PROCÉDURE: REMPLISSAGE BREAKDOWN STRUCTURE
+' PROCEDURE: REMPLISSAGE BREAKDOWN STRUCTURE
 ' =========================================================================
 Public Sub remplissage_BreakdownStructure()
 ' Remplit la Breakdown Structure avec :
-' - Node Index incrémental
-' - Insertion automatique des Family (sous-systèmes)
+' - Node Index incremental
+' - Insertion automatique des Family (sous-systemes)
 ' - Node Type ? Node Level
-' - Gestion des changements de sous-système
+' - Gestion des changements de sous-systeme
 
     Dim i As Integer
     Dim curSS As String, lastSS As String
@@ -30,15 +30,15 @@ Public Sub remplissage_BreakdownStructure()
     
     BS.Activate
     
-    ' Vérifications préalables
+    ' Verifications prealables
     If IsEmpty(tSS) Then Exit Sub
     If UBound(tSS, 1) = 0 Then Exit Sub
     
-    ' Calculer dernière ligne
+    ' Calculer derniere ligne
     dlBS = LastRowInCol(BS, bs_col.NodeName) ' Col C
     If dlBS < 2 Then dlBS = 2
     
-    ' Insérer ligne Projet si nécessaire
+    ' Inserer ligne Projet si necessaire
     If BS.Cells(dlBS, 3).Value <> Code_Projet Then
         nextIdx = 1
         BS.Cells(dlBS + 1, bs_col.NodeLevel).Value = 1                    ' Node Level
@@ -52,7 +52,7 @@ Public Sub remplissage_BreakdownStructure()
         nextIdx = CLng(BS.Cells(dlBS, bs_col.NodeIndex).Value) + 1
     End If
     
-    ' Insérer première Family si nécessaire
+    ' Inserer premiere Family si necessaire
     curSS = NzStr(tSS(1, 1))
     If NzStr(BS.Cells(dlBS, bs_col.NodeType).Value) <> "Family" Or NzStr(BS.Cells(dlBS, bs_col.NodeName).Value) <> curSS Then
         BS.Cells(dlBS + 1, bs_col.NodeLevel).Value = 2
@@ -71,7 +71,7 @@ Public Sub remplissage_BreakdownStructure()
         curSS = NzStr(tSS(i, 1))
         addFamily = (curSS <> lastSS)
         
-        ' Insérer Family si changement sous-système
+        ' Inserer Family si changement sous-systeme
         If addFamily Then
             nextIdx = nextIdx + 1
             BS.Cells(dlBS + 1, bs_col.NodeLevel).Value = 2
@@ -83,7 +83,7 @@ Public Sub remplissage_BreakdownStructure()
             dlBS = dlBS + 1
         End If
         
-        ' Insérer ligne composant
+        ' Inserer ligne composant
         NodeLevel = NodeTypeToLevel(NzStr(tNodeType(i, 1)))
         nextIdx = nextIdx + 1
         
@@ -103,28 +103,28 @@ Public Sub remplissage_BreakdownStructure()
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLISSAGE MATERIAL LIST (ORCHESTRATION)
+' PROCEDURE: REMPLISSAGE MATERIAL LIST (ORCHESTRATION)
 ' =========================================================================
 Public Sub remplissage_MaterialList()
 ' Orchestre le remplissage de la Material List :
 ' 1. Calcul coefficients prix fournisseur
-' 2. Copie données BS ? ML
+' 2. Copie donnees BS ? ML
 ' 3. Ajout lignes _REPAIR pour Stdex
 ' 4. Suppression supports
-' 5. Remplissage prix (hiérarchie)
+' 5. Remplissage prix (hierarchie)
 ' 6. Gestion doublons
 
     On Error Resume Next
     
     Application.ThisWorkbook.Activate
     
-    ' Calculer dernière ligne BS
+    ' Calculer derniere ligne BS
     dlBS = LastRowInCol(BS, bs_col.NodeName)
     
     ' 1. Calculer coefficients prix fournisseur
     Call CalculerCoefficients
     
-    ' 2. Copier données BS vers ML
+    ' 2. Copier donnees BS vers ML
     Call CopierDonneesBS_vers_ML
     
     ' 3. Remplir Material Type selon Node Type
@@ -142,14 +142,14 @@ Public Sub remplissage_MaterialList()
     ' Recalculer limite
     dlML = LastRowInCol(ML, ml_col.Name)
     
-    ' Récupérer tableaux ML pour gestion doublons
+    ' Recuperer tableaux ML pour gestion doublons
     DTR_tab_ML = ML.Range(ML.Cells(4, ml_col.PartNumber), ML.Cells(dlML, ml_col.PartNumber))
     Des_tab_ML = ML.Range(ML.Cells(4, ml_col.Name), ML.Cells(dlML, ml_col.Name))
     
-    ' 6. Remplir prix avec hiérarchie
+    ' 6. Remplir prix avec hierarchie
     Call RemplirPrix
     
-    ' 7. Gérer doublons
+    ' 7. Gerer doublons
     Call GererDoublons
     
     ' 8. Colorier lignes sans DTR
@@ -163,7 +163,7 @@ Public Sub remplissage_MaterialList()
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: CALCULER COEFFICIENTS
+' PROCEDURE: CALCULER COEFFICIENTS
 ' =========================================================================
 Private Sub CalculerCoefficients()
 ' Calcule et applique les coefficients sur les prix fournisseur
@@ -171,8 +171,7 @@ Private Sub CalculerCoefficients()
     Dim i As Integer
     
     ' Coefficient Spare
-    Coeff_Price_FRS_Spare = DS1.Cells(DS1.Cells.Find(What:="Cout spare FOURNISSEUR (Not ISP)", lookat:=xlWhole).Row - 1, _
-                                       DS1.Cells.Find(What:="Cout spare FOURNISSEUR (Not ISP)", lookat:=xlWhole).Column)
+    Coeff_Price_FRS_Spare = DS1.Cells(DS1.Cells.Find(What:="Cout spare FOURNISSEUR (Not ISP)", lookat:=xlWhole).Row - 1, DS1.Cells.Find(What:="Cout spare FOURNISSEUR (Not ISP)", lookat:=xlWhole).Column)
     
     For i = 1 To UBound(tPrix_FRS_Spare)
         If IsNumeric(tPrix_FRS_Spare(i, 1)) And tPrix_FRS_Spare(i, 1) <> 0 Then
@@ -181,8 +180,7 @@ Private Sub CalculerCoefficients()
     Next i
     
     ' Coefficient Repair
-    Coeff_Price_FRS_Repair = DS1.Cells(DS1.Cells.Find(What:="Cout Repair FOURNISSEUR (Not ISP)", lookat:=xlWhole).Row - 1, _
-                                        DS1.Cells.Find(What:="Cout Repair FOURNISSEUR (Not ISP)", lookat:=xlWhole).Column)
+    Coeff_Price_FRS_Repair = DS1.Cells(DS1.Cells.Find(What:="Cout Repair FOURNISSEUR (Not ISP)", lookat:=xlWhole).Row - 1, DS1.Cells.Find(What:="Cout Repair FOURNISSEUR (Not ISP)", lookat:=xlWhole).Column)
     
     For i = 1 To UBound(tPrix_FRS_Repair)
         If IsNumeric(tPrix_FRS_Repair(i, 1)) And tPrix_FRS_Repair(i, 1) <> 0 Then
@@ -193,7 +191,7 @@ Private Sub CalculerCoefficients()
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: COPIER DONNÉES BS VERS ML
+' PROCEDURE: COPIER DONNEES BS VERS ML
 ' =========================================================================
 Private Sub CopierDonneesBS_vers_ML()
 ' Copie Node Name et DTR de BS vers ML
@@ -201,13 +199,13 @@ Private Sub CopierDonneesBS_vers_ML()
     Dim ligneSrc As Long
     Dim ligneDst As Long
     
-    ' Désactiver calculs pour performance
+    ' Desactiver calculs pour performance
     Application.Calculation = xlCalculationManual
     
     ' Copier ligne par ligne
     For i = 5 To dlBS
         ligneSrc = i
-        ligneDst = i - 1  ' Décalage de 1 (BS ligne 5 ? ML ligne 4)
+        ligneDst = i - 1  ' Decalage de 1 (BS ligne 5 ? ML ligne 4)
         
         ' Node Name
         ML.Cells(ligneDst, ml_col.Name).Value = BS.Cells(ligneSrc, bs_col.NodeName).Value
@@ -219,7 +217,7 @@ Private Sub CopierDonneesBS_vers_ML()
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR MATERIAL TYPE
+' PROCEDURE: REMPLIR MATERIAL TYPE
 ' =========================================================================
 Private Sub RemplirMaterialType()
 ' Remplit Material Type selon Node Type de BS
@@ -242,7 +240,7 @@ Private Sub RemplirMaterialType()
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: AJOUTER LIGNES REPAIR
+' PROCEDURE: AJOUTER LIGNES REPAIR
 ' =========================================================================
 Private Sub AjouterLignesRepair()
 ' Ajoute une ligne _REPAIR pour chaque Stdex
@@ -252,7 +250,7 @@ Private Sub AjouterLignesRepair()
     i = 4
     Do While i <= dlML
         If ML.Cells(i, ml_col.MaterialType) = "Stdex" Then
-            ' Insérer ligne
+            ' Inserer ligne
             ML.rows(i + 1).Insert
             ML.Cells(i + 1, ml_col.Name) = ML.Cells(i, ml_col.Name) & "_REPAIR"
             ML.Cells(i + 1, ml_col.PartNumber) = ML.Cells(i, ml_col.PartNumber)
@@ -266,7 +264,7 @@ Private Sub AjouterLignesRepair()
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: SUPPRIMER SUPPORTS
+' PROCEDURE: SUPPRIMER SUPPORTS
 ' =========================================================================
 Private Sub SupprimerSupports()
 ' Supprime les lignes contenant "support" dans le nom
@@ -282,7 +280,7 @@ Private Sub SupprimerSupports()
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR PRIX (ORCHESTRATION)
+' PROCEDURE: REMPLIR PRIX (ORCHESTRATION)
 ' =========================================================================
 Private Sub RemplirPrix()
 ' Orchestre le remplissage des prix selon Material Type
@@ -310,10 +308,10 @@ Private Sub RemplirPrix()
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR PRIX REPAIR
+' PROCEDURE: REMPLIR PRIX REPAIR
 ' =========================================================================
 Private Sub RemplirPrixRepair(ByVal ligne As Integer)
-' Remplit prix Repair avec hiérarchie :
+' Remplit prix Repair avec hierarchie :
 ' FRS ? Catalogue ? Manuel ? Archive ? Formule ISP*0.67
 
     Dim j As Integer
@@ -324,12 +322,12 @@ Private Sub RemplirPrixRepair(ByVal ligne As Integer)
     For j = 1 To UBound(tDTR, 1)
         If ML.Cells(ligne, ml_col.PartNumber).Value = tDTR(j, 1) And Designation = tDES_MEF(j, 1) Then
             
-            ' Hiérarchie prix
+            ' Hierarchie prix
             If TrySetPrice(ligne, tPrix_FRS_Repair(j, 1), "Cout Repair fournisseur") Then Exit Sub
             If TrySetPrice(ligne, tPrix_Cat_Repair(j, 1), "Prix catalogue Repa") Then Exit Sub
-            If TrySetPrice(ligne, tPrix_RepairProjet_Archive(j, 1), "Prix d'un projet archivé en BDD") Then Exit Sub
+            If TrySetPrice(ligne, tPrix_RepairProjet_Archive(j, 1), "Prix d'un projet archive en BDD") Then Exit Sub
             
-            ' Si aucun prix trouvé : ISP * 0.67
+            ' Si aucun prix trouve : ISP * 0.67
             If Not (IsNumeric(ML.Cells(ligne, ml_col.Cost))) Or ML.Cells(ligne, ml_col.Cost) = 0 Then
                 ML.Cells(ligne, ml_col.Cost).Value = ML.Cells(ligne - 1, ml_col.Cost).Value * 0.67
                 Call AddCommentML(ligne, "Aucun prix connu, ISP * 0,67")
@@ -343,10 +341,10 @@ Private Sub RemplirPrixRepair(ByVal ligne As Integer)
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR PRIX SPARE
+' PROCEDURE: REMPLIR PRIX SPARE
 ' =========================================================================
 Private Sub RemplirPrixSpare(ByVal ligne As Integer)
-' Remplit prix Spare/Disca avec hiérarchie :
+' Remplit prix Spare/Disca avec hierarchie :
 ' FRS ? Catalogue ? Manuel ? Archive
 
     Dim j As Integer
@@ -354,10 +352,10 @@ Private Sub RemplirPrixSpare(ByVal ligne As Integer)
     For j = 1 To UBound(tDTR, 1)
         If ML.Cells(ligne, ml_col.PartNumber).Value = tDTR(j, 1) And ML.Cells(ligne, ml_col.Name).Value = tDES_MEF(j, 1) Then
             
-            ' Hiérarchie prix
+            ' Hierarchie prix
             If TrySetPrice(ligne, tPrix_FRS_Spare(j, 1), "Cout Spare fournisseur") Then Exit Sub
             If TrySetPrice(ligne, tPrix_Cat_Spare(j, 1), "Prix catalogue Spare") Then Exit Sub
-            If TrySetPrice(ligne, tPrix_SpareProjet_Archive(j, 1), "Prix d'un projet archivé en BDD") Then Exit Sub
+            If TrySetPrice(ligne, tPrix_SpareProjet_Archive(j, 1), "Prix d'un projet archive en BDD") Then Exit Sub
             
             Exit For
         End If
@@ -369,8 +367,8 @@ End Sub
 ' FONCTION: TRY SET PRICE
 ' =========================================================================
 Private Function TrySetPrice(ByVal ligne As Integer, ByVal prix As Variant, ByVal commentaire As String) As Boolean
-' Tente de définir un prix si valide
-' Retourne True si prix défini, False sinon
+' Tente de definir un prix si valide
+' Retourne True si prix defini, False sinon
 
     If IsNumeric(prix) And prix <> 0 Then
         ML.Cells(ligne, ml_col.Cost).Value = prix
@@ -383,7 +381,7 @@ Private Function TrySetPrice(ByVal ligne As Integer, ByVal prix As Variant, ByVa
 End Function
 
 ' =========================================================================
-' PROCÉDURE: ADD COMMENT ML
+' PROCEDURE: ADD COMMENT ML
 ' =========================================================================
 Private Sub AddCommentML(ByVal ligne As Integer, ByVal texte As String)
 ' Ajoute un commentaire sur la cellule L (prix)
@@ -396,10 +394,10 @@ Private Sub AddCommentML(ByVal ligne As Integer, ByVal texte As String)
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: GÉRER DOUBLONS
+' PROCEDURE: GERER DOUBLONS
 ' =========================================================================
 Private Sub GererDoublons()
-' Détecte et marque les doublons :
+' Detecte et marque les doublons :
 ' - Couples SPARE-REPAIR
 ' - DTR en doublon
 
@@ -449,7 +447,7 @@ End Function
 ' FONCTION: EXISTE COUPLE
 ' =========================================================================
 Private Function ExisteCouple(ByVal ligne As Integer) As Boolean
-' Vérifie si un couple SPARE-REPAIR existe pour cette ligne
+' Verifie si un couple SPARE-REPAIR existe pour cette ligne
     
     Dim Designation As String
     Dim designationRepair As String
@@ -476,7 +474,7 @@ Private Function TestDoublonDTR(ByVal ligne As Integer) As Boolean
 End Function
 
 ' =========================================================================
-' PROCÉDURE: COLORIER LIGNES SANS DTR
+' PROCEDURE: COLORIER LIGNES SANS DTR
 ' =========================================================================
 Private Sub ColorierLignesSansDTR()
 ' Colorie en gris les lignes sans DTR

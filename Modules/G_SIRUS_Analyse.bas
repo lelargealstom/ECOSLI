@@ -15,7 +15,7 @@ Private Const SEUIL_KO_BLOQUANT As Double = 0.2  ' 20%
 ' ============================================================
 ' STRUCTURE RESULTAT ANALYSE
 ' ============================================================
-' Stocké dans une Collection globale pour accès depuis UI
+' Stocke dans une Collection globale pour acces depuis UI
 Public resultatsAnalyse As Collection
 
 ' sirusAlertes : alertes structurees produites par SIRUS_AnalyserFeuille.
@@ -40,13 +40,13 @@ Public Sub SIRUS_AnalyserProduit()
 
     Set lv = UserForm.ListView_Produit
 
-    ' -- Vérifier qu'il y a des données --------------------
+    ' -- Verifier qu'il y a des donnees --------------------
     If lv.ListItems.count = 0 Then
-        MsgBox "Aucune ligne à analyser.", vbExclamation, "SIRUS - Analyse"
+        MsgBox "Aucune ligne a analyser.", vbExclamation, "SIRUS - Analyse"
         Exit Sub
     End If
 
-    ' -- Initialiser la collection de résultats ------------
+    ' -- Initialiser la collection de resultats ------------
     Set resultatsAnalyse = New Collection
 
     ' -- Masquer le frame de saisie ------------------------
@@ -69,11 +69,11 @@ Public Sub SIRUS_AnalyserProduit()
 
     nbTotal = lv.ListItems.count
 
-    ' -- Récupérer les DTR existants en BdD ----------------
+    ' -- Recuperer les DTR existants en BdD ----------------
     Dim dtrBdD As Collection
     Set dtrBdD = SIRUS_GetDTRFromBdD()
 
-    ' -- Récupérer les DTR déjà saisis pour doublon interne-
+    ' -- Recuperer les DTR deja saisis pour doublon interne-
     Dim dtrSaisis As New Collection
 
     ' -- Boucle sur chaque ligne ---------------------------
@@ -85,10 +85,10 @@ Public Sub SIRUS_AnalyserProduit()
 
         ' Colonnes selon SIRUS_ConfigListViewProduit :
         ' Text    = DTR
-        ' SI(1)   = Désignation
+        ' SI(1)   = Designation
         ' SI(2)   = Node Type
         ' SI(3)   = Fournisseur
-        ' SI(4)   = Réf. Fournisseur
+        ' SI(4)   = Ref. Fournisseur
         ' SI(5)   = Drawing Number
         ' SI(6)   = MTBF Intr.
         ' SI(7)   = DVL HARD
@@ -110,21 +110,18 @@ Public Sub SIRUS_AnalyserProduit()
         Dim champsMissing As String: champsMissing = ""
 
         If dtr = "" Then champsMissing = champsMissing & "DTR / "
-        If des = "" Then champsMissing = champsMissing & "Désignation / "
+        If des = "" Then champsMissing = champsMissing & "Designation / "
         If node = "" Then champsMissing = champsMissing & "Node Type / "
         If fourn = "" Then champsMissing = champsMissing & "Fournisseur / "
-        If ref = "" Then champsMissing = champsMissing & "Réf. Fournisseur / "
+        If ref = "" Then champsMissing = champsMissing & "Ref. Fournisseur / "
         If drw = "" Then champsMissing = champsMissing & "Drawing Number / "
-        If MTBF = "" Then champsMissing = champsMissing & "MTBF Intrinsèque / "
+        If MTBF = "" Then champsMissing = champsMissing & "MTBF Intrinseque / "
         If dvlh = "" Then champsMissing = champsMissing & "DVL HARD / "
 
         If champsMissing <> "" Then
             nbObligatKO = nbObligatKO + 1
             ligneOK = False
-            Call SIRUS_AddErreur(lvErr, ligneNum, dtr, _
-                "Champ obligatoire", _
-                "Renseigner : " & Left(champsMissing, Len(champsMissing) - 3), _
-                "KO")
+            Call SIRUS_AddErreur(lvErr, ligneNum, dtr, "Champ obligatoire", "Renseigner : " & Left(champsMissing, Len(champsMissing) - 3), "KO")
         Else
             nbObligatOK = nbObligatOK + 1
         End If
@@ -143,10 +140,7 @@ Public Sub SIRUS_AnalyserProduit()
             If isDupInternal Then
                 nbDoublons = nbDoublons + 1
                 ligneOK = False
-                Call SIRUS_AddErreur(lvErr, ligneNum, dtr, _
-                    "Doublon DTR", _
-                    "DTR déjà présent dans la liste de saisie", _
-                    "KO")
+                Call SIRUS_AddErreur(lvErr, ligneNum, dtr, "Doublon DTR", "DTR deja present dans la liste de saisie", "KO")
             Else
                 dtrSaisis.Add dtr
             End If
@@ -165,62 +159,44 @@ Public Sub SIRUS_AnalyserProduit()
 
             If existBdD Then
                 nbExistBdD = nbExistBdD + 1
-                Call SIRUS_AddErreur(lvErr, ligneNum, dtr, _
-                    "DTR existant BdD", _
-                    "DTR déjà présent en BdD à vérifier si Création ou Modification", _
-                    "WARN")
+                Call SIRUS_AddErreur(lvErr, ligneNum, dtr, "DTR existant BdD", "DTR deja present en BdD a verifier si Creation ou Modification", "WARN")
             End If
         End If
 
         ' -- CONTROLE 4 Types de donnes -----------------
 
-        ' MTBF à décimal > 0
+        ' MTBF a decimal > 0
         If MTBF <> "" Then
             If Not SIRUS_IsDecimal(MTBF) Then
                 nbTypeKO = nbTypeKO + 1
                 ligneOK = False
-                Call SIRUS_AddErreur(lvErr, ligneNum, dtr, _
-                    "Type MTBF", _
-                    "MTBF Intrinsèque doit être un nombre décimal > 0 (valeur : " & MTBF & ")", _
-                    "KO")
+                Call SIRUS_AddErreur(lvErr, ligneNum, dtr, "Type MTBF", "MTBF Intrinseque doit etre un nombre decimal > 0 (valeur : " & MTBF & ")", "KO")
             End If
         End If
 
-        ' DVL HARD à décimal > 0 et <= 50
+        ' DVL HARD a decimal > 0 et <= 50
         If dvlh <> "" Then
             If Not SIRUS_IsDecimal(dvlh) Then
                 nbTypeKO = nbTypeKO + 1
                 ligneOK = False
-                Call SIRUS_AddErreur(lvErr, ligneNum, dtr, _
-                    "Type DVL HARD", _
-                    "DVL HARD doit être un nombre décimal (valeur : " & dvlh & ")", _
-                    "KO")
+                Call SIRUS_AddErreur(lvErr, ligneNum, dtr, "Type DVL HARD", "DVL HARD doit etre un nombre decimal (valeur : " & dvlh & ")", "KO")
             ElseIf CDbl(dvlh) > SEUIL_DVL_MAX Then
                 nbTypeKO = nbTypeKO + 1
                 ligneOK = False
-                Call SIRUS_AddErreur(lvErr, ligneNum, dtr, _
-                    "DVL HARD > 50", _
-                    "DVL HARD = " & dvlh & " La durée de vie limitée ne peut pas dépasser 50 ans", _
-                    "KO")
+                Call SIRUS_AddErreur(lvErr, ligneNum, dtr, "DVL HARD > 50", "DVL HARD = " & dvlh & " La duree de vie limitee ne peut pas depasser 50 ans", "KO")
             End If
         End If
 
-        ' DVL SOFT à décimal > 0 et <= 50 (si renseigné)
+        ' DVL SOFT a decimal > 0 et <= 50 (si renseigne)
         If dvls <> "" Then
             If Not SIRUS_IsDecimal(dvls) Then
                 nbTypeKO = nbTypeKO + 1
                 ligneOK = False
-                Call SIRUS_AddErreur(lvErr, ligneNum, dtr, _
-                    "Type DVL SOFT", _
-                    "DVL SOFT doit être un nombre décimal (valeur : " & dvls & ")", _
-                    "KO")
+                Call SIRUS_AddErreur(lvErr, ligneNum, dtr, "Type DVL SOFT", "DVL SOFT doit etre un nombre decimal (valeur : " & dvls & ")", "KO")
             ElseIf CDbl(dvls) > SEUIL_DVL_MAX Then
                 nbTypeKO = nbTypeKO + 1
                 ligneOK = False
-                Call SIRUS_AddErreur(lvErr, ligneNum, dtr, _
-                    "DVL SOFT > 50", _
-                    "DVL SOFT = " & dvls & " La durée de vie limitée ne peut pas dépasser 50 ans", _
-                    "KO")
+                Call SIRUS_AddErreur(lvErr, ligneNum, dtr, "DVL SOFT > 50", "DVL SOFT = " & dvls & " La duree de vie limitee ne peut pas depasser 50 ans", "KO")
             End If
         End If
 
@@ -233,11 +209,8 @@ Public Sub SIRUS_AnalyserProduit()
     nbKOTotal = nbObligatKO + nbDoublons + nbTypeKO
     If nbTotal > 0 Then tauxKO = nbKOTotal / nbTotal Else tauxKO = 0
 
-    ' -- Afficher les résultats ----------------------------
-    Call SIRUS_AfficherResultatsAnalyse( _
-        nbTotal, nbObligatOK, nbObligatKO, _
-        nbDoublons, nbExistBdD, nbRefWarn, _
-        nbTypeKO, tauxKO)
+    ' -- Afficher les resultats ----------------------------
+    Call SIRUS_AfficherResultatsAnalyse( nbTotal, nbObligatOK, nbObligatKO, nbDoublons, nbExistBdD, nbRefWarn, nbTypeKO, tauxKO)
 
     ' -- Afficher le frame analyse -------------------------
     UserForm.Frame_Analyse.Visible = True
@@ -246,14 +219,10 @@ Public Sub SIRUS_AnalyserProduit()
     UserForm.Btn_CreerDemande.Enabled = (tauxKO <= SEUIL_KO_BLOQUANT)
 
     If tauxKO > SEUIL_KO_BLOQUANT Then
-        UserForm.lbl_StatutAnalyse.Caption = _
-            "BLOQUE | Taux d'erreurs " & Format(tauxKO * 100, "0.0") & _
-            "% > 20% | corrigez avant d'envoyer"
+        UserForm.lbl_StatutAnalyse.Caption = "BLOQUE | Taux d'erreurs " & Format(tauxKO * 100, "0.0") & "% > 20% | corrigez avant d'envoyer"
         UserForm.lbl_StatutAnalyse.ForeColor = RGB(163, 45, 45)
     Else
-        UserForm.lbl_StatutAnalyse.Caption = _
-            "Analyse terminée : " & nbKOTotal & " erreur(s) ! " & _
-            Format(tauxKO * 100, "0.0") & "% KO"
+        UserForm.lbl_StatutAnalyse.Caption = "Analyse terminee : " & nbKOTotal & " erreur(s) ! " & Format(tauxKO * 100, "0.0") & "% KO"
         UserForm.lbl_StatutAnalyse.ForeColor = IIf(nbKOTotal = 0, RGB(39, 80, 10), RGB(186, 117, 23))
     End If
 
@@ -265,16 +234,16 @@ End Sub
 
 Public Sub SIRUS_RetourSaisie()
 
-    ' Masquer l'analyse, réafficher la saisie
+    ' Masquer l'analyse, reafficher la saisie
     UserForm.Frame_Analyse.Visible = False
     UserForm.Frame_Saisie.Visible = True
 
-    ' ListView_Produit reste intacte à pas de clear
+    ' ListView_Produit reste intacte a pas de clear
 
 End Sub
 
 ' ============================================================
-' RÉCUPÉRER LES DTR EXISTANTS EN BDD
+' RECUPERER LES DTR EXISTANTS EN BDD
 ' ============================================================
 
 Private Function SIRUS_GetDTRFromBdD() As Collection
@@ -315,12 +284,7 @@ End Function
 ' AJOUTER UNE ERREUR DANS LA LISTVIEW
 ' ============================================================
 
-Private Sub SIRUS_AddErreur(lvErr As MSComctlLib.ListView, _
-                              ligne As Long, _
-                              dtr As String, _
-                              controle As String, _
-                              action As String, _
-                              niveau As String)
+Private Sub SIRUS_AddErreur(lvErr As MSComctlLib.ListView, ligne As Long, dtr As String, controle As String, action As String, niveau As String)
 
     Dim li As MSComctlLib.ListItem
     Set li = lvErr.ListItems.Add(, , CStr(ligne))
@@ -339,14 +303,7 @@ End Sub
 ' AFFICHER LES RESULTATS DANS LES LABELS DU FRAME_ANALYSE
 ' ============================================================
 
-Private Sub SIRUS_AfficherResultatsAnalyse( _
-    nbTotal As Long, _
-    nbObligatOK As Long, nbObligatKO As Long, _
-    nbDoublons As Long, _
-    nbExistBdD As Long, _
-    nbRefWarn As Long, _
-    nbTypeKO As Long, _
-    tauxKO As Double)
+Private Sub SIRUS_AfficherResultatsAnalyse( nbTotal As Long, nbObligatOK As Long, nbObligatKO As Long, nbDoublons As Long, nbExistBdD As Long, nbRefWarn As Long, nbTypeKO As Long, tauxKO As Double)
 
     With UserForm
         ' Champs obligatoires
@@ -354,17 +311,17 @@ Private Sub SIRUS_AfficherResultatsAnalyse( _
         .lbl_ObligatStatut.Caption = IIf(nbObligatKO = 0, "OK", nbObligatKO & " KO")
         .lbl_ObligatStatut.ForeColor = IIf(nbObligatKO = 0, RGB(39, 80, 10), RGB(163, 45, 45))
 
-        ' Unicité DTR
+        ' Unicite DTR
         .lbl_DoublonsVal.Caption = IIf(nbDoublons = 0, "OK", nbDoublons & " KO")
         .lbl_DoublonsStatut.Caption = IIf(nbDoublons = 0, "OK", "Bloquant")
         .lbl_DoublonsStatut.ForeColor = IIf(nbDoublons = 0, RGB(39, 80, 10), RGB(163, 45, 45))
 
-        ' Cohérence référentielle BdD
+        ' Coherence referentielle BdD
         .lbl_RefVal.Caption = IIf(nbExistBdD = 0, "OK", nbExistBdD & " exist.")
         .lbl_RefStatut.Caption = IIf(nbExistBdD = 0, "OK", "Alerte")
         .lbl_RefStatut.ForeColor = IIf(nbExistBdD = 0, RGB(39, 80, 10), RGB(186, 117, 23))
 
-        ' Types de données
+        ' Types de donnees
         .lbl_TypesVal.Caption = IIf(nbTypeKO = 0, "OK", nbTypeKO & " KO")
         .lbl_TypesStatut.Caption = IIf(nbTypeKO = 0, "OK", "Bloquant")
         .lbl_TypesStatut.ForeColor = IIf(nbTypeKO = 0, RGB(39, 80, 10), RGB(163, 45, 45))
@@ -406,8 +363,7 @@ End Function
 '
 ' Ne bloque jamais (decision verrouillee SIRUS roadmap #2). Pas de bloquant,
 ' juste OK / ALERTE et un taux de completude.
-Public Function SIRUS_AnalyserFeuille(ByVal sTable As String, _
-                                       Optional ByVal sOperation As String = "Creer") As Double
+Public Function SIRUS_AnalyserFeuille(ByVal sTable As String, Optional ByVal sOperation As String = "Creer") As Double
 
     Dim wb As Workbook
     Dim ws As Worksheet
@@ -440,17 +396,14 @@ Public Function SIRUS_AnalyserFeuille(ByVal sTable As String, _
     Set ws = wb.Worksheets(nomFeuille)
     On Error GoTo Sortie
     If ws Is Nothing Then
-        MsgBox "Feuille '" & nomFeuille & "' introuvable dans '" & wb.Name & "'." & vbCrLf & _
-               "Generer d'abord la feuille via SIRUS_GenererFeuilleAnalyse.", _
-               vbExclamation, "SIRUS - Analyse"
+        MsgBox "Feuille '" & nomFeuille & "' introuvable dans '" & wb.Name & "'." & vbCrLf & "Generer d'abord la feuille via SIRUS_GenererFeuilleAnalyse.", vbExclamation, "SIRUS - Analyse"
         Exit Function
     End If
 
     ' -- 3. Charger le config -------------------------------
     Set col = SIRUS_LireConfig(sTable)
     If col.Count = 0 Then
-        MsgBox "Aucun champ defini dans SIRUS_Config pour '" & sTable & "'.", _
-               vbCritical, "SIRUS - Analyse"
+        MsgBox "Aucun champ defini dans SIRUS_Config pour '" & sTable & "'.", vbCritical, "SIRUS - Analyse"
         Exit Function
     End If
     nbCol = col.Count
@@ -478,8 +431,7 @@ Public Function SIRUS_AnalyserFeuille(ByVal sTable As String, _
     colCle = SIRUS_ColonneClePourTable(sTable)
     ligneMax = ws.Cells(ws.rows.count, colCle).End(xlUp).Row
     If ligneMax < 3 Then
-        MsgBox "La feuille '" & nomFeuille & "' ne contient aucune donnee a analyser.", _
-               vbInformation, "SIRUS - Analyse"
+        MsgBox "La feuille '" & nomFeuille & "' ne contient aucune donnee a analyser.", vbInformation, "SIRUS - Analyse"
         Exit Function
     End If
 
@@ -521,10 +473,7 @@ Public Function SIRUS_AnalyserFeuille(ByVal sTable As String, _
         poidsLigneDen = 0
 
         For Each def In col
-            Call EvaluerChampLigne(def, sTable, ligneDict, _
-                                   sCle, ligne, mapColBdD_Index, _
-                                   sStatutLigne, nAlertesLigne, _
-                                   poidsLigneNum, poidsLigneDen)
+            Call EvaluerChampLigne(def, sTable, ligneDict, sCle, ligne, mapColBdD_Index, sStatutLigne, nAlertesLigne, poidsLigneNum, poidsLigneDen)
         Next def
 
         ' Ecrire le Statut court en col 1 + detail en commentaire de cellule
@@ -539,8 +488,7 @@ Public Function SIRUS_AnalyserFeuille(ByVal sTable As String, _
             If nAlertesLigne = 0 Then
                 ws.Cells(ligne, colCommentaires).Value = ""
             Else
-                ws.Cells(ligne, colCommentaires).Value = _
-                    FormaterAlertesCommentaire(sStatutLigne, nAlertesLigne)
+                ws.Cells(ligne, colCommentaires).Value = FormaterAlertesCommentaire(sStatutLigne, nAlertesLigne)
                 ws.Cells(ligne, colCommentaires).WrapText = True
             End If
         End If
@@ -558,10 +506,7 @@ NextLigne:
         SIRUS_AnalyserFeuille = 1#
     End If
 
-    MsgBox "Analyse '" & nomFeuille & "' terminee." & vbCrLf & vbCrLf & _
-           "Taux de completude (MeQ) : " & Format(SIRUS_AnalyserFeuille * 100, "0.0") & "%" & vbCrLf & _
-           "Lignes analysees : " & (ligneMax - 2), _
-           vbInformation, "SIRUS - Analyse"
+    MsgBox "Analyse '" & nomFeuille & "' terminee." & vbCrLf & vbCrLf & "Taux de completude (MeQ) : " & Format(SIRUS_AnalyserFeuille * 100, "0.0") & "%" & vbCrLf & "Lignes analysees : " & (ligneMax - 2), vbInformation, "SIRUS - Analyse"
     Exit Function
 
 Sortie:
@@ -577,16 +522,7 @@ End Function
 '   - cumul poids MeQ (pour le taux global)
 ' Modifie en sortie le statut ligne + compteurs (passes ByRef) ET pousse
 ' chaque alerte dans la collection structuree sirusAlertes (UI consume).
-Private Sub EvaluerChampLigne(ByVal def As SIRUS_Champ_Config, _
-                              ByVal sTable As String, _
-                              ByRef ligneDict As Object, _
-                              ByVal sCle As String, _
-                              ByVal nLigne As Long, _
-                              ByRef mapColBdD_Index As Object, _
-                              ByRef sStatutLigne As String, _
-                              ByRef nAlertes As Long, _
-                              ByRef poidsNum As Double, _
-                              ByRef poidsDen As Double)
+Private Sub EvaluerChampLigne(ByVal def As SIRUS_Champ_Config, ByVal sTable As String, ByRef ligneDict As Object, ByVal sCle As String, ByVal nLigne As Long, ByRef mapColBdD_Index As Object, ByRef sStatutLigne As String, ByRef nAlertes As Long, ByRef poidsNum As Double, ByRef poidsDen As Double)
 
     Dim sVal As String
     Dim bRempli As Boolean
@@ -649,8 +585,7 @@ End Sub
 '   nAlertes = 1 -> texte simple (pas de puce, plus lisible pour 1 ligne)
 '   nAlertes > 1 -> "- alerte1" & vbLf & "- alerte2" & vbLf & ...
 ' sStatutLigne est la chaine concatenee par AjouterAlerte (separateur " | ").
-Private Function FormaterAlertesCommentaire(ByVal sStatutLigne As String, _
-                                             ByVal nAlertes As Long) As String
+Private Function FormaterAlertesCommentaire(ByVal sStatutLigne As String, ByVal nAlertes As Long) As String
     Dim arr() As String
     Dim i As Long
     Dim sOut As String
@@ -714,9 +649,7 @@ End Function
 
 ' Ecrit le statut court (OK / NOK) en couleur dans la cellule, et place
 ' le detail des alertes en commentaire de cellule (affiche au survol).
-Private Sub EcrireStatutCellule(ByVal cellStatut As Range, _
-                                 ByVal nAlertes As Long, _
-                                 ByVal sDetail As String)
+Private Sub EcrireStatutCellule(ByVal cellStatut As Range, ByVal nAlertes As Long, ByVal sDetail As String)
     ' Reset du commentaire existant
     On Error Resume Next
     cellStatut.ClearComments
@@ -737,9 +670,7 @@ Private Sub EcrireStatutCellule(ByVal cellStatut As Range, _
     End If
 End Sub
 
-Private Function LireLigneEnDictionary(ByVal ws As Worksheet, _
-                                        ByVal ligne As Long, _
-                                        ByRef mapColBdD_Index As Object) As Object
+Private Function LireLigneEnDictionary(ByVal ws As Worksheet, ByVal ligne As Long, ByRef mapColBdD_Index As Object) As Object
     ' Construit le Dictionary {ColonneBdD -> valeur} pour une ligne donnee.
     Dim d As Object
     Dim k As Variant

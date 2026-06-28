@@ -49,9 +49,7 @@ Public Function SIRUS_GetListe(ByVal sNomListe As String) As Variant
             SIRUS_GetListe = Array("Oui", "Non")
 
         Case SIRUS_LIST_TYPETRAIN
-            SIRUS_GetListe = Array("CORADIA", "AVELIA", "METROPOLIS", "XTRAPOLIS", _
-                                    "TRAX", "INNOVIA", "CITADIS", "ADESSIA", _
-                                    "Voitures", "SIG")
+            SIRUS_GetListe = Array("CORADIA", "AVELIA", "METROPOLIS", "XTRAPOLIS", "TRAX", "INNOVIA", "CITADIS", "ADESSIA", "Voitures", "SIG")
 
         Case SIRUS_LIST_DEVISE
             SIRUS_GetListe = Array("EUR", "USD", "CAD", "JPY", "CHF", "GBP")
@@ -73,8 +71,7 @@ End Function
 ' =========================================================================
 ' Renvoie une chaine "v1,v2,v3" prete a etre posee dans une Data Validation
 ' Excel (xlValidateList, Formula1:=...). Limite Excel : 255 caracteres.
-Public Function SIRUS_ListeEnChaine(ByVal sNomListe As String, _
-                                     Optional ByVal sSep As String = ",") As String
+Public Function SIRUS_ListeEnChaine(ByVal sNomListe As String, Optional ByVal sSep As String = ",") As String
     Dim arr As Variant
     Dim i As Long
     Dim s As String
@@ -102,9 +99,7 @@ Public Sub Test_GetListe()
     Dim i As Long
     Dim s As String
 
-    cles = Array(SIRUS_LIST_NODETYPE, SIRUS_LIST_HARDSOFT, SIRUS_LIST_LANGUE, _
-                 SIRUS_LIST_BOOLEEN, SIRUS_LIST_TYPETRAIN, SIRUS_LIST_DEVISE, _
-                 SIRUS_LIST_NIVMAINTENANCE, SIRUS_LIST_MOTIFNA)
+    cles = Array(SIRUS_LIST_NODETYPE, SIRUS_LIST_HARDSOFT, SIRUS_LIST_LANGUE, SIRUS_LIST_BOOLEEN, SIRUS_LIST_TYPETRAIN, SIRUS_LIST_DEVISE, SIRUS_LIST_NIVMAINTENANCE, SIRUS_LIST_MOTIFNA)
 
     Debug.Print "=== Test_GetListe ==="
     For Each k In cles

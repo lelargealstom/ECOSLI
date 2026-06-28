@@ -2,53 +2,53 @@ Attribute VB_Name = "D_Providor_Main"
 '--------------------------------------------------------------------------------------------------------
 '
 '                                       Generateur Livrables SLI
-'                                       Module D_Providor_Main (Version Refactorisée)
+'                                       Module D_Providor_Main (Version Refactorisee)
 '                                       Developpement : LE LARGE Thomas (LGM/Alstom)
-'                                       Module permettant de générer un Providor LCC
-'                                       Refactorisation : Février 2026
+'                                       Module permettant de generer un Providor LCC
+'                                       Refactorisation : Fevrier 2026
 '
 '-----------------------------------------------------------------------------------------------------------
 Option Compare Text
 Option Explicit
 
 ' =========================================================================
-' PROCÉDURE PRINCIPALE : MAIN_PROVIDOR
+' PROCEDURE PRINCIPALE : MAIN_PROVIDOR
 ' =========================================================================
 Public Sub Main_Providor(test As Boolean)
-' Point d'entrée principal pour la génération du Providor
+' Point d'entree principal pour la generation du Providor
 ' Orchestre le workflow complet :
-'   1. Validation des prérequis
-'   2. Récupération des données PBS (14 tableaux)
-'   3. Validation données RAM Report selon gate
-'   4. Sélection répertoire + copie template
-'   5. Génération Providor (BS, ML, Corr, Prev, GP, LCC)
+'   1. Validation des prerequis
+'   2. Recuperation des donnees PBS (14 tableaux)
+'   3. Validation donnees RAM Report selon gate
+'   4. Selection repertoire + copie template
+'   5. Generation Providor (BS, ML, Corr, Prev, GP, LCC)
 '   6. Finalisation
 
     Dim chemin As String
     Dim wb As Workbook
     Dim fichierTest As String
     
-    ' Désactiver fonctionnalités Excel pour performance
+    ' Desactiver fonctionnalites Excel pour performance
     TurnOffFunctionality
     
-    ' Validation et récupération données UserForm
+    ' Validation et recuperation donnees UserForm
     If Not InitialiserContexteProvidor(test) Then
         TurnOnFunctionality
         Exit Sub
     End If
     
-    ' Récupération données PBS depuis DATA_ASL
+    ' Recuperation donnees PBS depuis DATA_ASL
     Call RecupererDonneesPBS_Providor(test)
 
     If Not (test) Then
-        ' Validation données RAM Report selon gate
+        ' Validation donnees RAM Report selon gate
         If Not ValiderDonneesRAMProvidor Then
             TurnOnFunctionality
             Exit Sub
         End If
     End If
     
-    ' Sélection répertoire destination
+    ' Selection repertoire destination
     If Not SelectRepertoireProvidor(chemin, test) Then
         TurnOnFunctionality
         Exit Sub
@@ -63,10 +63,10 @@ Public Sub Main_Providor(test As Boolean)
     
     
     
-    ' Générer le Providor complet
+    ' Generer le Providor complet
     Call GenererProvidor(wb, test)
     
-    ' Réactiver fonctionnalités Excel
+    ' Reactiver fonctionnalites Excel
     TurnOnFunctionality
     
     If test Then
@@ -84,15 +84,15 @@ End Sub
 ' FONCTION: INITIALISER CONTEXTE PROVIDOR
 ' =========================================================================
 Private Function InitialiserContexteProvidor(test As Boolean) As Boolean
-' Récupère et valide les paramètres du UserForm
+' Recupere et valide les parametres du UserForm
 ' Retourne True si tout est OK, False sinon
 
     On Error GoTo ErrHandler
     
-    ' Créer objets
+    ' Creer objets
     Set fso = CreateObject("Scripting.FileSystemObject")
     
-    ' Récupérer paramètres système
+    ' Recuperer parametres systeme
     userpath = Environ$("UserProfile")
     
     'Definir les donnees projets avant generation
@@ -111,25 +111,25 @@ Private Function InitialiserContexteProvidor(test As Boolean) As Boolean
         ElseIf UserForm.Langue_EN.Value = True Then
             langue = "EN"
         Else
-            MsgBox "Veuillez sélectionner une langue (FR ou EN)", vbExclamation
+            MsgBox "Veuillez selectionner une langue (FR ou EN)", vbExclamation
             InitialiserContexteProvidor = False
             Exit Function
         End If
 
         If Code_Projet = "" Then
-            MsgBox "Veuillez sélectionner un projet", vbExclamation
+            MsgBox "Veuillez selectionner un projet", vbExclamation
             InitialiserContexteProvidor = False
             Exit Function
         End If
 
         If Revision = "" Then
-            MsgBox "Veuillez saisir une révision", vbExclamation
+            MsgBox "Veuillez saisir une revision", vbExclamation
             InitialiserContexteProvidor = False
             Exit Function
         End If
 
         If gate = "" Then
-            MsgBox "Aucune gate n'est sélectionnée.", vbInformation, "Gate"
+            MsgBox "Aucune gate n'est selectionnee.", vbInformation, "Gate"
             InitialiserContexteProvidor = False
             Exit Function
         End If
@@ -138,7 +138,7 @@ Private Function InitialiserContexteProvidor(test As Boolean) As Boolean
         ' --- Mode test : valeurs fixes, pas de UserForm ---
         Set Generateur = ActiveWorkbook
 
-        ' DS1 pointé pour éviter erreurs dans fonctions annexes
+        ' DS1 pointe pour eviter erreurs dans fonctions annexes
         On Error Resume Next
         Set DS1 = Generateur.Worksheets("DATA_ASL")
         On Error GoTo ErrHandler
@@ -146,9 +146,9 @@ Private Function InitialiserContexteProvidor(test As Boolean) As Boolean
         Code_Projet = "ETALON"
         Projet_Abrev = "ETALON"
         Revision = "A"
-        gate = UserForm.Gate_List.Value           ' Gate récupérée depuis UserForm
+        gate = UserForm.Gate_List.Value           ' Gate recuperee depuis UserForm
         langue = "FR"
-        BoolMaintPrev = True                      ' Tester aussi la préventive
+        BoolMaintPrev = True                      ' Tester aussi la preventive
     End If
     
     InitialiserContexteProvidor = True
@@ -161,10 +161,10 @@ ErrHandler:
 End Function
 
 ' =========================================================================
-' PROCÉDURE: RÉCUPÉRER DONNÉES PBS PROVIDOR
+' PROCEDURE: RECUPERER DONNEES PBS PROVIDOR
 ' =========================================================================
 Private Sub RecupererDonneesPBS_Providor(test As Boolean)
-' Récupère les 14 colonnes nécessaires du tableau Providor
+' Recupere les 14 colonnes necessaires du tableau Providor
     
     If Not (test) Then
         ' Identification
@@ -172,12 +172,12 @@ Private Sub RecupererDonneesPBS_Providor(test As Boolean)
         tDES_PBS = DS1.Range("Providor[DESIGNATION (issue de PBS)]")
         tDES_BDD = DS1.Range("Providor[DESIGNATION (issue BdD)]")
         tDES_MEF = DS1.Range("Providor[DESIGNATION (Providor)]")
-        tSS = DS1.Range("Providor[SOUS SYSTÈME]")
+        tSS = DS1.Range("Providor[SOUS SYSTEME]")
         
-        ' Quantités et types
+        ' Quantites et types
         tQTE = DS1.Range("Providor[Qte]")
         tNTI = DS1.Range("Providor[NTI]")
-        tNodeType = DS1.Range("Providor[Node typed (LRU/SRU…)]")
+        tNodeType = DS1.Range("Providor[Node typed (LRU/SRU...)]")
         
         ' Prix
         tPrix_Cat_Spare = DS1.Range("Providor[Prix spare catalogue]")
@@ -187,22 +187,22 @@ Private Sub RecupererDonneesPBS_Providor(test As Boolean)
         tPrix_FRS_Spare = DS1.Range("Providor[Cout spare ALSTOM FRANCE FOURNISSEUR]")
         tPrix_FRS_Repair = DS1.Range("Providor[Prix repair ALSTOM FOURNISSEUR]")
         
-        ' Temps corrective/préventive
-        tTps_CorrPrev_Gen_HARD = DS1.Range("Providor[Durée tâche correctif+préventif HARD générique]")
-        tTps_CorrPrev_Ana_HARD = DS1.Range("Providor[Durée tâche correctif+préventif HARD analytique]")
-        tTps_Prev_Gen_SOFT = DS1.Range("Providor[Durée tâche préventif SOFT générique]")
-        tTps_Prev_Ana_SOFT = DS1.Range("Providor[Durée tâche préventif SOFT analytique]")
+        ' Temps corrective/preventive
+        tTps_CorrPrev_Gen_HARD = DS1.Range("Providor[Duree tache correctif+preventif HARD generique]")
+        tTps_CorrPrev_Ana_HARD = DS1.Range("Providor[Duree tache correctif+preventif HARD analytique]")
+        tTps_Prev_Gen_SOFT = DS1.Range("Providor[Duree tache preventif SOFT generique]")
+        tTps_Prev_Ana_SOFT = DS1.Range("Providor[Duree tache preventif SOFT analytique]")
         
-        ' Durée de vie
-        tDureevie_Gen_HARD = DS1.Range("Providor[DVL HARD générique]")
-        tDureevie_Gen_SOFT = DS1.Range("Providor[DVL SOFT générique]")
-        tDureevie_Ana_HARD = DS1.Range("Providor[DVL HARD spécifique]")
-        tDureevie_Ana_SOFT = DS1.Range("Providor[DVL SOFT spécifique]")
+        ' Duree de vie
+        tDureevie_Gen_HARD = DS1.Range("Providor[DVL HARD generique]")
+        tDureevie_Gen_SOFT = DS1.Range("Providor[DVL SOFT generique]")
+        tDureevie_Ana_HARD = DS1.Range("Providor[DVL HARD specifique]")
+        tDureevie_Ana_SOFT = DS1.Range("Providor[DVL SOFT specifique]")
         
         ' MTBF
-        tMTBF_gen = DS1.Range("Providor[MTBF générique (offre+PGR)]")
-        tMTBF_Intr = DS1.Range("Providor[MTBF intrinsèque RAM Report spécifique]")
-        tMTBF_fct = DS1.Range("Providor[MTBF fonctionnel RAM Report spécifique]")
+        tMTBF_gen = DS1.Range("Providor[MTBF generique (offre+PGR)]")
+        tMTBF_Intr = DS1.Range("Providor[MTBF intrinseque RAM Report specifique]")
+        tMTBF_fct = DS1.Range("Providor[MTBF fonctionnel RAM Report specifique]")
     Else
         Call InitPBS_Etalon
         Call InjecterDonneesEtalon
@@ -210,29 +210,29 @@ Private Sub RecupererDonneesPBS_Providor(test As Boolean)
 End Sub
 
 ' =========================================================================
-' FONCTION: VALIDER DONNÉES RAM PROVIDOR
+' FONCTION: VALIDER DONNEES RAM PROVIDOR
 ' =========================================================================
 Private Function ValiderDonneesRAMProvidor() As Boolean
-' Vérifie si les données du RAM Report sont requises et présentes
-' Retourne True pour continuer, False pour arrêter
+' Verifie si les donnees du RAM Report sont requises et presentes
+' Retourne True pour continuer, False pour arreter
 
     Dim MTBF_intr_pres As Boolean, MTBF_fonct_pres As Boolean
     Dim Tps_CorrPrev_Ana_HARD_pres As Boolean, Tps_CorrPrev_Ana_SOFT_pres As Boolean
     Dim Dureevie_Ana_HARD_pres As Boolean, Dureevie_Ana_SOFT_pres As Boolean
     
-    ' Déterminer si on est avant ou après CGR
+    ' Determiner si on est avant ou apres CGR
     Select Case gate
         Case "PGR", "GO ORDER", "BA", "IGR"
-            ' Avant CGR : pas de vérification RAM Report
+            ' Avant CGR : pas de verification RAM Report
             AvantCGR = True
             RAMReportDATA = False
             ValiderDonneesRAMProvidor = True
             
         Case "CGR", "FEI", "IQA"
-            ' Après CGR : vérification obligatoire
+            ' Apres CGR : verification obligatoire
             AvantCGR = False
             
-            ' Vérifier présence données
+            ' Verifier presence donnees
             MTBF_intr_pres = IsInArray_1D("", tMTBF_Intr)
             MTBF_fonct_pres = IsInArray_1D("", tMTBF_fct)
             Tps_CorrPrev_Ana_HARD_pres = IsInArray_1D("", tTps_CorrPrev_Ana_HARD)
@@ -240,29 +240,24 @@ Private Function ValiderDonneesRAMProvidor() As Boolean
             Dureevie_Ana_HARD_pres = IsInArray_1D("", tDureevie_Ana_HARD)
             Dureevie_Ana_SOFT_pres = IsInArray_1D("", tDureevie_Ana_SOFT)
             
-            If MTBF_fonct_pres Or MTBF_intr_pres Or Tps_CorrPrev_Ana_HARD_pres Or _
-               Tps_CorrPrev_Ana_SOFT_pres Or Dureevie_Ana_HARD_pres Or Dureevie_Ana_SOFT_pres Then
-                ' Données incomplètes : demander confirmation
-                If MsgBox("Toutes les données spécifiques du RAM Report ne sont pas renseignées (obligatoire dès CGR)" & vbCrLf & _
-                          "Souhaitez-vous continuer avec les données intrinsèques ?" & vbCrLf & vbCrLf & _
-                          "Les données non renseignées seront remplacées par les données intrinsèques si présentes, et par les valeurs génériques si rien n'est renseigné", _
-                          vbYesNo + vbQuestion) = vbNo Then
-                    MsgBox "Arrêt de la procédure, vous pouvez renseigner les données du RAM Report (obligatoire à CGR)", vbInformation
+            If MTBF_fonct_pres Or MTBF_intr_pres Or Tps_CorrPrev_Ana_HARD_pres Or Tps_CorrPrev_Ana_SOFT_pres Or Dureevie_Ana_HARD_pres Or Dureevie_Ana_SOFT_pres Then
+                ' Donnees incompletes : demander confirmation
+                If MsgBox("Toutes les donnees specifiques du RAM Report ne sont pas renseignees (obligatoire des CGR)" & vbCrLf & "Souhaitez-vous continuer avec les donnees intrinseques ?" & vbCrLf & vbCrLf & "Les donnees non renseignees seront remplacees par les donnees intrinseques si presentes, et par les valeurs generiques si rien n'est renseigne", vbYesNo + vbQuestion) = vbNo Then
+                    MsgBox "Arret de la procedure, vous pouvez renseigner les donnees du RAM Report (obligatoire a CGR)", vbInformation
                     ValiderDonneesRAMProvidor = False
                     Exit Function
                 End If
                 RAMReportDATA = False
             Else
-                ' Toutes les données présentes
-                MsgBox "Toutes les données spécifiques du RAM Report sont renseignées." & vbCrLf & _
-                       "La procédure peut continuer", vbInformation
+                ' Toutes les donnees presentes
+                MsgBox "Toutes les donnees specifiques du RAM Report sont renseignees." & vbCrLf & "La procedure peut continuer", vbInformation
                 RAMReportDATA = True
             End If
             
             ValiderDonneesRAMProvidor = True
             
         Case Else
-            ' Gate inconnue : considérer comme avant CGR
+            ' Gate inconnue : considerer comme avant CGR
             AvantCGR = True
             RAMReportDATA = False
             ValiderDonneesRAMProvidor = True
@@ -271,10 +266,10 @@ Private Function ValiderDonneesRAMProvidor() As Boolean
 End Function
 
 ' =========================================================================
-' FONCTION: SÉLECTION RÉPERTOIRE PROVIDOR
+' FONCTION: SELECTION REPERTOIRE PROVIDOR
 ' =========================================================================
 Private Function SelectRepertoireProvidor(ByRef chemin As String, test As Boolean) As Boolean
-' Dialogue sélection répertoire + gestion fichier existant
+' Dialogue selection repertoire + gestion fichier existant
     
     Dim Repertoire As FileDialog
     Dim nomFichier As String
@@ -283,8 +278,8 @@ Private Function SelectRepertoireProvidor(ByRef chemin As String, test As Boolea
     Dim resp As VbMsgBoxResult, respSave As VbMsgBoxResult
     
     If Not (test) Then
-        ' Dialogue sélection répertoire
-        MsgBox "Veuillez sélectionner le répertoire où vous souhaitez déposer le Providor pour le projet : " & Projet_Abrev, vbOKOnly
+        ' Dialogue selection repertoire
+        MsgBox "Veuillez selectionner le repertoire ou vous souhaitez deposer le Providor pour le projet : " & Projet_Abrev, vbOKOnly
         Set Repertoire = Application.FileDialog(msoFileDialogFolderPicker)
         Repertoire.Show
         
@@ -297,21 +292,18 @@ Private Function SelectRepertoireProvidor(ByRef chemin As String, test As Boolea
         nomFichier = Projet_Abrev & "_" & Month(Date) & "_" & Year(Date) & "_Providor.xlsm"
         fichierComplet = chemin & "\" & nomFichier
         
-        ' Vérifier si fichier déjà ouvert
+        ' Verifier si fichier deja ouvert
         For Each wb In Application.Workbooks
             If StrComp(wb.Name, nomFichier, vbTextCompare) = 0 Then
-                resp = MsgBox("Un fichier nommé '" & nomFichier & "' est déjà ouvert." & vbCrLf & _
-                              "Voulez-vous le fermer pour continuer ?", vbYesNo + vbQuestion, "Classeur déjà ouvert")
+                resp = MsgBox("Un fichier nomme '" & nomFichier & "' est deja ouvert." & vbCrLf & "Voulez-vous le fermer pour continuer ?", vbYesNo + vbQuestion, "Classeur deja ouvert")
                 If resp = vbYes Then
                     If Not wb.Saved Then
-                        respSave = MsgBox("Le classeur ouvert contient des modifications non enregistrées." & vbCrLf & _
-                                          "Voulez-vous enregistrer avant la fermeture ?", _
-                                          vbYesNoCancel + vbExclamation, "Enregistrer les modifications ?")
+                        respSave = MsgBox("Le classeur ouvert contient des modifications non enregistrees." & vbCrLf & "Voulez-vous enregistrer avant la fermeture ?", vbYesNoCancel + vbExclamation, "Enregistrer les modifications ?")
                         Select Case respSave
                             Case vbYes: wb.Close SaveChanges:=True
                             Case vbNo:  wb.Close SaveChanges:=False
                             Case vbCancel
-                                MsgBox "Opération annulée.", vbInformation
+                                MsgBox "Operation annulee.", vbInformation
                                 SelectRepertoireProvidor = False
                                 Exit Function
                         End Select
@@ -319,7 +311,7 @@ Private Function SelectRepertoireProvidor(ByRef chemin As String, test As Boolea
                         wb.Close SaveChanges:=False
                     End If
                 Else
-                    MsgBox "Opération annulée. Le fichier n'a pas été copié.", vbInformation
+                    MsgBox "Operation annulee. Le fichier n'a pas ete copie.", vbInformation
                     SelectRepertoireProvidor = False
                     Exit Function
                 End If
@@ -327,12 +319,11 @@ Private Function SelectRepertoireProvidor(ByRef chemin As String, test As Boolea
             End If
         Next wb
         
-        ' Vérifier si fichier existe déjà dans répertoire
+        ' Verifier si fichier existe deja dans repertoire
         If Dir(fichierComplet) <> "" Then
-            resp = MsgBox("Le fichier '" & nomFichier & "' existe déjà dans ce répertoire." & vbCrLf & _
-                         "Souhaitez-vous le remplacer ?", vbYesNo + vbQuestion, "Fichier existant détecté")
+            resp = MsgBox("Le fichier '" & nomFichier & "' existe deja dans ce repertoire." & vbCrLf & "Souhaitez-vous le remplacer ?", vbYesNo + vbQuestion, "Fichier existant detecte")
             If resp = vbNo Then
-                MsgBox "Opération annulée. Le fichier n'a pas été copié.", vbInformation
+                MsgBox "Operation annulee. Le fichier n'a pas ete copie.", vbInformation
                 SelectRepertoireProvidor = False
                 Exit Function
             End If
@@ -396,13 +387,13 @@ ErrHandler:
 End Function
 
 ' =========================================================================
-' PROCÉDURE: GÉNÉRER PROVIDOR
+' PROCEDURE: GENERER PROVIDOR
 ' =========================================================================
 Private Sub GenererProvidor(ByRef wb As Workbook, test As Boolean)
-' Orchestre la génération complète du Providor
+' Orchestre la generation complete du Providor
 ' Appelle toutes les fonctions de remplissage dans l'ordre
 
-    ' Définir feuilles du Providor
+    ' Definir feuilles du Providor
     Set GP = wb.Worksheets("General Parameters")
     Set BS = wb.Worksheets("Breakdown structure")
     Set ML = wb.Worksheets("Material list")
@@ -416,7 +407,7 @@ Private Sub GenererProvidor(ByRef wb As Workbook, test As Boolean)
     Call InitialiserCadrageColonnes  ' O_Providor_CadrageColonnes
     
     If Not ValiderCadrageColonnes() Then
-        MsgBox "Échec initialisation cadrage colonnes. Veuillez faire un ticket ATMAP", vbCritical
+        MsgBox "Echec initialisation cadrage colonnes. Veuillez faire un ticket ATMAP", vbCritical
         GoTo CleanExit
     End If
     
@@ -425,7 +416,7 @@ Private Sub GenererProvidor(ByRef wb As Workbook, test As Boolean)
     Call remplissage_MaterialList                ' H_Providor_BreakdownStructure
     Call remplissage_corr                        ' I_Providor_Maintenance
     
-    ' Remplissage préventive (si activé)
+    ' Remplissage preventive (si active)
     If BoolMaintPrev Then
         Call remplissage_prev                    ' I_Providor_Maintenance
     End If
@@ -435,7 +426,7 @@ Private Sub GenererProvidor(ByRef wb As Workbook, test As Boolean)
     
     TurnOnFunctionality
     
-    ' Exécution calcul LCC
+    ' Execution calcul LCC
     Call ExecuterCalculLCC(wb)                   ' J_Providor_Finalisation
     
 CleanExit:

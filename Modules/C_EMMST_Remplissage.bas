@@ -5,17 +5,16 @@ Attribute VB_Name = "C_EMMST_Remplissage"
 '                                       Module F_EMMST_Remplissage
 '                                       Developpement : LE LARGE Thomas (LGM/Alstom)
 '                                       Module contenant toutes les fonctions de remplissage EMMST
-'                                       Création : Février 2026
+'                                       Creation : Fevrier 2026
 '
 '-----------------------------------------------------------------------------------------------------------
 Option Compare Text
 Option Explicit
 ' =========================================================================
-' PROCÉDURE: REMPLIR INFOS MINIMALES EMMST
+' PROCEDURE: REMPLIR INFOS MINIMALES EMMST
 ' =========================================================================
-Public Sub RemplirInfosMinimalesEMMST(ByRef dest As Worksheet, ByRef index As Worksheet, _
-                                       ByVal indexDTR As Integer)
-' Remplit uniquement DTR et Désignation quand EMMST non trouvée en BDD
+Public Sub RemplirInfosMinimalesEMMST(ByRef dest As Worksheet, ByRef index As Worksheet, ByVal indexDTR As Integer)
+' Remplit uniquement DTR et Designation quand EMMST non trouvee en BDD
     
     Dim r As New EMMST_Ranges
     Call r.Init(dest)
@@ -26,11 +25,10 @@ Public Sub RemplirInfosMinimalesEMMST(ByRef dest As Worksheet, ByRef index As Wo
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR CHAMPS GÉNÉRAUX
+' PROCEDURE: REMPLIR CHAMPS GENERAUX
 ' =========================================================================
-Public Sub RemplirChampsGeneraux(ByRef r As EMMST_Ranges, ByRef index As Worksheet, _
-                                  ByVal indexDTR As Integer, ByVal ligne As Integer)
-' Remplit les champs généraux : Spare/Tool, Désignation, DTR
+Public Sub RemplirChampsGeneraux(ByRef r As EMMST_Ranges, ByRef index As Worksheet, ByVal indexDTR As Integer, ByVal ligne As Integer)
+' Remplit les champs generaux : Spare/Tool, Designation, DTR
     
     ' Spare or Tool
     If IsNull(EMMST_tab(ligne, EMMST_type.TypeOutil)) Then
@@ -50,10 +48,10 @@ Public Sub RemplirChampsGeneraux(ByRef r As EMMST_Ranges, ByRef index As Workshe
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR CHAMPS DIMENSIONS
+' PROCEDURE: REMPLIR CHAMPS DIMENSIONS
 ' =========================================================================
 Public Sub RemplirChampsDimensions(ByRef r As EMMST_Ranges, ByVal ligne As Integer)
-' Remplit dimensions nues et conditionnées
+' Remplit dimensions nues et conditionnees
     
     ' Bare Dimensions
     r.blength.Value = EMMST_tab(ligne, EMMST_type.DimNuLongueur)
@@ -70,12 +68,12 @@ Public Sub RemplirChampsDimensions(ByRef r As EMMST_Ranges, ByVal ligne As Integ
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR CHAMPS EMBALLAGE
+' PROCEDURE: REMPLIR CHAMPS EMBALLAGE
 ' =========================================================================
 Public Sub RemplirChampsEmballage(ByRef r As EMMST_Ranges, ByVal ligne As Integer)
-' Remplit champs emballage : péremption, conditionnement, réutilisable
+' Remplit champs emballage : peremption, conditionnement, reutilisable
     
-    ' Lapsing (Date de péremption)
+    ' Lapsing (Date de peremption)
     If EMMST_tab(ligne, EMMST_type.DatePeremption) = 0 Then
         r.lapsing_no.Value = "X"
     ElseIf EMMST_tab(ligne, EMMST_type.DatePeremption) = -1 Then
@@ -102,10 +100,10 @@ Public Sub RemplirChampsEmballage(ByRef r As EMMST_Ranges, ByVal ligne As Intege
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR CHAMPS MARQUAGE
+' PROCEDURE: REMPLIR CHAMPS MARQUAGE
 ' =========================================================================
 Public Sub RemplirChampsMarquage(ByRef r As EMMST_Ranges, ByVal ligne As Integer)
-' Remplit champs marquage/étiquetage
+' Remplit champs marquage/etiquetage
     
     ' Labelling on packaging
     If EMMST_tab(ligne, EMMST_type.EtiquetteEmballage) = 0 Then
@@ -128,7 +126,7 @@ Public Sub RemplirChampsMarquage(ByRef r As EMMST_Ranges, ByVal ligne As Integer
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR CHAMPS MANUTENTION
+' PROCEDURE: REMPLIR CHAMPS MANUTENTION
 ' =========================================================================
 Public Sub RemplirChampsManutention(ByRef r As EMMST_Ranges, ByVal ligne As Integer)
 ' Remplit champs manutention/handling
@@ -163,7 +161,7 @@ Public Sub RemplirChampsManutention(ByRef r As EMMST_Ranges, ByVal ligne As Inte
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR CHAMPS STOCKAGE
+' PROCEDURE: REMPLIR CHAMPS STOCKAGE
 ' =========================================================================
 Public Sub RemplirChampsStockage(ByRef r As EMMST_Ranges, ByVal ligne As Integer)
 ' Remplit champs stockage/storage
@@ -174,15 +172,14 @@ Public Sub RemplirChampsStockage(ByRef r As EMMST_Ranges, ByVal ligne As Integer
             r.pos_hor.Value = "X"
         Case "Vertical"
             r.pos_ver.Value = "X"
-        Case "Indifférent"
+        Case "Indifferent"
             r.pos_indif.Value = "X"
         Case Else
             r.pos_hor.Value = ""
     End Select
     
     ' Outdoor storage
-    If EMMST_tab(ligne, EMMST_type.StockageExterieur) <> 0 And _
-       Not IsNull(EMMST_tab(ligne, EMMST_type.StockageExterieur)) Then
+    If EMMST_tab(ligne, EMMST_type.StockageExterieur) <> 0 And Not IsNull(EMMST_tab(ligne, EMMST_type.StockageExterieur)) Then
         
         r.out.Value = "X"
         
@@ -202,8 +199,7 @@ Public Sub RemplirChampsStockage(ByRef r As EMMST_Ranges, ByVal ligne As Integer
     End If
     
     ' Indoor storage
-    If EMMST_tab(ligne, EMMST_type.StockageInterieur) <> 0 And _
-       Not IsNull(EMMST_tab(ligne, EMMST_type.StockageInterieur)) Then
+    If EMMST_tab(ligne, EMMST_type.StockageInterieur) <> 0 And Not IsNull(EMMST_tab(ligne, EMMST_type.StockageInterieur)) Then
         
         r.ind.Value = "X"
         
@@ -229,8 +225,7 @@ Public Sub RemplirChampsStockage(ByRef r As EMMST_Ranges, ByVal ligne As Integer
     End If
     
     ' Stackable
-    If EMMST_tab(ligne, EMMST_type.Gerbable) = 0 Or _
-       IsNull(EMMST_tab(ligne, EMMST_type.Gerbable)) Then
+    If EMMST_tab(ligne, EMMST_type.Gerbable) = 0 Or IsNull(EMMST_tab(ligne, EMMST_type.Gerbable)) Then
         r.stackable_no.Value = "X"
     ElseIf EMMST_tab(ligne, EMMST_type.Gerbable) = -1 Then
         r.stackable_yes.Value = "X"
@@ -266,7 +261,7 @@ Public Sub RemplirChampsStockage(ByRef r As EMMST_Ranges, ByVal ligne As Integer
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR CHAMPS TRANSPORT
+' PROCEDURE: REMPLIR CHAMPS TRANSPORT
 ' =========================================================================
 Public Sub RemplirChampsTransport(ByRef r As EMMST_Ranges, ByVal ligne As Integer)
 ' Remplit champs transport
@@ -310,7 +305,7 @@ Public Sub RemplirChampsTransport(ByRef r As EMMST_Ranges, ByVal ligne As Intege
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR COMMENTAIRES
+' PROCEDURE: REMPLIR COMMENTAIRES
 ' =========================================================================
 Public Sub RemplirCommentaires(ByRef r As EMMST_Ranges, ByVal ligne As Integer)
 ' Remplit les commentaires selon la langue (FR ou EN)
@@ -323,7 +318,7 @@ Public Sub RemplirCommentaires(ByRef r As EMMST_Ranges, ByVal ligne As Integer)
         r.stor_com.Value = EMMST_tab(ligne, EMMST_type.CommStockage_EN)
         r.transp_com.Value = EMMST_tab(ligne, EMMST_type.CommTransport_EN)
     Else
-        ' Commentaires français
+        ' Commentaires francais
         r.pack_com.Value = EMMST_tab(ligne, EMMST_type.CommEmballage)
         r.lab_com.Value = EMMST_tab(ligne, EMMST_type.CommMarquage)
         r.man_com.Value = EMMST_tab(ligne, EMMST_type.CommManutention)
@@ -334,18 +329,17 @@ Public Sub RemplirCommentaires(ByRef r As EMMST_Ranges, ByVal ligne As Integer)
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: MARQUER STATUT INDEX EMMST
+' PROCEDURE: MARQUER STATUT INDEX EMMST
 ' =========================================================================
-Public Sub MarquerStatutIndexEMMST(ByRef index As Worksheet, ByVal indexDTR As Integer, _
-                                    ByVal statut As String)
-' Marque le statut dans l'Index (A créer, A remplir)
+Public Sub MarquerStatutIndexEMMST(ByRef index As Worksheet, ByVal indexDTR As Integer, ByVal statut As String)
+' Marque le statut dans l'Index (A creer, A remplir)
     
     If langue = "FR" Then
         index.Cells(indexDTR + 5, 6) = statut
     Else
         ' Traduction anglaise
         Select Case statut
-            Case "A créer": index.Cells(indexDTR + 5, 6) = "To create"
+            Case "A creer": index.Cells(indexDTR + 5, 6) = "To create"
             Case "A remplir": index.Cells(indexDTR + 5, 6) = "To fill"
             Case Else: index.Cells(indexDTR + 5, 6) = statut
         End Select
@@ -354,11 +348,10 @@ Public Sub MarquerStatutIndexEMMST(ByRef index As Worksheet, ByVal indexDTR As I
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: CRÉER LIEN HYPERTEXTE EMMST
+' PROCEDURE: CREER LIEN HYPERTEXTE EMMST
 ' =========================================================================
-Public Sub CreerLienHypertexteEMMST(ByRef index As Worksheet, ByVal indexDTR As Integer, _
-                                     ByRef dest As Worksheet)
-' Crée le lien hypertexte depuis l'Index vers la feuille
+Public Sub CreerLienHypertexteEMMST(ByRef index As Worksheet, ByVal indexDTR As Integer, ByRef dest As Worksheet)
+' Cree le lien hypertexte depuis l'Index vers la feuille
     
     Dim colonneNom As String
     
@@ -369,17 +362,13 @@ Public Sub CreerLienHypertexteEMMST(ByRef index As Worksheet, ByVal indexDTR As 
     End If
     
     With index
-        .Hyperlinks.Add _
-            Anchor:=.Range("Tableau1").ListObject.ListColumns(colonneNom).DataBodyRange(indexDTR), _
-            Address:="", _
-            SubAddress:="'" & dest.Name & "'!A1", _
-            TextToDisplay:=dest.Name
+        .Hyperlinks.Add Anchor:=.Range("Tableau1").ListObject.ListColumns(colonneNom).DataBodyRange(indexDTR), Address:="", SubAddress:="'" & dest.Name & "'!A1", TextToDisplay:=dest.Name
     End With
     
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR COUVERTURE EMMST
+' PROCEDURE: REMPLIR COUVERTURE EMMST
 ' =========================================================================
 Public Sub RemplirCouvertureEMMST(ByRef CoverPage As Worksheet)
 ' Remplit la page de couverture avec les infos projet
@@ -392,7 +381,7 @@ Public Sub RemplirCouvertureEMMST(ByRef CoverPage As Worksheet)
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: FINALISER FICHIER EMMST
+' PROCEDURE: FINALISER FICHIER EMMST
 ' =========================================================================
 Public Sub FinaliserFichierEMMST(ByRef Template As Workbook)
 ' Finalise le fichier EMMST : Index, couverture, suppression template
@@ -413,7 +402,7 @@ Public Sub FinaliserFichierEMMST(ByRef Template As Workbook)
     ' Renommer colonne Index
     Set TabIndex = index.Range("Tableau1").ListObject
     If langue = "FR" Then
-        TabIndex.ListColumns(5).Name = "A créer/remplir?"
+        TabIndex.ListColumns(5).Name = "A creer/remplir?"
         index.Range("B3") = "EMMST Projet " & Projet_Abrev & " Rev " & Revision
     Else
         TabIndex.ListColumns(5).Name = "To create/fill?"

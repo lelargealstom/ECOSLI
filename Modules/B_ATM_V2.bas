@@ -50,7 +50,7 @@ Public Sub ATM_V2()
     Call Cadrage_Infos_ATM(Infos_tab)
 
     ' Indexation DTR -> ligne en O(1). Doit etre APRES les Cadrage_*
-    ' sinon Taches_type.dtr / Info_type.dtr valent 0 et l'index est cassé.
+    ' sinon Taches_type.dtr / Info_type.dtr valent 0 et l'index est casse.
     Call IndexerTachesEtInfos
     
     'Recuperation de la PBS
@@ -121,8 +121,7 @@ End Sub
 ' =========================================================================
 ' FONCTION: RECHERCHER FICHIER ILLUSTRE
 ' =========================================================================
-Private Function RechercherFichierIllustre(ByRef Tbl() As String, ByVal dtr As String, _
-                                           ByVal bibli As String, ByVal chemin As String) As Boolean
+Private Function RechercherFichierIllustre(ByRef Tbl() As String, ByVal dtr As String, ByVal bibli As String, ByVal chemin As String) As Boolean
     Dim j As Integer
     
     For j = 1 To UBound(Tbl)
@@ -151,8 +150,7 @@ End Sub
 ' =========================================================================
 ' PROCEDURE PRINCIPALE: GENERER FICHE ATM
 ' =========================================================================
-Private Sub GenererFicheATM(ByVal dtr As String, ByVal Designation As String, _
-                            ByVal chemin As String, ByVal indexDTR As Integer)
+Private Sub GenererFicheATM(ByVal dtr As String, ByVal Designation As String, ByVal chemin As String, ByVal indexDTR As Integer)
     Dim nomFichier As String
     Dim dest As Worksheet
     Dim CoverPage As Worksheet
@@ -204,9 +202,7 @@ Private Sub GenererFicheATM(ByVal dtr As String, ByVal Designation As String, _
     ActiveWorkbook.Save
     ActiveWorkbook.Close
 End Sub
-Private Function RechercherPlagesDTR_V2(ByVal dtr As String, _
-                                        ByRef PMB As Integer, ByRef PMH As Integer, ByRef PMJ As Integer, _
-                                        ByRef test_taches As Boolean, ByRef test_infos As Boolean) As Boolean
+Private Function RechercherPlagesDTR_V2(ByVal dtr As String, ByRef PMB As Integer, ByRef PMH As Integer, ByRef PMJ As Integer, ByRef test_taches As Boolean, ByRef test_infos As Boolean) As Boolean
 
 Dim j As Integer, l As Integer
 Dim cle As String
@@ -229,8 +225,7 @@ Dim cle As String
     ' --- PMB : fallback lineaire (filet de securite) --------
     If Not test_taches Then
         For j = 2 To UBound(Taches_tab, 1)
-            If Taches_tab(j, Taches_type.dtr) = dtr And _
-               Taches_tab(j, Taches_type.langue) = langue Then
+            If Taches_tab(j, Taches_type.dtr) = dtr And Taches_tab(j, Taches_type.langue) = langue Then
                 PMB = j
                 test_taches = True
                 Debug.Print "RechercherPlagesDTR_V2 [" & dtr & "] : dico miss, fallback lineaire OK PMB=" & PMB
@@ -249,8 +244,7 @@ Dim cle As String
     ' V2 verifie AUSSI la langue dans la continuation (plus strict que V1)
     j = PMB
     Do While j < UBound(Taches_tab, 1)
-        If Taches_tab(j + 1, Taches_type.dtr) = Taches_tab(j, Taches_type.dtr) And _
-           Taches_tab(j + 1, Taches_type.langue) = langue Then
+        If Taches_tab(j + 1, Taches_type.dtr) = Taches_tab(j, Taches_type.dtr) And Taches_tab(j + 1, Taches_type.langue) = langue Then
             j = j + 1
         Else
             Exit Do
@@ -362,9 +356,7 @@ End Sub
 ' =========================================================================
 ' PROCEDURE: INSERER TACHE CHAPITRE (A, B, D)
 ' =========================================================================
-Private Sub InsererTacheChapitre(ByRef dest As Worksheet, ByRef chapitres() As ChapitreInfo, _
-                                 ByVal numChapitre As Integer, ByVal indexTache As Integer, _
-                                 ByVal cumulerTemps As Boolean)
+Private Sub InsererTacheChapitre(ByRef dest As Worksheet, ByRef chapitres() As ChapitreInfo, ByVal numChapitre As Integer, ByVal indexTache As Integer, ByVal cumulerTemps As Boolean)
     Dim ligvide As Long  ' IMPORTANT: Long au lieu de Integer pour eviter overflow
     Dim temps As Double
     Dim k As Integer
@@ -430,9 +422,7 @@ End Sub
 ' =========================================================================
 ' PROCEDURE: INSERER TACHE CHAPITRE C (avec sous-chapitres)
 ' =========================================================================
-Private Sub InsererTacheChapitreC(ByRef dest As Worksheet, ByRef chapitres() As ChapitreInfo, _
-                                  ByVal numChapitre As Integer, ByVal indexTache As Integer, _
-                                  ByRef compteurSousChapitres As Integer)
+Private Sub InsererTacheChapitreC(ByRef dest As Worksheet, ByRef chapitres() As ChapitreInfo, ByVal numChapitre As Integer, ByVal indexTache As Integer, ByRef compteurSousChapitres As Integer)
     Dim ligvide As Integer
     Dim rang As String
     Dim premierMot As String
@@ -594,8 +584,7 @@ End Sub
 ' =========================================================================
 ' PROCEDURE: REMPLIR COUVERTURE
 ' =========================================================================
-Private Sub RemplirCouverture(ByRef CoverPage As Worksheet, ByVal dtr As String, _
-                              ByVal PMJ As Integer, ByVal test_infos As Boolean)
+Private Sub RemplirCouverture(ByRef CoverPage As Worksheet, ByVal dtr As String, ByVal PMJ As Integer, ByVal test_infos As Boolean)
     
     ' Projet
     CoverPage.Range("F26") = Projet_Abrev

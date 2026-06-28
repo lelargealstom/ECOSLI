@@ -30,10 +30,7 @@ Option Compare Text
 '   sLangue   : "FR" ou "EN"
 '   sVersion  : "V1" ou "V2" (informatif, pas utilise par l'extraction
 '               actuellement - les fiches DTR ont la meme structure)
-Public Sub SIRUS_DeverserExtractionDansSIRUS(ByVal sTable As String, _
-                                              ByVal sFichier As String, _
-                                              ByVal sLangue As String, _
-                                              Optional ByVal sVersion As String = "")
+Public Sub SIRUS_DeverserExtractionDansSIRUS(ByVal sTable As String, ByVal sFichier As String, ByVal sLangue As String, Optional ByVal sVersion As String = "")
 
     Dim wbExtr As Workbook
     Dim wbProjet As Workbook
@@ -64,13 +61,10 @@ Public Sub SIRUS_DeverserExtractionDansSIRUS(ByVal sTable As String, _
     ' Deverser feuilles brutes -> feuilles SIRUS
     Select Case sTable
         Case "ATM"
-            Call DeverserFeuilleVersSIRUS(wbExtr, "Info_ATM", _
-                                           wbProjet, "SIRUS_InfoATM_Extraction")
-            Call DeverserFeuilleVersSIRUS(wbExtr, "Taches_ATM", _
-                                           wbProjet, "SIRUS_TachesATM_Extraction")
+            Call DeverserFeuilleVersSIRUS(wbExtr, "Info_ATM", wbProjet, "SIRUS_InfoATM_Extraction")
+            Call DeverserFeuilleVersSIRUS(wbExtr, "Taches_ATM", wbProjet, "SIRUS_TachesATM_Extraction")
         Case "EMMST"
-            Call DeverserFeuilleVersSIRUS(wbExtr, "EMMST", _
-                                           wbProjet, "SIRUS_EMMST_Extraction")
+            Call DeverserFeuilleVersSIRUS(wbExtr, "EMMST", wbProjet, "SIRUS_EMMST_Extraction")
         Case Else
             MsgBox "SIRUS Extraction : table inconnue '" & sTable & "'.", vbCritical
     End Select
@@ -81,8 +75,7 @@ Public Sub SIRUS_DeverserExtractionDansSIRUS(ByVal sTable As String, _
     wbExtr.Close SaveChanges:=False
 
     wbProjet.Activate
-    MsgBox "Extraction terminee : donnees deversees dans les feuilles SIRUS_*_Extraction.", _
-           vbInformation, "SIRUS Extraction"
+    MsgBox "Extraction terminee : donnees deversees dans les feuilles SIRUS_*_Extraction.", vbInformation, "SIRUS Extraction"
     Exit Sub
 
 Sortie:
@@ -112,10 +105,7 @@ End Sub
 ' meme valeur dans la ligne 2 SIRUS et copier la colonne au bon endroit.
 ' Les colonnes brutes sans correspondance SIRUS sont ignorees (avec
 ' un Debug.Print informatif).
-Private Sub DeverserFeuilleVersSIRUS(ByVal wbSrc As Workbook, _
-                                       ByVal sSrcFeuille As String, _
-                                       ByVal wbDest As Workbook, _
-                                       ByVal sDestFeuille As String)
+Private Sub DeverserFeuilleVersSIRUS(ByVal wbSrc As Workbook, ByVal sSrcFeuille As String, ByVal wbDest As Workbook, ByVal sDestFeuille As String)
     Dim wsSrc As Worksheet
     Dim wsDest As Worksheet
     Dim mapColBdD As Object       ' Dictionary {NomNormalise -> col index SIRUS}
@@ -141,16 +131,11 @@ Private Sub DeverserFeuilleVersSIRUS(ByVal wbSrc As Workbook, _
     On Error GoTo Sortie
 
     If wsSrc Is Nothing Then
-        MsgBox "SIRUS Extraction : feuille source '" & sSrcFeuille & _
-               "' absente du livrable apres extraction." & vbCrLf & _
-               "Feuilles disponibles : " & FeuillesDispo(wbSrc), _
-               vbCritical, "SIRUS"
+        MsgBox "SIRUS Extraction : feuille source '" & sSrcFeuille & "' absente du livrable apres extraction." & vbCrLf & "Feuilles disponibles : " & FeuillesDispo(wbSrc), vbCritical, "SIRUS"
         Exit Sub
     End If
     If wsDest Is Nothing Then
-        MsgBox "SIRUS Extraction : feuille SIRUS '" & sDestFeuille & _
-               "' absente du projet. La generer avant le deversement.", _
-               vbCritical, "SIRUS"
+        MsgBox "SIRUS Extraction : feuille SIRUS '" & sDestFeuille & "' absente du projet. La generer avant le deversement.", vbCritical, "SIRUS"
         Exit Sub
     End If
 
@@ -181,14 +166,11 @@ Private Sub DeverserFeuilleVersSIRUS(ByVal wbSrc As Workbook, _
     nbLignesSrc = wsSrc.Cells(wsSrc.rows.count, 1).End(xlUp).Row
 
     If nbLignesSrc < 2 Then
-        MsgBox "SIRUS Extraction : feuille '" & sSrcFeuille & _
-               "' vide (pas de ligne de donnees apres l'entete).", _
-               vbExclamation, "SIRUS"
+        MsgBox "SIRUS Extraction : feuille '" & sSrcFeuille & "' vide (pas de ligne de donnees apres l'entete).", vbExclamation, "SIRUS"
         Exit Sub
     End If
 
-    arrSrc = wsSrc.Range(wsSrc.Cells(1, 1), _
-                          wsSrc.Cells(nbLignesSrc, nbColsSrc)).Value
+    arrSrc = wsSrc.Range(wsSrc.Cells(1, 1), wsSrc.Cells(nbLignesSrc, nbColsSrc)).Value
 
     ' Pour chaque colonne source, mapper vers SIRUS et copier les donnees
     nbColonnesMappees = 0
@@ -220,8 +202,7 @@ Private Sub DeverserFeuilleVersSIRUS(ByVal wbSrc As Workbook, _
     ' config SIRUS et format extraction.
     Dim sMsg As String
     sMsg = "Feuille SIRUS : " & sDestFeuille & vbCrLf & vbCrLf
-    sMsg = sMsg & nbColonnesMappees & " colonne(s) mappee(s) sur " & _
-                  nbColsSrc & " brutes" & vbCrLf
+    sMsg = sMsg & nbColonnesMappees & " colonne(s) mappee(s) sur " & nbColsSrc & " brutes" & vbCrLf
     sMsg = sMsg & (nbLignesSrc - 1) & " ligne(s) de donnees deversee(s)" & vbCrLf
     If nbColonnesIgnorees > 0 Then
         sMsg = sMsg & vbCrLf & "Colonnes ignorees (absentes du config SIRUS) :" & vbCrLf
@@ -230,9 +211,7 @@ Private Sub DeverserFeuilleVersSIRUS(ByVal wbSrc As Workbook, _
         sMsg = sMsg & "dans le fichier livrable mais pas dans le config SIRUS." & vbCrLf
         sMsg = sMsg & "Pour les inclure : enrichir Peupler" & Replace(sDestFeuille, "SIRUS_", "") & "."
     End If
-    Debug.Print "DeverserFeuilleVersSIRUS [" & sDestFeuille & "] : " & _
-                nbColonnesMappees & " mappee(s), " & nbColonnesIgnorees & " ignoree(s), " & _
-                (nbLignesSrc - 1) & " ligne(s) deversee(s)."
+    Debug.Print "DeverserFeuilleVersSIRUS [" & sDestFeuille & "] : " & nbColonnesMappees & " mappee(s), " & nbColonnesIgnorees & " ignoree(s), " & (nbLignesSrc - 1) & " ligne(s) deversee(s)."
     MsgBox sMsg, vbInformation, "SIRUS - Deversement"
 
     ' Refresh statut col 1 : afficher "A analyser" en attendant l'analyse
@@ -247,8 +226,7 @@ Private Sub DeverserFeuilleVersSIRUS(ByVal wbSrc As Workbook, _
     Exit Sub
 
 Sortie:
-    MsgBox "Erreur DeverserFeuilleVersSIRUS [" & sDestFeuille & "] : " & _
-           Err.Description, vbCritical, "SIRUS"
+    MsgBox "Erreur DeverserFeuilleVersSIRUS [" & sDestFeuille & "] : " & Err.Description, vbCritical, "SIRUS"
 End Sub
 
 ' =========================================================================
@@ -261,9 +239,7 @@ End Sub
 '
 ' Strategie : nom feuille = "SIRUS_<Table>_<Op>" -> on extrait <Table>
 ' et on lit le config via SIRUS_LireConfig(<Table>).
-Private Sub ForcerFormatTexte(ByVal wsDest As Worksheet, _
-                                ByVal sDestFeuille As String, _
-                                ByRef mapColBdD As Object)
+Private Sub ForcerFormatTexte(ByVal wsDest As Worksheet, ByVal sDestFeuille As String, ByRef mapColBdD As Object)
     Dim parts() As String
     Dim sTable As String
     Dim col As Collection

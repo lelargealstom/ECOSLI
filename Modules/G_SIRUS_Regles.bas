@@ -44,9 +44,7 @@ Private projetsSLI_Cache As Object   ' Scripting.Dictionary
 '   2. Ajouter un Case "<Table>|<ColonneBdD>" dans la bonne fonction.
 '   3. Documenter dans un commentaire la regle metier verrouillee.
 
-Public Function SIRUS_RegleObligatoire(ByVal sTable As String, _
-                                       ByVal sColonneBdD As String, _
-                                       ByRef ligne As Object) As Boolean
+Public Function SIRUS_RegleObligatoire(ByVal sTable As String, ByVal sColonneBdD As String, ByRef ligne As Object) As Boolean
     ' Renvoie True si le champ est obligatoire pour cette ligne.
     ' ligne : Dictionary {ColonneBdD -> valeur} de la ligne en cours.
 
@@ -57,20 +55,18 @@ Public Function SIRUS_RegleObligatoire(ByVal sTable As String, _
         ' PLUS obligatoires conditionnellement (saisie libre).
         ' Cf. PeuplerProduit -> Obligatoire = "Non".
 
-        Case "Produit|MTBF intrins" & ChrW(232) & "que Produit (h) issu de la datasheet _PRODUIT"
+        Case "Produit|MTBF intrinseque Produit (h) issu de la datasheet _PRODUIT"
             ' MTBF intrinseque obligatoire si NodeType LRU/SRU ET pas de
             ' MotifNonApplicabilite renseigne (cas typique : LRU sans
             ' donnees RAM disponibles a date).
-            If EstNodeTypeIn(ligne, "Node type Produit (LRU/SRU" & ChrW(8230) & ")_PRODUIT", _
-                             Array("LRU", "SRU")) Then
-                SIRUS_RegleObligatoire = (LenB(GetVal(ligne, "MotifNonApplicabilit" & ChrW(233) & "_PRODUIT")) = 0)
+            If EstNodeTypeIn(ligne, "Node type Produit (LRU/SRU...)_PRODUIT", Array("LRU", "SRU")) Then
+                SIRUS_RegleObligatoire = (LenB(GetVal(ligne, "MotifNonApplicabilite_PRODUIT")) = 0)
             End If
 
-        Case "Produit|MotifNonApplicabilit" & ChrW(233) & "_PRODUIT"
+        Case "Produit|MotifNonApplicabilite_PRODUIT"
             ' MotifNonApplicabilite obligatoire si MTBF intrinseque vide
             ' (justifie pourquoi on ne renseigne pas la valeur RAM).
-            SIRUS_RegleObligatoire = _
-                (LenB(GetVal(ligne, "MTBF intrins" & ChrW(232) & "que Produit (h) issu de la datasheet _PRODUIT")) = 0)
+            SIRUS_RegleObligatoire = (LenB(GetVal(ligne, "MTBF intrinseque Produit (h) issu de la datasheet _PRODUIT")) = 0)
 
         ' ----------------- TachesATM -----------------
         Case "TachesATM|Description_TACHEATM"
@@ -80,23 +76,22 @@ Public Function SIRUS_RegleObligatoire(ByVal sTable As String, _
             rang = CStr(GetVal(ligne, "Rang_TACHEATM"))
             SIRUS_RegleObligatoire = (Left$(rang, 2) = "3." Or Left$(rang, 2) = "4.")
 
-        Case "TachesATM|Crit" & ChrW(232) & "resDimensionnels_TACHEATM"
+        Case "TachesATM|CriteresDimensionnels_TACHEATM"
             ' Criteres dimensionnels (Critere Nm) obligatoires si la
             ' description mentionne "Torque Tighten" (couple de serrage).
             Dim descTorque As String
             descTorque = CStr(GetVal(ligne, "Description_TACHEATM"))
             SIRUS_RegleObligatoire = (InStr(1, descTorque, "Torque Tighten", vbTextCompare) > 0)
 
-        Case "TachesATM|OutillageStandard_TACHEATM", "TachesATM|Outillage" & ChrW(233) & "cifique_TACHEATM"
+        Case "TachesATM|OutillageStandard_TACHEATM", "TachesATM|Outillageecifique_TACHEATM"
             ' Outillage standard/specifique obligatoire pour les taches
             ' de rang 2.1 (Outils prerequis Depose) et 5.1 (Outils
             ' prerequis Pose) sur les composants >= SRU (LRU exclus :
             ' demontage complet du LRU, pas d'outillage detaille).
             Dim rangO As String, ntO As String
             rangO = CStr(GetVal(ligne, "Rang_TACHEATM"))
-            ntO = UCase$(Trim$(CStr(GetVal(ligne, "Node type Produit (LRU/SRU" & ChrW(8230) & ")_PRODUIT"))))
-            SIRUS_RegleObligatoire = ((rangO = "2.1" Or rangO = "5.1") And _
-                                     (ntO = "SRU" Or ntO = "SRUNR" Or ntO = "ASSEMBLY"))
+            ntO = UCase$(Trim$(CStr(GetVal(ligne, "Node type Produit (LRU/SRU...)_PRODUIT"))))
+            SIRUS_RegleObligatoire = ((rangO = "2.1" Or rangO = "5.1") And (ntO = "SRU" Or ntO = "SRUNR" Or ntO = "ASSEMBLY"))
 
         ' ----------------- InfoATM -----------------
         ' TODO Phase 2.1 : Plan, Reparabilite, Poids, Temps generique
@@ -118,8 +113,7 @@ Public Function SIRUS_RegleObligatoire(ByVal sTable As String, _
             ' ATMAP si justification).
             SIRUS_RegleObligatoire = True
 
-        Case "ProjetASL|Prix repair (DEVISE du projet (SLI))_PROJETASL", _
-             "ProjetASL|Lead time REPAIR (jours)_PROJETASL"
+        Case "ProjetASL|Prix repair (DEVISE du projet (SLI))_PROJETASL", "ProjetASL|Lead time REPAIR (jours)_PROJETASL"
             ' Prix Repair + Lead time Repair : obligatoires uniquement si
             ' le DTR est un LRU ou un SRU (les autres NodeType n ont pas
             ' de cycle reparation - KIT, VISSERIE, ASSEMBLY, etc.).
@@ -136,9 +130,7 @@ Public Function SIRUS_RegleObligatoire(ByVal sTable As String, _
     End Select
 End Function
 
-Public Function SIRUS_RegleAlerte(ByVal sTable As String, _
-                                  ByVal sColonneBdD As String, _
-                                  ByRef ligne As Object) As String
+Public Function SIRUS_RegleAlerte(ByVal sTable As String, ByVal sColonneBdD As String, ByRef ligne As Object) As String
     ' Renvoie "" si pas d'alerte, sinon le libelle a afficher dans Statut.
 
     Select Case sTable & "|" & sColonneBdD
@@ -150,10 +142,10 @@ Public Function SIRUS_RegleAlerte(ByVal sTable As String, _
         ' une fois "??_DateSourceSpare/Repair_a_definir" remplaces.
 
         ' ----------------- TachesATM -----------------
-        Case "TachesATM|NbOp" & ChrW(233) & "rateurs_TACHEATM"
+        Case "TachesATM|NbOperateurs_TACHEATM"
             ' Alerte si > 4 operateurs : valeur metier rare, a confirmer.
             Dim nbOp As String
-            nbOp = CStr(GetVal(ligne, "NbOp" & ChrW(233) & "rateurs_TACHEATM"))
+            nbOp = CStr(GetVal(ligne, "NbOperateurs_TACHEATM"))
             If IsNumeric(nbOp) Then
                 If CDbl(nbOp) > 4 Then
                     SIRUS_RegleAlerte = "Nb operateurs > 4 : valeur a confirmer"
@@ -166,7 +158,7 @@ Public Function SIRUS_RegleAlerte(ByVal sTable As String, _
             ' (le RAM report projet doit etre >= valeur datasheet).
             Dim mtbfF As String, mtbfI As String
             mtbfF = CStr(GetVal(ligne, "MTBF fonctionnel (h) issu du RAM report projet_PROJETASL"))
-            mtbfI = CStr(GetVal(ligne, "MTBF intrins" & ChrW(232) & "que Produit (h) issu de la datasheet _PRODUIT"))
+            mtbfI = CStr(GetVal(ligne, "MTBF intrinseque Produit (h) issu de la datasheet _PRODUIT"))
             If IsNumeric(mtbfF) And IsNumeric(mtbfI) Then
                 If CDbl(mtbfF) < CDbl(mtbfI) Then
                     SIRUS_RegleAlerte = "MTBF fonctionnel < MTBF intrinseque : verifier RAM report"
@@ -241,8 +233,7 @@ Private Function ChargerProjetsSLI() As Object
     Call Open_CONN(cnx)
     bOpened = True
 
-    sql = "SELECT [Nom projet_PROJET SLI] FROM [Projet_SLI$] " & _
-          "WHERE [Nom projet_PROJET SLI] IS NOT NULL"
+    sql = "SELECT [Nom projet_PROJET SLI] FROM [Projet_SLI$] WHERE [Nom projet_PROJET SLI] IS NOT NULL"
     Call open_REQSEL(sql)
 
     Do While Not REQSEL.EOF
@@ -285,9 +276,7 @@ Private Function GetVal(ByRef ligne As Object, ByVal sColonneBdD As String) As V
     End If
 End Function
 
-Private Function EstNodeTypeIn(ByRef ligne As Object, _
-                                ByVal sColonneBdD As String, _
-                                ByRef tValeurs As Variant) As Boolean
+Private Function EstNodeTypeIn(ByRef ligne As Object, ByVal sColonneBdD As String, ByRef tValeurs As Variant) As Boolean
     ' Test si la valeur du champ NodeType de la ligne est dans tValeurs.
     Dim v As String
     Dim i As Long
@@ -309,15 +298,13 @@ Public Sub Test_Regle_Produit_MTBFConditionnel()
     ' Test : MTBF intrinseque obligatoire si NodeType LRU/SRU ET MotifNA vide
     Dim d As Object
     Set d = CreateObject("Scripting.Dictionary")
-    d("Node type Produit (LRU/SRU" & ChrW(8230) & ")_PRODUIT") = "LRU"
-    d("MotifNonApplicabilit" & ChrW(233) & "_PRODUIT") = ""
-    Debug.Print "LRU + MotifNA vide -> MTBF oblig ? " & _
-        SIRUS_RegleObligatoire("Produit", "MTBF intrins" & ChrW(232) & "que Produit (h) issu de la datasheet _PRODUIT", d)
+    d("Node type Produit (LRU/SRU...)_PRODUIT") = "LRU"
+    d("MotifNonApplicabilite_PRODUIT") = ""
+    Debug.Print "LRU + MotifNA vide -> MTBF oblig ? " & SIRUS_RegleObligatoire("Produit", "MTBF intrinseque Produit (h) issu de la datasheet _PRODUIT", d)
     ' Attendu : True
 
-    d("MotifNonApplicabilit" & ChrW(233) & "_PRODUIT") = "NA MECA"
-    Debug.Print "LRU + MotifNA renseigne -> MTBF oblig ? " & _
-        SIRUS_RegleObligatoire("Produit", "MTBF intrins" & ChrW(232) & "que Produit (h) issu de la datasheet _PRODUIT", d)
+    d("MotifNonApplicabilite_PRODUIT") = "NA MECA"
+    Debug.Print "LRU + MotifNA renseigne -> MTBF oblig ? " & SIRUS_RegleObligatoire("Produit", "MTBF intrinseque Produit (h) issu de la datasheet _PRODUIT", d)
     ' Attendu : False
 End Sub
 
@@ -326,13 +313,11 @@ Public Sub Test_Regle_TachesATM_DescriptionRang3()
     Dim d As Object
     Set d = CreateObject("Scripting.Dictionary")
     d("Rang_TACHEATM") = "3.1"
-    Debug.Print "Rang 3.1 -> Description oblig ? " & _
-        SIRUS_RegleObligatoire("TachesATM", "Description_TACHEATM", d)
+    Debug.Print "Rang 3.1 -> Description oblig ? " & SIRUS_RegleObligatoire("TachesATM", "Description_TACHEATM", d)
     ' Attendu : True
 
     d("Rang_TACHEATM") = "2.1"
-    Debug.Print "Rang 2.1 -> Description oblig ? " & _
-        SIRUS_RegleObligatoire("TachesATM", "Description_TACHEATM", d)
+    Debug.Print "Rang 2.1 -> Description oblig ? " & SIRUS_RegleObligatoire("TachesATM", "Description_TACHEATM", d)
     ' Attendu : False
 End Sub
 
@@ -341,13 +326,11 @@ Public Sub Test_Regle_TachesATM_TorqueTighten()
     Dim d As Object
     Set d = CreateObject("Scripting.Dictionary")
     d("Description_TACHEATM") = "Torque Tighten the M8 screws to 25 Nm"
-    Debug.Print "Torque Tighten -> Criteres Nm oblig ? " & _
-        SIRUS_RegleObligatoire("TachesATM", "Crit" & ChrW(232) & "resDimensionnels_TACHEATM", d)
+    Debug.Print "Torque Tighten -> Criteres Nm oblig ? " & SIRUS_RegleObligatoire("TachesATM", "CriteresDimensionnels_TACHEATM", d)
     ' Attendu : True
 
     d("Description_TACHEATM") = "Remove the bracket"
-    Debug.Print "Pas de Torque -> Criteres Nm oblig ? " & _
-        SIRUS_RegleObligatoire("TachesATM", "Crit" & ChrW(232) & "resDimensionnels_TACHEATM", d)
+    Debug.Print "Pas de Torque -> Criteres Nm oblig ? " & SIRUS_RegleObligatoire("TachesATM", "CriteresDimensionnels_TACHEATM", d)
     ' Attendu : False
 End Sub
 
@@ -356,14 +339,12 @@ Public Sub Test_Regle_Alerte_MTBFInferieur()
     Dim d As Object
     Set d = CreateObject("Scripting.Dictionary")
     d("MTBF fonctionnel (h) issu du RAM report projet_PROJETASL") = "5000"
-    d("MTBF intrins" & ChrW(232) & "que Produit (h) issu de la datasheet _PRODUIT") = "8000"
-    Debug.Print "MTBF fct=5000 < intrins=8000 -> alerte : '" & _
-        SIRUS_RegleAlerte("ProjetASL", "MTBF fonctionnel (h) issu du RAM report projet_PROJETASL", d) & "'"
+    d("MTBF intrinseque Produit (h) issu de la datasheet _PRODUIT") = "8000"
+    Debug.Print "MTBF fct=5000 < intrins=8000 -> alerte : '" & SIRUS_RegleAlerte("ProjetASL", "MTBF fonctionnel (h) issu du RAM report projet_PROJETASL", d) & "'"
     ' Attendu : libelle d'alerte
 
     d("MTBF fonctionnel (h) issu du RAM report projet_PROJETASL") = "10000"
-    Debug.Print "MTBF fct=10000 >= intrins=8000 -> alerte : '" & _
-        SIRUS_RegleAlerte("ProjetASL", "MTBF fonctionnel (h) issu du RAM report projet_PROJETASL", d) & "'"
+    Debug.Print "MTBF fct=10000 >= intrins=8000 -> alerte : '" & SIRUS_RegleAlerte("ProjetASL", "MTBF fonctionnel (h) issu du RAM report projet_PROJETASL", d) & "'"
     ' Attendu : "" (vide)
 End Sub
 

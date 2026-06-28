@@ -26,9 +26,7 @@ Private Const ZONE_CARTOUCHE As String = "A1:N12"
 ' Meme signature que Extraction_Fiches_ATM (ancien) pour drop-in replacement.
 ' Strategie tolerante : detection des champs cartouche par libelle + detection
 ' des colonnes du tableau de taches par header.
-Public Sub Extraction_Fiches_ATM_Tolerant(ByRef wb As Workbook, _
-                                            ByVal langue As String, _
-                                            ByVal nbFiches As Integer)
+Public Sub Extraction_Fiches_ATM_Tolerant(ByRef wb As Workbook, ByVal langue As String, ByVal nbFiches As Integer)
 
     Dim ws As Worksheet
     Dim indexFiche As Integer
@@ -64,8 +62,7 @@ Public Sub Extraction_Fiches_ATM_Tolerant(ByRef wb As Workbook, _
     Exit Sub
 
 ErrorHandler:
-    MsgBox "Erreur extraction ATM tolerante : " & Err.Description & vbCrLf & _
-           "Feuille en cours : " & IIf(ws Is Nothing, "n/a", ws.Name), vbCritical
+    MsgBox "Erreur extraction ATM tolerante : " & Err.Description & vbCrLf & "Feuille en cours : " & IIf(ws Is Nothing, "n/a", ws.Name), vbCritical
     On Error Resume Next
     REQSEL_INFO.Close
     REQSEL_TACHES.Close
@@ -119,10 +116,10 @@ Private Sub CreerFeuillesExtraction_T(ByRef wb As Workbook)
         .Range("K1").Value = "Reparabilite_INFOATM"
         .Range("L1").Value = "HARD/SOFT"
         .Range("M1").Value = "Poids_INFOATM"
-        .Range("N1").Value = "Temps g" & ChrW(233) & "n" & ChrW(233) & "rique de la t" & ChrW(226) & "che HARDWARE_INFOATM"
-        .Range("O1").Value = "Temps g" & ChrW(233) & "n" & ChrW(233) & "rique de la t" & ChrW(226) & "che SOFTWARE_INFOATM"
-        .Range("P1").Value = "Temps analytique cumul" & ChrW(233) & " de la tache HARDWARE_INFOATM"
-        .Range("Q1").Value = "Temps analytique cumul" & ChrW(233) & " de la tache SOFTWARE_INFOATM"
+        .Range("N1").Value = "Temps generique de la tache HARDWARE_INFOATM"
+        .Range("O1").Value = "Temps generique de la tache SOFTWARE_INFOATM"
+        .Range("P1").Value = "Temps analytique cumule de la tache HARDWARE_INFOATM"
+        .Range("Q1").Value = "Temps analytique cumule de la tache SOFTWARE_INFOATM"
         .Range("R1").Value = "Connu en BDD ?"
     End With
 
@@ -145,14 +142,14 @@ Private Sub CreerFeuillesExtraction_T(ByRef wb As Workbook)
         .Range("E1").Value = "Categorie_TACHEATM"
         .Range("F1").Value = "Niveau qualif_TACHEATM"
         .Range("G1").Value = "Description_TACHEATM"
-        .Range("H1").Value = "Crit" & ChrW(232) & "resDimensionnels_TACHEATM"
-        .Range("I1").Value = "Outillage" & ChrW(233) & "cifique_TACHEATM"
+        .Range("H1").Value = "CriteresDimensionnels_TACHEATM"
+        .Range("I1").Value = "Outillageecifique_TACHEATM"
         .Range("J1").Value = "OutillageStandard_TACHEATM"
-        .Range("K1").Value = "Pi" & ChrW(232) & "cedeRechangeConsommable_TACHEATM"
-        .Range("L1").Value = "NbOp" & ChrW(233) & "rateurs_TACHEATM"
-        .Range("M1").Value = "TempsEstim" & ChrW(233) & "Heures_TACHEATM"
-        .Range("N1").Value = "Temps analytique cumul" & ChrW(233) & " de la tache HARD_TACHEATM"
-        .Range("O1").Value = "Temps analytique cumul" & ChrW(233) & " de la tache SOFT_TACHEATM"
+        .Range("K1").Value = "PiecedeRechangeConsommable_TACHEATM"
+        .Range("L1").Value = "NbOperateurs_TACHEATM"
+        .Range("M1").Value = "TempsEstimeHeures_TACHEATM"
+        .Range("N1").Value = "Temps analytique cumule de la tache HARD_TACHEATM"
+        .Range("O1").Value = "Temps analytique cumule de la tache SOFT_TACHEATM"
         .Range("P1").Value = "Pictogramme pour ATM2.0_TACHEATM"
         .Range("Q1").Value = "Texte / commentaire picto2_TACHEATM"
         .Range("R1").Value = "Connu en BDD ?"
@@ -186,18 +183,12 @@ Private Sub ExtraireInfoATM_T(ByRef ws As Worksheet, ByVal langue As String)
     dtrPresent = RechercheValeurdansRS(REQSEL_INFO, dtr, "DTR_INFOATM")
 
     ' Detection des champs cartouche par libelle (zone A1:N12)
-    valDesignation = LireValeurApresLibelle(ws, ZONE_CARTOUCHE, _
-                        Array("Equipement", "Designation", "D" & ChrW(233) & "signation"))
-    valDescriptifFR = LireValeurApresLibelle(ws, ZONE_CARTOUCHE, _
-                        Array("Descriptif", "Description"))
-    valCommentaire = LireValeurApresLibelle(ws, ZONE_CARTOUCHE, _
-                        Array("Commentaire"))
-    valPlan = LireValeurApresLibelle(ws, ZONE_CARTOUCHE, _
-                        Array("Num" & ChrW(233) & "ro de plan", "Plan", "Drawing"))
-    valPoids = LireValeurApresLibelle(ws, ZONE_CARTOUCHE, _
-                        Array("Poids", "Weight"))
-    valReparabilite = LireValeurApresLibelle(ws, ZONE_CARTOUCHE, _
-                        Array("R" & ChrW(233) & "parable", "Reparable", "Repairability"))
+    valDesignation = LireValeurApresLibelle(ws, ZONE_CARTOUCHE, Array("Equipement", "Designation", "Designation"))
+    valDescriptifFR = LireValeurApresLibelle(ws, ZONE_CARTOUCHE, Array("Descriptif", "Description"))
+    valCommentaire = LireValeurApresLibelle(ws, ZONE_CARTOUCHE, Array("Commentaire"))
+    valPlan = LireValeurApresLibelle(ws, ZONE_CARTOUCHE, Array("Numero de plan", "Plan", "Drawing"))
+    valPoids = LireValeurApresLibelle(ws, ZONE_CARTOUCHE, Array("Poids", "Weight"))
+    valReparabilite = LireValeurApresLibelle(ws, ZONE_CARTOUCHE, Array("Reparable", "Reparable", "Repairability"))
 
     ' Fallback positions historiques si rien trouve (compat ancien VBN)
     If LenB(valDesignation) = 0 Then valDesignation = CStr(ws.Range("D4").Value)
@@ -267,8 +258,7 @@ Private Sub ExtraireTachesATM_T(ByRef ws As Worksheet, ByVal langue As String)
 
     dtr = Left(ws.Name, 13)
     hardSoft = DeterminerHardSoft_T(ws.Name)
-    nvMaint = LireValeurApresLibelle(ws, ZONE_CARTOUCHE, _
-                Array("Niveau maintenance", "Niv maintenance", "Maintenance level"))
+    nvMaint = LireValeurApresLibelle(ws, ZONE_CARTOUCHE, Array("Niveau maintenance", "Niv maintenance", "Maintenance level"))
     If LenB(nvMaint) = 0 Then nvMaint = CStr(ws.Range("I7").Value)
     tempsTotal = RecupererTempsTotal_T(ws, langue)
     dtrPresent = RechercheValeurdansRS(REQSEL_TACHES, dtr, "DTR_TACHEATM")
@@ -301,9 +291,7 @@ Private Sub ExtraireTachesATM_T(ByRef ws As Worksheet, ByVal langue As String)
             ' Tache : extraire via mapping
             Dim derniereLigneTaches As Long
             derniereLigneTaches = wsTaches.Range("A100000").End(xlUp).Row
-            Call AjouterTacheATM_T(wsTaches, derniereLigneTaches + 1, ws, i, _
-                                    dtr, langue, hardSoft, nvMaint, tempsTotal, _
-                                    categorieTache, dtrPresent, mapCols)
+            Call AjouterTacheATM_T(wsTaches, derniereLigneTaches + 1, ws, i, dtr, langue, hardSoft, nvMaint, tempsTotal, categorieTache, dtrPresent, mapCols)
         End If
     Next i
 End Sub
@@ -311,18 +299,7 @@ End Sub
 ' =========================================================================
 ' AjouterTacheATM_T : ecrit une ligne de tache dans Taches_ATM
 ' =========================================================================
-Private Sub AjouterTacheATM_T(ByRef wsTaches As Worksheet, _
-                                ByVal ligne As Long, _
-                                ByRef wsDTR As Worksheet, _
-                                ByVal ligneDTR As Long, _
-                                ByVal dtr As String, _
-                                ByVal langue As String, _
-                                ByVal hardSoft As String, _
-                                ByVal nvMaint As String, _
-                                ByVal tempsTotal As Double, _
-                                ByVal categorie As String, _
-                                ByVal dtrPresent As Boolean, _
-                                ByRef mapCols As Object)
+Private Sub AjouterTacheATM_T(ByRef wsTaches As Worksheet, ByVal ligne As Long, ByRef wsDTR As Worksheet, ByVal ligneDTR As Long, ByVal dtr As String, ByVal langue As String, ByVal hardSoft As String, ByVal nvMaint As String, ByVal tempsTotal As Double, ByVal categorie As String, ByVal dtrPresent As Boolean, ByRef mapCols As Object)
     With wsTaches
         Dim rangBrut As Variant
         rangBrut = wsDTR.Cells(ligneDTR, ColParDefaut(mapCols, "Rang", 2)).Value
@@ -468,28 +445,21 @@ Private Function MapperColonnesTaches(ByRef ws As Worksheet, ByVal ligneHeader A
         val = CStr(ws.Cells(ligneHeader, j).Value)
         If LenB(val) > 0 Then
             ' Mapping roles selon mots-cles dans le libelle d'en-tete
-            If InStr(1, val, "Nb", vbTextCompare) > 0 _
-               And InStr(1, val, "op" & ChrW(233) & "rateur", vbTextCompare) > 0 Then
+            If InStr(1, val, "Nb", vbTextCompare) > 0 And InStr(1, val, "operateur", vbTextCompare) > 0 Then
                 d("NbOperateurs") = j
             ElseIf val = "Nb" Or LCase$(val) = "rang" Or LCase$(val) = "n" Then
                 d("Rang") = j
             ElseIf InStr(1, val, "Description", vbTextCompare) > 0 Then
                 d("Description") = j
-            ElseIf InStr(1, val, "Crit" & ChrW(232) & "re", vbTextCompare) > 0 _
-                   Or InStr(1, val, "Critere", vbTextCompare) > 0 Then
+            ElseIf InStr(1, val, "Critere", vbTextCompare) > 0 Or InStr(1, val, "Critere", vbTextCompare) > 0 Then
                 d("Criteres") = j
-            ElseIf InStr(1, val, "Outillage", vbTextCompare) > 0 _
-                   And InStr(1, val, "sp" & ChrW(233) & "cifique", vbTextCompare) > 0 Then
+            ElseIf InStr(1, val, "Outillage", vbTextCompare) > 0 And InStr(1, val, "specifique", vbTextCompare) > 0 Then
                 d("OutillageSpec") = j
-            ElseIf InStr(1, val, "Outillage", vbTextCompare) > 0 _
-                   And InStr(1, val, "standard", vbTextCompare) > 0 Then
+            ElseIf InStr(1, val, "Outillage", vbTextCompare) > 0 And InStr(1, val, "standard", vbTextCompare) > 0 Then
                 d("OutillageStd") = j
-            ElseIf InStr(1, val, "Pi" & ChrW(232) & "ce", vbTextCompare) > 0 _
-                   Or InStr(1, val, "Piece", vbTextCompare) > 0 _
-                   Or InStr(1, val, "rechange", vbTextCompare) > 0 Then
+            ElseIf InStr(1, val, "Piece", vbTextCompare) > 0 Or InStr(1, val, "Piece", vbTextCompare) > 0 Or InStr(1, val, "rechange", vbTextCompare) > 0 Then
                 d("PieceRechange") = j
-            ElseIf InStr(1, val, "Temps", vbTextCompare) > 0 _
-                   Or InStr(1, val, "Time", vbTextCompare) > 0 Then
+            ElseIf InStr(1, val, "Temps", vbTextCompare) > 0 Or InStr(1, val, "Time", vbTextCompare) > 0 Then
                 d("Temps") = j
             End If
         End If
@@ -501,9 +471,7 @@ Private Function MapperColonnesTaches(ByRef ws As Worksheet, ByVal ligneHeader A
     Set MapperColonnesTaches = d
 End Function
 
-Private Function ColParDefaut(ByRef mapCols As Object, _
-                                ByVal cle As String, _
-                                ByVal defaut As Long) As Long
+Private Function ColParDefaut(ByRef mapCols As Object, ByVal cle As String, ByVal defaut As Long) As Long
     If mapCols Is Nothing Then
         ColParDefaut = defaut
     ElseIf mapCols.Exists(cle) Then
@@ -518,9 +486,7 @@ End Function
 ' valeur de la cellule a droite (offset +1 col) ou en dessous si droite vide.
 ' Pattern classique des cartouches "Label : / Valeur" tableau Excel.
 ' =========================================================================
-Private Function LireValeurApresLibelle(ByRef ws As Worksheet, _
-                                          ByVal zone As String, _
-                                          ByRef libelles As Variant) As String
+Private Function LireValeurApresLibelle(ByRef ws As Worksheet, ByVal zone As String, ByRef libelles As Variant) As String
     Dim cell As Range
     Dim cellMatch As Range
     Dim mc As Variant

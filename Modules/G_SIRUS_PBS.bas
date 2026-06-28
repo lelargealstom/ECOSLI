@@ -108,9 +108,7 @@ Public Function VerifierFeuilleDATA_ASL(ByVal wb As Workbook, ByRef ws As Worksh
     On Error GoTo 0
 
     If feuille Is Nothing Then
-        MsgBox "La feuille 'DATA_ASL' est introuvable dans le classeur '" & wb.Name & "'." & vbCrLf & _
-               "Ouvre un classeur projet contenant la PBS avant de lancer ECOSLI.", _
-               vbExclamation, "ECOSLI - PBS"
+        MsgBox "La feuille 'DATA_ASL' est introuvable dans le classeur '" & wb.Name & "'." & vbCrLf & "Ouvre un classeur projet contenant la PBS avant de lancer ECOSLI.", vbExclamation, "ECOSLI - PBS"
         VerifierFeuilleDATA_ASL = False
         Exit Function
     End If
@@ -166,92 +164,36 @@ Public Function MapColonnesDATA_ASL(ByVal ws As Worksheet) As Boolean
         ' --- Identification --------------------------------------------------
         .DTR_PBS = TrouverColonne(ws, "DTR Reference (issue de PBS)", True, manqueCritique, manqueOptionnel)
         .Designation_PBS = TrouverColonne(ws, "DESIGNATION (issue de PBS)", False, manqueCritique, manqueOptionnel)
-        .Designation_BdD = TrouverColonne(ws, _
-            Array("DESIGNATION (issue BdD)", "DESIGNATION (issue de BdD)"), _
-            False, manqueCritique, manqueOptionnel)
-        .Designation_Providor = TrouverColonne(ws, _
-            Array("DESIGNATION (Providor)", _
-                  "DESIGNATION (mise en forme pour copier dans Providor : construite " & ChrW(224) & " partir de celle de la PBS et de la d" & ChrW(233) & "signation issue de BdD (ORCHESTRA)))"), _
-            False, manqueCritique, manqueOptionnel)
-        .SousSysteme = TrouverColonne(ws, _
-            Array("SOUS SYST" & ChrW(200) & "ME", _
-                  "SOUS SYST" & ChrW(200) & "ME (copi" & ChrW(233) & "s de la PBS et classifi" & ChrW(233) & "s selon g" & ChrW(233) & "n" & ChrW(233) & "riques)"), _
-            False, manqueCritique, manqueOptionnel)
+        .Designation_BdD = TrouverColonne(ws, Array("DESIGNATION (issue BdD)", "DESIGNATION (issue de BdD)"), False, manqueCritique, manqueOptionnel)
+        .Designation_Providor = TrouverColonne(ws, Array("DESIGNATION (Providor)", "DESIGNATION (mise en forme pour copier dans Providor : construite a partir de celle de la PBS et de la designation issue de BdD (ORCHESTRA)))"), False, manqueCritique, manqueOptionnel)
+        .SousSysteme = TrouverColonne(ws, Array("SOUS SYSTEME", "SOUS SYSTEME (copies de la PBS et classifies selon generiques)"), False, manqueCritique, manqueOptionnel)
         .Qte = TrouverColonne(ws, "Qte", False, manqueCritique, manqueOptionnel)
-        .NodeType = TrouverColonne(ws, "Node typed (LRU/SRU" & ChrW(8230) & ")", False, manqueCritique, manqueOptionnel)
+        .NodeType = TrouverColonne(ws, "Node typed (LRU/SRU...)", False, manqueCritique, manqueOptionnel)
         .HardSoft = TrouverColonne(ws, "HARD/SOFT", False, manqueCritique, manqueOptionnel)
         .NTI = TrouverColonne(ws, "NTI", False, manqueCritique, manqueOptionnel)
-        .RefPlan = TrouverColonne(ws, _
-            Array("R" & ChrW(233) & "f plan ensemble", _
-                  "r" & ChrW(233) & "f du plan d'ensemble (issue de la BdD)"), _
-            False, manqueCritique, manqueOptionnel)
+        .RefPlan = TrouverColonne(ws, Array("Ref plan ensemble", "ref du plan d'ensemble (issue de la BdD)"), False, manqueCritique, manqueOptionnel)
 
         ' --- RAM -------------------------------------------------------------
-        .MTBF_Gen = TrouverColonne(ws, _
-            Array("MTBF g" & ChrW(233) & "n" & ChrW(233) & "rique (offre+PGR)", _
-                  "MTBF g" & ChrW(233) & "n" & ChrW(233) & "rique (offre et PGR)"), _
-            False, manqueCritique, manqueOptionnel)
-        .TxDef_Gen = TrouverColonne(ws, _
-            Array("Tx d" & ChrW(233) & "faillance g" & ChrW(233) & "n" & ChrW(233) & "rique", _
-                  "Tx d" & ChrW(233) & "ffaillance g" & ChrW(233) & "n" & ChrW(233) & "rique"), _
-            False, manqueCritique, manqueOptionnel)
-        .DureeTacheCorrPrev_Gen_HARD = TrouverColonne(ws, _
-            Array("Dur" & ChrW(233) & "e t" & ChrW(226) & "che correctif+pr" & ChrW(233) & "ventif HARD g" & ChrW(233) & "n" & ChrW(233) & "rique", _
-                  "Dur" & ChrW(233) & "e de la t" & ChrW(226) & "che corrective et pr" & ChrW(233) & "ventive g" & ChrW(233) & "n" & ChrW(233) & "rique (offre et PGR) HARDWARE"), _
-            False, manqueCritique, manqueOptionnel)
-        .MTBF_Intr = TrouverColonne(ws, _
-            Array("MTBF intrins" & ChrW(232) & "que RAM Report sp" & ChrW(233) & "cifique", _
-                  "MTBF intrins" & ChrW(232) & "que (RAM report specifique projet (CGR))"), _
-            False, manqueCritique, manqueOptionnel)
-        .MTBF_Fonct = TrouverColonne(ws, _
-            Array("MTBF fonctionnel RAM Report sp" & ChrW(233) & "cifique", _
-                  "MTBF fonctionnel (RAM report specifique projet (CGR))"), _
-            False, manqueCritique, manqueOptionnel)
-        .TxDef_Fonct = TrouverColonne(ws, _
-            Array("Tx d" & ChrW(233) & "faillance fonctionnel", _
-                  "Tx d" & ChrW(233) & "ffaillance fonctionnel"), _
-            False, manqueCritique, manqueOptionnel)
-        .DureeTacheCorrPrev_Ana_HARD = TrouverColonne(ws, _
-            Array("Dur" & ChrW(233) & "e t" & ChrW(226) & "che correctif+pr" & ChrW(233) & "ventif HARD analytique", _
-                  "Dur" & ChrW(233) & "e de la t" & ChrW(226) & "che corrective et pr" & ChrW(233) & "ventive analytique (CGR) HARDWARE"), _
-            False, manqueCritique, manqueOptionnel)
-        .UniteMaintCorrective = TrouverColonne(ws, _
-            Array("UNIT" & ChrW(201) & " maintenance corrective", _
-                  "UNITE de la maintenance corrective"), _
-            False, manqueCritique, manqueOptionnel)
+        .MTBF_Gen = TrouverColonne(ws, Array("MTBF generique (offre+PGR)", "MTBF generique (offre et PGR)"), False, manqueCritique, manqueOptionnel)
+        .TxDef_Gen = TrouverColonne(ws, Array("Tx defaillance generique", "Tx deffaillance generique"), False, manqueCritique, manqueOptionnel)
+        .DureeTacheCorrPrev_Gen_HARD = TrouverColonne(ws, Array("Duree tache correctif+preventif HARD generique", "Duree de la tache corrective et preventive generique (offre et PGR) HARDWARE"), False, manqueCritique, manqueOptionnel)
+        .MTBF_Intr = TrouverColonne(ws, Array("MTBF intrinseque RAM Report specifique", "MTBF intrinseque (RAM report specifique projet (CGR))"), False, manqueCritique, manqueOptionnel)
+        .MTBF_Fonct = TrouverColonne(ws, Array("MTBF fonctionnel RAM Report specifique", "MTBF fonctionnel (RAM report specifique projet (CGR))"), False, manqueCritique, manqueOptionnel)
+        .TxDef_Fonct = TrouverColonne(ws, Array("Tx defaillance fonctionnel", "Tx deffaillance fonctionnel"), False, manqueCritique, manqueOptionnel)
+        .DureeTacheCorrPrev_Ana_HARD = TrouverColonne(ws, Array("Duree tache correctif+preventif HARD analytique", "Duree de la tache corrective et preventive analytique (CGR) HARDWARE"), False, manqueCritique, manqueOptionnel)
+        .UniteMaintCorrective = TrouverColonne(ws, Array("UNITE maintenance corrective", "UNITE de la maintenance corrective"), False, manqueCritique, manqueOptionnel)
 
         ' --- Duree de vie / taches preventives -----------------------------
         ' DureeVie_Ana_* mappe la colonne "DVL <type> specifique" du nouveau
         ' template (= ce qui etait appele "analytique" / "RAM report specifique
         ' projet (CGR)" dans l'ancien). Saisie ASL.
-        .DureeVie_Gen_HARD = TrouverColonne(ws, _
-            Array("DVL HARD g" & ChrW(233) & "n" & ChrW(233) & "rique", _
-                  "DUREE DE VIE LIMITEE g" & ChrW(233) & "n" & ChrW(233) & "rique (offre et PGR) HARDWARE"), _
-            False, manqueCritique, manqueOptionnel)
-        .DureeVie_Ana_HARD = TrouverColonne(ws, _
-            Array("DVL HARD sp" & ChrW(233) & "cifique", _
-                  "DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) HARDWARE"), _
-            False, manqueCritique, manqueOptionnel)
-        .DureeVie_Gen_SOFT = TrouverColonne(ws, _
-            Array("DVL SOFT g" & ChrW(233) & "n" & ChrW(233) & "rique", _
-                  "DUREE DE VIE LIMITEE g" & ChrW(233) & "n" & ChrW(233) & "rique (offre et PGR) SOFTWARE"), _
-            False, manqueCritique, manqueOptionnel)
-        .DureeTachePrev_Gen_SOFT = TrouverColonne(ws, _
-            Array("Dur" & ChrW(233) & "e t" & ChrW(226) & "che pr" & ChrW(233) & "ventif SOFT g" & ChrW(233) & "n" & ChrW(233) & "rique", _
-                  "Dur" & ChrW(233) & "e de la t" & ChrW(226) & "che pr" & ChrW(233) & "ventive g" & ChrW(233) & "n" & ChrW(233) & "rique SOFTWARE (offre et PGR)"), _
-            False, manqueCritique, manqueOptionnel)
-        .DureeVie_Ana_SOFT = TrouverColonne(ws, _
-            Array("DVL SOFT sp" & ChrW(233) & "cifique", _
-                  "DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) SOFTWARE"), _
-            False, manqueCritique, manqueOptionnel)
-        .DureeTachePrev_Ana_SOFT = TrouverColonne(ws, _
-            Array("Dur" & ChrW(233) & "e t" & ChrW(226) & "che pr" & ChrW(233) & "ventif SOFT analytique", _
-                  "Dur" & ChrW(233) & "e de la t" & ChrW(226) & "che pr" & ChrW(233) & "ventive analytique SOFTWARE (CGR)"), _
-            False, manqueCritique, manqueOptionnel)
-        .UniteMaintPreventive = TrouverColonne(ws, _
-            Array("UNIT" & ChrW(201) & " maintenance pr" & ChrW(233) & "ventive", _
-                  "UNITE de la maintenance pr" & ChrW(233) & "ventive"), _
-            False, manqueCritique, manqueOptionnel)
+        .DureeVie_Gen_HARD = TrouverColonne(ws, Array("DVL HARD generique", "DUREE DE VIE LIMITEE generique (offre et PGR) HARDWARE"), False, manqueCritique, manqueOptionnel)
+        .DureeVie_Ana_HARD = TrouverColonne(ws, Array("DVL HARD specifique", "DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) HARDWARE"), False, manqueCritique, manqueOptionnel)
+        .DureeVie_Gen_SOFT = TrouverColonne(ws, Array("DVL SOFT generique", "DUREE DE VIE LIMITEE generique (offre et PGR) SOFTWARE"), False, manqueCritique, manqueOptionnel)
+        .DureeTachePrev_Gen_SOFT = TrouverColonne(ws, Array("Duree tache preventif SOFT generique", "Duree de la tache preventive generique SOFTWARE (offre et PGR)"), False, manqueCritique, manqueOptionnel)
+        .DureeVie_Ana_SOFT = TrouverColonne(ws, Array("DVL SOFT specifique", "DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) SOFTWARE"), False, manqueCritique, manqueOptionnel)
+        .DureeTachePrev_Ana_SOFT = TrouverColonne(ws, Array("Duree tache preventif SOFT analytique", "Duree de la tache preventive analytique SOFTWARE (CGR)"), False, manqueCritique, manqueOptionnel)
+        .UniteMaintPreventive = TrouverColonne(ws, Array("UNITE maintenance preventive", "UNITE de la maintenance preventive"), False, manqueCritique, manqueOptionnel)
 
         ' --- Couts et prix --------------------------------------------------
         ' Critiques : les 4 prix necessaires aux cascades Spare/Repair de la
@@ -263,38 +205,20 @@ Public Function MapColonnesDATA_ASL(ByVal ws As Worksheet) As Boolean
         ' Pas de fallback necessaire ici.
         .PrixFCS = TrouverColonne(ws, "Prix FCS", False, manqueCritique, manqueOptionnel)
         .PrixSpareCatalogue = TrouverColonne(ws, "Prix spare catalogue", True, manqueCritique, manqueOptionnel)
-        .PrixSpareCalcule = TrouverColonne(ws, "Prix Spare calcul" & ChrW(233), True, manqueCritique, manqueOptionnel)
+        .PrixSpareCalcule = TrouverColonne(ws, "Prix Spare calcule", True, manqueCritique, manqueOptionnel)
         .RefSourceSpare = TrouverColonne(ws, "Ref Source Spare", False, manqueCritique, manqueOptionnel)
-        .LeadTimeSpareCalend = TrouverColonne(ws, _
-            Array("Lead Time SPARE (jours calendaires)", _
-                  "Lead Time SPARE (en jours calendaires)"), _
-            False, manqueCritique, manqueOptionnel)
+        .LeadTimeSpareCalend = TrouverColonne(ws, Array("Lead Time SPARE (jours calendaires)", "Lead Time SPARE (en jours calendaires)"), False, manqueCritique, manqueOptionnel)
         .PrixRepairCatalogue = TrouverColonne(ws, "Prix repair catalogue", True, manqueCritique, manqueOptionnel)
         .RefSourceRepair = TrouverColonne(ws, "Ref Source Repair", False, manqueCritique, manqueOptionnel)
-        .LeadTimeRepairCalend = TrouverColonne(ws, _
-            Array("Lead Time REPAIR (jours calendaires)", _
-                  "Lead Time REPAIR (en jours calendaires)"), _
-            False, manqueCritique, manqueOptionnel)
-        .CoutSpare_FRS_NotISP = TrouverColonne(ws, _
-            Array("Cout spare FOURNISSEUR Not ISP", _
-                  "Cout spare FOURNISSEUR (Not ISP)"), _
-            False, manqueCritique, manqueOptionnel)
+        .LeadTimeRepairCalend = TrouverColonne(ws, Array("Lead Time REPAIR (jours calendaires)", "Lead Time REPAIR (en jours calendaires)"), False, manqueCritique, manqueOptionnel)
+        .CoutSpare_FRS_NotISP = TrouverColonne(ws, Array("Cout spare FOURNISSEUR Not ISP", "Cout spare FOURNISSEUR (Not ISP)"), False, manqueCritique, manqueOptionnel)
         .LeadTimeSpare_FRS = TrouverColonne(ws, "Lead Time SPARE FOURNISSEUR", False, manqueCritique, manqueOptionnel)
-        .CoutRepair_FRS_NotISP = TrouverColonne(ws, _
-            Array("Cout Repair FOURNISSEUR Not ISP", _
-                  "Cout Repair FOURNISSEUR (Not ISP)"), _
-            False, manqueCritique, manqueOptionnel)
+        .CoutRepair_FRS_NotISP = TrouverColonne(ws, Array("Cout Repair FOURNISSEUR Not ISP", "Cout Repair FOURNISSEUR (Not ISP)"), False, manqueCritique, manqueOptionnel)
         .LeadTimeRepair_FRS = TrouverColonne(ws, "Lead Time REPAIR FOURNISSEUR", False, manqueCritique, manqueOptionnel)
         .CoutSpare_AlstomFR_FRS = TrouverColonne(ws, "Cout spare ALSTOM FRANCE FOURNISSEUR", True, manqueCritique, manqueOptionnel)
         .PrixRepair_Alstom_FRS = TrouverColonne(ws, "Prix repair ALSTOM FOURNISSEUR", True, manqueCritique, manqueOptionnel)
-        .PrixSpare_ProjetArchive = TrouverColonne(ws, _
-            Array("Prix Spare projet archive", _
-                  "Prix Spare sur un projet archive"), _
-            False, manqueCritique, manqueOptionnel)
-        .PrixRepair_ProjetArchive = TrouverColonne(ws, _
-            Array("Prix Repair projet archive", _
-                  "Prix Repair sur un projet archive"), _
-            False, manqueCritique, manqueOptionnel)
+        .PrixSpare_ProjetArchive = TrouverColonne(ws, Array("Prix Spare projet archive", "Prix Spare sur un projet archive"), False, manqueCritique, manqueOptionnel)
+        .PrixRepair_ProjetArchive = TrouverColonne(ws, Array("Prix Repair projet archive", "Prix Repair sur un projet archive"), False, manqueCritique, manqueOptionnel)
     End With
 
     If Len(manqueOptionnel) > 0 Then
@@ -302,9 +226,7 @@ Public Function MapColonnesDATA_ASL(ByVal ws As Worksheet) As Boolean
     End If
 
     If Len(manqueCritique) > 0 Then
-        MsgBox "Cadrage DATA_ASL impossible." & vbCrLf & vbCrLf & _
-               "Colonnes critiques introuvables sur la ligne " & DATA_ASL_HeaderRow & " :" & vbCrLf & _
-               manqueCritique, vbCritical, "ECOSLI - PBS"
+        MsgBox "Cadrage DATA_ASL impossible." & vbCrLf & vbCrLf & "Colonnes critiques introuvables sur la ligne " & DATA_ASL_HeaderRow & " :" & vbCrLf & manqueCritique, vbCritical, "ECOSLI - PBS"
         MapColonnesDATA_ASL = False
         Exit Function
     End If
@@ -320,8 +242,7 @@ End Function
 ' de colonne. Si introuvable, accumule le libelle dans le bon log
 ' (critique ou optionnel) et retourne 0.
 ' =========================================================================
-Private Function TrouverColonne(ByVal ws As Worksheet, ByVal libelleOrArray As Variant, ByVal critique As Boolean, _
-                                ByRef manqueCritique As String, ByRef manqueOptionnel As String) As Long
+Private Function TrouverColonne(ByVal ws As Worksheet, ByVal libelleOrArray As Variant, ByVal critique As Boolean, ByRef manqueCritique As String, ByRef manqueOptionnel As String) As Long
     ' Accepte libelleOrArray = String (1 libelle) OU Array(...) de String
     ' (plusieurs libelles candidats, essayes en ordre). Permet de gerer la
     ' coexistence entre l ancien template (libelles longs) et le nouveau
@@ -375,11 +296,9 @@ Private Function DetecterLigneEntete(ByVal ws As Worksheet, ByVal libelleAncre A
     Dim cel As Range
 
     On Error Resume Next
-    Set cel = ws.Cells.Find(What:=libelleAncre, LookIn:=xlValues, lookat:=xlWhole, MatchCase:=False, _
-                            SearchOrder:=xlByRows, SearchDirection:=xlNext)
+    Set cel = ws.Cells.Find(What:=libelleAncre, LookIn:=xlValues, lookat:=xlWhole, MatchCase:=False, SearchOrder:=xlByRows, SearchDirection:=xlNext)
     If cel Is Nothing Then
-        Set cel = ws.Cells.Find(What:=libelleAncre, LookIn:=xlValues, lookat:=xlPart, MatchCase:=False, _
-                                SearchOrder:=xlByRows, SearchDirection:=xlNext)
+        Set cel = ws.Cells.Find(What:=libelleAncre, LookIn:=xlValues, lookat:=xlPart, MatchCase:=False, SearchOrder:=xlByRows, SearchDirection:=xlNext)
     End If
     On Error GoTo 0
 
@@ -559,8 +478,7 @@ Public Sub SIRUS_RemplirListViewGeneration()
 SuivanteLigne:
     Next ligne
 
-    Debug.Print "SIRUS_RemplirListViewGeneration : " & nbAjoutees & _
-                " ligne(s) (Lookup=" & SIRUS_LookupDTR_Active & ")"
+    Debug.Print "SIRUS_RemplirListViewGeneration : " & nbAjoutees & " ligne(s) (Lookup=" & SIRUS_LookupDTR_Active & ")"
     Debug.Print "  Colonnes prix mappees (0 = introuvable) :"
     Debug.Print "    CoutSpare_AlstomFR_FRS = col " & DATA_ASL_type.CoutSpare_AlstomFR_FRS
     Debug.Print "    PrixSpareCatalogue     = col " & DATA_ASL_type.PrixSpareCatalogue
@@ -689,10 +607,7 @@ End Function
 ' sExtraCol  : nom d'une colonne supplementaire a inclure (ex.
 '              "PROJET_PROJETASL" pour ProjetASL meme si non obligatoire).
 ' =========================================================================
-Private Function ChargerRowsTableBdD_Optim(ByVal nomTable As String, _
-                                            ByVal colonneDTR As String, _
-                                            ByVal configCol As Collection, _
-                                            Optional ByVal sExtraCol As String = "") As Object
+Private Function ChargerRowsTableBdD_Optim(ByVal nomTable As String, ByVal colonneDTR As String, ByVal configCol As Collection, Optional ByVal sExtraCol As String = "") As Object
     Dim dict As Object
     Dim sql As String
     Dim dtrVal As String
@@ -795,10 +710,7 @@ End Function
 ' affichage en tooltip de ligne.
 ' Renvoie nProjets (ByRef) et sListe (ByRef).
 ' =========================================================================
-Private Sub ProjetsConnusPourDTR(ByVal dictTable As Object, _
-                                  ByVal dtr As String, _
-                                  ByRef nProjets As Long, _
-                                  ByRef sListe As String)
+Private Sub ProjetsConnusPourDTR(ByVal dictTable As Object, ByVal dtr As String, ByRef nProjets As Long, ByRef sListe As String)
     Dim row As Object
     Dim rows As Collection
     Dim sProjet As String
@@ -859,10 +771,7 @@ End Sub
 ' Pour les tables a plusieurs rows par DTR (TachesATM), moyenne (somme
 ' numerateurs / somme denominateurs) sur toutes les rows.
 ' =========================================================================
-Private Function CalculerMeQDTR_Optim(ByVal dictTable As Object, _
-                                       ByVal dtr As String, _
-                                       ByVal sTable As String, _
-                                       ByVal configCol As Collection) As Double
+Private Function CalculerMeQDTR_Optim(ByVal dictTable As Object, ByVal dtr As String, ByVal sTable As String, ByVal configCol As Collection) As Double
     Dim col As Collection
     Dim def As SIRUS_Champ_Config
     Dim row As Object
@@ -973,10 +882,7 @@ End Function
 ' Necessite d'utiliser ListSubItems.Add partout dans une meme ligne (pas
 ' melanger avec li.SubItems(n) =).
 ' =========================================================================
-Private Sub AjouterSubItemColore(li As MSComctlLib.ListItem, _
-                                  ByVal sTexte As String, _
-                                  ByVal bColoreOuiNon As Boolean, _
-                                  Optional ByVal lColorOverride As Long = -1)
+Private Sub AjouterSubItemColore(li As MSComctlLib.ListItem, ByVal sTexte As String, ByVal bColoreOuiNon As Boolean, Optional ByVal lColorOverride As Long = -1)
     Dim lsi As MSComctlLib.ListSubItem
     Set lsi = li.ListSubItems.Add(, , sTexte)
     If lColorOverride <> -1 Then
@@ -1034,10 +940,7 @@ End Function
 ' FCS sans avoir a discriminer ici. Si AA (vDIS) est vide mais AB (vFCS)
 ' non, AC contiendra la ref FCS.
 ' =========================================================================
-Private Function CalculerPrixSpare(ByVal wsPBS As Worksheet, _
-                                    ByVal ligne As Long, _
-                                    ByVal dtr As String, _
-                                    ByVal sProjetCourant As String) As Variant
+Private Function CalculerPrixSpare(ByVal wsPBS As Worksheet, ByVal ligne As Long, ByVal dtr As String, ByVal sProjetCourant As String) As Variant
     Dim vFrs As Variant, vDIS As Variant, vFCS As Variant, vArchive As Variant
     Dim sRefSpare As String
     Dim sProjetArchive As String
@@ -1077,10 +980,7 @@ End Function
 '   Archive connu     -> (prix, "Projet : <projet alpha 1er>")
 '   Aucun             -> (Empty, "")
 ' =========================================================================
-Private Function CalculerPrixRepair(ByVal wsPBS As Worksheet, _
-                                     ByVal ligne As Long, _
-                                     ByVal dtr As String, _
-                                     ByVal sProjetCourant As String) As Variant
+Private Function CalculerPrixRepair(ByVal wsPBS As Worksheet, ByVal ligne As Long, ByVal dtr As String, ByVal sProjetCourant As String) As Variant
     Dim vFrs As Variant, vDIS As Variant, vArchive As Variant
     Dim sRefDIS As String
     Dim sProjetArchive As String
@@ -1114,8 +1014,7 @@ End Function
 ' projet alphabetiquement premier, projet courant exclu. "" si aucun
 ' projet connu.
 ' =========================================================================
-Private Function ProjetArchiveAlphaPremier(ByVal dtr As String, _
-                                            ByVal sProjetCourant As String) As String
+Private Function ProjetArchiveAlphaPremier(ByVal dtr As String, ByVal sProjetCourant As String) As String
     Dim rows As Collection
     Dim row As Object
     Dim sProjet As String

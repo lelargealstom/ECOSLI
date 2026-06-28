@@ -2,7 +2,7 @@ Attribute VB_Name = "E_Extraction_EMMST"
 '--------------------------------------------------------------------------------------------------------
 '
 '                                       Generateur Livrables SLI
-'                                       Module N_Extraction_EMMST (Version Refactorisée)
+'                                       Module N_Extraction_EMMST (Version Refactorisee)
 '                                       Developpement : LE LARGE Thomas (LGM/Alstom)
 '                                       Module d'extraction fiches EMMST vers format BDD
 '
@@ -14,10 +14,10 @@ Option Explicit
 Private REQSEL_EMMST As Object
 
 ' =========================================================================
-' PROCÉDURE PRINCIPALE: EXTRACTION FICHES EMMST
+' PROCEDURE PRINCIPALE: EXTRACTION FICHES EMMST
 ' =========================================================================
 Public Sub Extraction_Fiches_EMMST(ByRef wb As Workbook, ByVal langue As String, ByVal nbFiches As Integer)
-' Extrait toutes les données EMMST d'un fichier et les structure au format BDD
+' Extrait toutes les donnees EMMST d'un fichier et les structure au format BDD
     
     Dim ws As Worksheet
     Dim indexFiche As Integer
@@ -25,17 +25,17 @@ Public Sub Extraction_Fiches_EMMST(ByRef wb As Workbook, ByVal langue As String,
     On Error GoTo ErrorHandler
     
     ' ======================================================================
-    ' ÉTAPE 1 : Initialisation Recordset BDD
+    ' ETAPE 1 : Initialisation Recordset BDD
     ' ======================================================================
     Call InitialiserRecordsetEMMST
     
     ' ======================================================================
-    ' ÉTAPE 2 : Création feuille extraction
+    ' ETAPE 2 : Creation feuille extraction
     ' ======================================================================
     Call CreerFeuilleExtractionEMMST(wb)
     
     ' ======================================================================
-    ' ÉTAPE 3 : Extraction données de chaque fiche DTR
+    ' ETAPE 3 : Extraction donnees de chaque fiche DTR
     ' ======================================================================
     indexFiche = 0
     
@@ -43,16 +43,16 @@ Public Sub Extraction_Fiches_EMMST(ByRef wb As Workbook, ByVal langue As String,
         If ws.Name Like "*DTR*" Then
             indexFiche = indexFiche + 1
             
-            ' Extraire données EMMST
+            ' Extraire donnees EMMST
             Call ExtraireEMMST(ws, langue)
             
-            ' Mettre à jour barre progression
+            ' Mettre a jour barre progression
             Call barprogress(indexFiche, nbFiches)
         End If
     Next ws
     
     ' ======================================================================
-    ' ÉTAPE 4 : Mise en forme finale
+    ' ETAPE 4 : Mise en forme finale
     ' ======================================================================
     Call FormaterFeuilleExtractionEMMST(wb)
     
@@ -69,34 +69,17 @@ ErrorHandler:
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: INITIALISER RECORDSET EMMST
+' PROCEDURE: INITIALISER RECORDSET EMMST
 ' =========================================================================
 Private Sub InitialiserRecordsetEMMST()
-' Crée le recordset pour vérifier existence DTR en BDD
+' Cree le recordset pour verifier existence DTR en BDD
     
     Dim sql As String
     
     Set REQSEL_EMMST = CreateObject("ADODB.Recordset")
     
-    ' Requête SQL complète (50 colonnes)
-    sql = "SELECT [DTR_EMMST], [DimensionNuLongueur_EMMST], [DimensionNuLargeur_EMMST], " & _
-          "[DimensionNuHauteur_EMMST], [DimensionNuPoids], [DimensionConditionnéLongueur_EMMST], " & _
-          "[DimensionConditionnéLargeur_EMMST], [DimensionConditionnéHauteur_EMMST], " & _
-          "[DimensionConditionnéPoids_EMMST], [DatePeremption_EMMST], [UnitéConditionnement_EMMST], " & _
-          "[CommentaireEmballage_EMMST], [CommentaireMarquage_EMMST], [CommentaireManutention_EMMST], " & _
-          "[CommentaireStockage_EMMST], [CommentaireTransport_EMMST], [TypeOutil_EMMST], " & _
-          "[DuréePéremption_EMMST], [Réutilisable_EMMST], [EtiquetteEmballage_EMMST], " & _
-          "[MarquageEquipement_EMMST], [ManutentionEquipement_EMMST], [OutillageSpécifiqueManutention_EMMST], " & _
-          "[PrécautionManutention_EMMST], [PositionStockage_EMMST], [StockageExtérieur_EMMST], " & _
-          "[StockageSousAbri_EMMST], [StockageAirLibre_EMMST], [StockageHorsPoussière_EMMST], " & _
-          "[StockageHorsEau_EMMST], [StockageIntérieur_EMMST], [StockageChaud_EMMST], " & _
-          "[StockageFroid_EMMST], [StockageHorsLumière_EMMST], [Gerbable_EMMST], [MoyenStockage_EMMST], " & _
-          "[PrécautionStockage_EMMST], [MaintenanceStockage_EMMST], [MoyenTransport_EMMST], " & _
-          "[OutillageSpecifiqueTransport_EMMST], [PrescriptionTransport_EMMST], " & _
-          "[PrécautionTransport_EMMST], [Version_EMMST], [DatePeremptionEN_EMMST], " & _
-          "[UnitéConditionnéEN_EMMST], [CommentaireEmballageEN_EMMST], [CommentaireMarquageEN_EMMST], " & _
-          "[CommentaireManutentionEN_EMMST], [CommentaireStockageEN_EMMST], [CommentaireTransportEN_EMMST] " & _
-          "FROM [EMMST$]"
+    ' Requete SQL complete (50 colonnes)
+    sql = "SELECT [DTR_EMMST], [DimensionNuLongueur_EMMST], [DimensionNuLargeur_EMMST], [DimensionNuHauteur_EMMST], [DimensionNuPoids], [DimensionConditionneLongueur_EMMST], [DimensionConditionneLargeur_EMMST], [DimensionConditionneHauteur_EMMST], [DimensionConditionnePoids_EMMST], [DatePeremption_EMMST], [UniteConditionnement_EMMST], [CommentaireEmballage_EMMST], [CommentaireMarquage_EMMST], [CommentaireManutention_EMMST], [CommentaireStockage_EMMST], [CommentaireTransport_EMMST], [TypeOutil_EMMST], [DureePeremption_EMMST], [Reutilisable_EMMST], [EtiquetteEmballage_EMMST], [MarquageEquipement_EMMST], [ManutentionEquipement_EMMST], [OutillageSpecifiqueManutention_EMMST], [PrecautionManutention_EMMST], [PositionStockage_EMMST], [StockageExterieur_EMMST], [StockageSousAbri_EMMST], [StockageAirLibre_EMMST], [StockageHorsPoussiere_EMMST], [StockageHorsEau_EMMST], [StockageInterieur_EMMST], [StockageChaud_EMMST], [StockageFroid_EMMST], [StockageHorsLumiere_EMMST], [Gerbable_EMMST], [MoyenStockage_EMMST], [PrecautionStockage_EMMST], [MaintenanceStockage_EMMST], [MoyenTransport_EMMST], [OutillageSpecifiqueTransport_EMMST], [PrescriptionTransport_EMMST], [PrecautionTransport_EMMST], [Version_EMMST], [DatePeremptionEN_EMMST], [UniteConditionneEN_EMMST], [CommentaireEmballageEN_EMMST], [CommentaireMarquageEN_EMMST], [CommentaireManutentionEN_EMMST], [CommentaireStockageEN_EMMST], [CommentaireTransportEN_EMMST] FROM [EMMST$]"
     
     Call open_REQSEL(sql)
     Set REQSEL_EMMST = REQSEL
@@ -104,10 +87,10 @@ Private Sub InitialiserRecordsetEMMST()
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: CRÉER FEUILLE EXTRACTION EMMST
+' PROCEDURE: CREER FEUILLE EXTRACTION EMMST
 ' =========================================================================
 Private Sub CreerFeuilleExtractionEMMST(ByRef wb As Workbook)
-' Crée la feuille "EMMST" avec tous les en-têtes (51 colonnes)
+' Cree la feuille "EMMST" avec tous les en-tetes (51 colonnes)
     
     Dim wsEMMST As Worksheet
     
@@ -115,53 +98,53 @@ Private Sub CreerFeuilleExtractionEMMST(ByRef wb As Workbook)
     Set wsEMMST = wb.ActiveSheet
     wsEMMST.Name = "EMMST"
     
-    ' En-têtes (51 colonnes)
+    ' En-tetes (51 colonnes)
     With wsEMMST
         .Range("A1").Value = "DTR_EMMST"
         .Range("B1").Value = "DimensionNuLongueur_EMMST"
         .Range("C1").Value = "DimensionNuLargeur_EMMST"
         .Range("D1").Value = "DimensionNuHauteur_EMMST"
         .Range("E1").Value = "DimensionNuPoids"
-        .Range("F1").Value = "DimensionConditionnéLongueur_EMMST"
-        .Range("G1").Value = "DimensionConditionnéLargeur_EMMST"
-        .Range("H1").Value = "DimensionConditionnéHauteur_EMMST"
-        .Range("I1").Value = "DimensionConditionnéPoids_EMMST"
+        .Range("F1").Value = "DimensionConditionneLongueur_EMMST"
+        .Range("G1").Value = "DimensionConditionneLargeur_EMMST"
+        .Range("H1").Value = "DimensionConditionneHauteur_EMMST"
+        .Range("I1").Value = "DimensionConditionnePoids_EMMST"
         .Range("J1").Value = "DatePeremption_EMMST"
-        .Range("K1").Value = "UnitéConditionnement_EMMST"
+        .Range("K1").Value = "UniteConditionnement_EMMST"
         .Range("L1").Value = "CommentaireEmballage_EMMST"
         .Range("M1").Value = "CommentaireMarquage_EMMST"
         .Range("N1").Value = "CommentaireManutention_EMMST"
         .Range("O1").Value = "CommentaireStockage_EMMST"
         .Range("P1").Value = "CommentaireTransport_EMMST"
         .Range("Q1").Value = "TypeOutil_EMMST"
-        .Range("R1").Value = "DuréePéremption_EMMST"
-        .Range("S1").Value = "Réutilisable_EMMST"
+        .Range("R1").Value = "DureePeremption_EMMST"
+        .Range("S1").Value = "Reutilisable_EMMST"
         .Range("T1").Value = "EtiquetteEmballage_EMMST"
         .Range("U1").Value = "MarquageEquipement_EMMST"
         .Range("V1").Value = "ManutentionEquipement_EMMST"
-        .Range("W1").Value = "OutillageSpécifiqueManutention_EMMST"
-        .Range("X1").Value = "PrécautionManutention_EMMST"
+        .Range("W1").Value = "OutillageSpecifiqueManutention_EMMST"
+        .Range("X1").Value = "PrecautionManutention_EMMST"
         .Range("Y1").Value = "PositionStockage_EMMST"
-        .Range("Z1").Value = "StockageExtérieur_EMMST"
+        .Range("Z1").Value = "StockageExterieur_EMMST"
         .Range("AA1").Value = "StockageSousAbri_EMMST"
         .Range("AB1").Value = "StockageAirLibre_EMMST"
-        .Range("AC1").Value = "StockageHorsPoussière_EMMST"
+        .Range("AC1").Value = "StockageHorsPoussiere_EMMST"
         .Range("AD1").Value = "StockageHorsEau_EMMST"
-        .Range("AE1").Value = "StockageIntérieur_EMMST"
+        .Range("AE1").Value = "StockageInterieur_EMMST"
         .Range("AF1").Value = "StockageChaud_EMMST"
         .Range("AG1").Value = "StockageFroid_EMMST"
-        .Range("AH1").Value = "StockageHorsLumière_EMMST"
+        .Range("AH1").Value = "StockageHorsLumiere_EMMST"
         .Range("AI1").Value = "Gerbable_EMMST"
         .Range("AJ1").Value = "MoyenStockage_EMMST"
-        .Range("AK1").Value = "PrécautionStockage_EMMST"
+        .Range("AK1").Value = "PrecautionStockage_EMMST"
         .Range("AL1").Value = "MaintenanceStockage_EMMST"
         .Range("AM1").Value = "MoyenTransport_EMMST"
         .Range("AN1").Value = "OutillageSpecifiqueTransport_EMMST"
         .Range("AO1").Value = "PrescriptionTransport_EMMST"
-        .Range("AP1").Value = "PrécautionTransport_EMMST"
+        .Range("AP1").Value = "PrecautionTransport_EMMST"
         .Range("AQ1").Value = "Version_EMMST"
         .Range("AR1").Value = "DatePeremptionEN_EMMST"
-        .Range("AS1").Value = "UnitéConditionnéEN_EMMST"
+        .Range("AS1").Value = "UniteConditionneEN_EMMST"
         .Range("AT1").Value = "CommentaireEmballageEN_EMMST"
         .Range("AU1").Value = "CommentaireMarquageEN_EMMST"
         .Range("AV1").Value = "CommentaireManutentionEN_EMMST"
@@ -173,10 +156,10 @@ Private Sub CreerFeuilleExtractionEMMST(ByRef wb As Workbook)
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: EXTRAIRE EMMST
+' PROCEDURE: EXTRAIRE EMMST
 ' =========================================================================
 Private Sub ExtraireEMMST(ByRef ws As Worksheet, ByVal langue As String)
-' Extrait toutes les données EMMST d'une feuille vers la feuille EMMST
+' Extrait toutes les donnees EMMST d'une feuille vers la feuille EMMST
     
     Dim wsEMMST As Worksheet
     Dim derniereLigne As Long
@@ -186,13 +169,13 @@ Private Sub ExtraireEMMST(ByRef ws As Worksheet, ByVal langue As String)
     Set wsEMMST = ws.Parent.Sheets("EMMST")
     derniereLigne = wsEMMST.Range("A100000").End(xlUp).Row
     
-    ' Récupérer DTR
+    ' Recuperer DTR
     dtr = ws.Range("H6").Value
     
-    ' Vérifier présence en BDD
+    ' Verifier presence en BDD
     dtrPresent = RechercheValeurdansRS(REQSEL_EMMST, dtr, "DTR_EMMST")
     
-    ' Remplir données par catégorie
+    ' Remplir donnees par categorie
     Call RemplirDonneesBase(wsEMMST, derniereLigne + 1, ws, dtr)
     Call RemplirCommentaires(wsEMMST, derniereLigne + 1, ws, langue)
     Call RemplirTypeOutil(wsEMMST, derniereLigne + 1, ws)
@@ -213,13 +196,10 @@ Private Sub ExtraireEMMST(ByRef ws As Worksheet, ByVal langue As String)
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR DONNÉES BASE
+' PROCEDURE: REMPLIR DONNEES BASE
 ' =========================================================================
-Private Sub RemplirDonneesBase(ByRef wsEMMST As Worksheet, _
-                               ByVal ligne As Long, _
-                               ByRef wsDTR As Worksheet, _
-                               ByVal dtr As String)
-' Remplit les colonnes 1-11 : DTR, Dimensions, Date, Unité
+Private Sub RemplirDonneesBase(ByRef wsEMMST As Worksheet, ByVal ligne As Long, ByRef wsDTR As Worksheet, ByVal dtr As String)
+' Remplit les colonnes 1-11 : DTR, Dimensions, Date, Unite
     
     With wsEMMST
         .Cells(ligne, 1).Value = dtr                            ' DTR
@@ -231,19 +211,16 @@ Private Sub RemplirDonneesBase(ByRef wsEMMST As Worksheet, _
         .Cells(ligne, 7).Value = wsDTR.Range("H12").Value       ' Dim Cond Largeur
         .Cells(ligne, 8).Value = wsDTR.Range("J12").Value       ' Dim Cond Hauteur
         .Cells(ligne, 9).Value = wsDTR.Range("L12").Value       ' Dim Cond Poids
-        .Cells(ligne, 10).Value = wsDTR.Range("J14").Value      ' Date Péremption
-        .Cells(ligne, 11).Value = wsDTR.Range("E16").Value      ' Unité Conditionnement
+        .Cells(ligne, 10).Value = wsDTR.Range("J14").Value      ' Date Peremption
+        .Cells(ligne, 11).Value = wsDTR.Range("E16").Value      ' Unite Conditionnement
     End With
     
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR COMMENTAIRES
+' PROCEDURE: REMPLIR COMMENTAIRES
 ' =========================================================================
-Private Sub RemplirCommentaires(ByRef wsEMMST As Worksheet, _
-                                ByVal ligne As Long, _
-                                ByRef wsDTR As Worksheet, _
-                                ByVal langue As String)
+Private Sub RemplirCommentaires(ByRef wsEMMST As Worksheet, ByVal ligne As Long, ByRef wsDTR As Worksheet, ByVal langue As String)
 ' Remplit les commentaires selon la langue (FR ou EN)
     
     If langue = "FR" Then
@@ -265,11 +242,9 @@ Private Sub RemplirCommentaires(ByRef wsEMMST As Worksheet, _
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR TYPE OUTIL
+' PROCEDURE: REMPLIR TYPE OUTIL
 ' =========================================================================
-Private Sub RemplirTypeOutil(ByRef wsEMMST As Worksheet, _
-                             ByVal ligne As Long, _
-                             ByRef wsDTR As Worksheet)
+Private Sub RemplirTypeOutil(ByRef wsEMMST As Worksheet, ByVal ligne As Long, ByRef wsDTR As Worksheet)
 ' Colonne 17 : Type Outil
     
     If wsDTR.Range("E4").Value = "X" Then
@@ -278,110 +253,92 @@ Private Sub RemplirTypeOutil(ByRef wsEMMST As Worksheet, _
         wsEMMST.Cells(ligne, 17).Value = ""
     End If
     
-    ' Colonne 18 : Durée péremption (vide)
+    ' Colonne 18 : Duree peremption (vide)
     wsEMMST.Cells(ligne, 18).Value = ""
     
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR RÉUTILISABLE
+' PROCEDURE: REMPLIR REUTILISABLE
 ' =========================================================================
-Private Sub RemplirReutilisable(ByRef wsEMMST As Worksheet, _
-                                ByVal ligne As Long, _
-                                ByRef wsDTR As Worksheet)
-' Colonne 19 : Réutilisable (0 = Non, -1 = Oui)
+Private Sub RemplirReutilisable(ByRef wsEMMST As Worksheet, ByVal ligne As Long, ByRef wsDTR As Worksheet)
+' Colonne 19 : Reutilisable (0 = Non, -1 = Oui)
     
-    wsEMMST.Cells(ligne, 19).Value = ConvertirCocheBoolean(wsDTR.Range("F18").Value, _
-                                                            wsDTR.Range("H18").Value)
+    wsEMMST.Cells(ligne, 19).Value = ConvertirCocheBoolean(wsDTR.Range("F18").Value, wsDTR.Range("H18").Value)
     
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR ÉTIQUETTES
+' PROCEDURE: REMPLIR ETIQUETTES
 ' =========================================================================
-Private Sub RemplirEtiquettes(ByRef wsEMMST As Worksheet, _
-                              ByVal ligne As Long, _
-                              ByRef wsDTR As Worksheet)
+Private Sub RemplirEtiquettes(ByRef wsEMMST As Worksheet, ByVal ligne As Long, ByRef wsDTR As Worksheet)
 ' Colonnes 20-21 : Etiquette Emballage, Marquage Equipement
     
     ' Colonne 20 : Etiquette Emballage
-    wsEMMST.Cells(ligne, 20).Value = ConvertirCocheBoolean(wsDTR.Range("E22").Value, _
-                                                            wsDTR.Range("F22").Value)
+    wsEMMST.Cells(ligne, 20).Value = ConvertirCocheBoolean(wsDTR.Range("E22").Value, wsDTR.Range("F22").Value)
     
     ' Colonne 21 : Marquage Equipement
-    wsEMMST.Cells(ligne, 21).Value = ConvertirCocheBoolean(wsDTR.Range("E24").Value, _
-                                                            wsDTR.Range("F24").Value)
+    wsEMMST.Cells(ligne, 21).Value = ConvertirCocheBoolean(wsDTR.Range("E24").Value, wsDTR.Range("F24").Value)
     
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR MANUTENTION
+' PROCEDURE: REMPLIR MANUTENTION
 ' =========================================================================
-Private Sub RemplirManutention(ByRef wsEMMST As Worksheet, _
-                               ByVal ligne As Long, _
-                               ByRef wsDTR As Worksheet)
-' Colonnes 22-24 : Manutention Equipement, Outillage Spé, Précautions
+Private Sub RemplirManutention(ByRef wsEMMST As Worksheet, ByVal ligne As Long, ByRef wsDTR As Worksheet)
+' Colonnes 22-24 : Manutention Equipement, Outillage Spe, Precautions
     
     ' Colonne 22 : Manutention Equipement
-    wsEMMST.Cells(ligne, 22).Value = ConvertirCocheBoolean(wsDTR.Range("E28").Value, _
-                                                            wsDTR.Range("F28").Value)
+    wsEMMST.Cells(ligne, 22).Value = ConvertirCocheBoolean(wsDTR.Range("E28").Value, wsDTR.Range("F28").Value)
     
-    ' Colonne 23 : Outillage Spécifique Manutention
-    wsEMMST.Cells(ligne, 23).Value = ConvertirCocheBoolean(wsDTR.Range("E30").Value, _
-                                                            wsDTR.Range("F30").Value)
+    ' Colonne 23 : Outillage Specifique Manutention
+    wsEMMST.Cells(ligne, 23).Value = ConvertirCocheBoolean(wsDTR.Range("E30").Value, wsDTR.Range("F30").Value)
     
-    ' Colonne 24 : Précaution Manutention
-    wsEMMST.Cells(ligne, 24).Value = ConvertirCocheBoolean(wsDTR.Range("E32").Value, _
-                                                            wsDTR.Range("F32").Value)
+    ' Colonne 24 : Precaution Manutention
+    wsEMMST.Cells(ligne, 24).Value = ConvertirCocheBoolean(wsDTR.Range("E32").Value, wsDTR.Range("F32").Value)
     
 End Sub
 ' =========================================================================
-' PROCÉDURE: REMPLIR STOCKAGE
+' PROCEDURE: REMPLIR STOCKAGE
 ' =========================================================================
-Private Sub RemplirStockage(ByRef wsEMMST As Worksheet, _
-                            ByVal ligne As Long, _
-                            ByRef wsDTR As Worksheet)
-' Colonnes 25-38 : Stockage (Position, Extérieur/Intérieur, Conditions, etc.)
+Private Sub RemplirStockage(ByRef wsEMMST As Worksheet, ByVal ligne As Long, ByRef wsDTR As Worksheet)
+' Colonnes 25-38 : Stockage (Position, Exterieur/Interieur, Conditions, etc.)
     
     ' Colonne 25 : Position Stockage
     wsEMMST.Cells(ligne, 25).Value = DeterminerPositionStockage(wsDTR)
     
-    ' Colonnes 26-34 : Stockage Extérieur OU Intérieur
+    ' Colonnes 26-34 : Stockage Exterieur OU Interieur
     If wsDTR.Range("E36").Value = "X" Then
-        ' Stockage EXTÉRIEUR
+        ' Stockage EXTERIEUR
         Call RemplirStockageExterieur(wsEMMST, ligne, wsDTR)
     ElseIf wsDTR.Range("E38").Value = "X" Then
-        ' Stockage INTÉRIEUR
+        ' Stockage INTERIEUR
         Call RemplirStockageInterieur(wsEMMST, ligne, wsDTR)
     End If
     
-    ' Colonnes 35-38 : Gerbable, Moyen, Précautions, Maintenance
-    wsEMMST.Cells(ligne, 35).Value = ConvertirCocheBoolean(wsDTR.Range("E42").Value, _
-                                                            wsDTR.Range("F42").Value)
+    ' Colonnes 35-38 : Gerbable, Moyen, Precautions, Maintenance
+    wsEMMST.Cells(ligne, 35).Value = ConvertirCocheBoolean(wsDTR.Range("E42").Value, wsDTR.Range("F42").Value)
     
-    wsEMMST.Cells(ligne, 36).Value = ConvertirCocheBoolean(wsDTR.Range("E44").Value, _
-                                                            wsDTR.Range("F44").Value)
+    wsEMMST.Cells(ligne, 36).Value = ConvertirCocheBoolean(wsDTR.Range("E44").Value, wsDTR.Range("F44").Value)
     
-    wsEMMST.Cells(ligne, 37).Value = ConvertirCocheBoolean(wsDTR.Range("E46").Value, _
-                                                            wsDTR.Range("F46").Value)
+    wsEMMST.Cells(ligne, 37).Value = ConvertirCocheBoolean(wsDTR.Range("E46").Value, wsDTR.Range("F46").Value)
     
-    wsEMMST.Cells(ligne, 38).Value = ConvertirCocheBoolean(wsDTR.Range("E48").Value, _
-                                                            wsDTR.Range("F48").Value)
+    wsEMMST.Cells(ligne, 38).Value = ConvertirCocheBoolean(wsDTR.Range("E48").Value, wsDTR.Range("F48").Value)
     
 End Sub
 
 ' =========================================================================
-' FONCTION: DÉTERMINER POSITION STOCKAGE
+' FONCTION: DETERMINER POSITION STOCKAGE
 ' =========================================================================
 Private Function DeterminerPositionStockage(ByRef wsDTR As Worksheet) As String
-' Colonne 25 : Retourne "Horizontal", "Vertical" ou "Indifférent"
+' Colonne 25 : Retourne "Horizontal", "Vertical" ou "Indifferent"
     
     If wsDTR.Range("F34").Value = "X" Then
         DeterminerPositionStockage = "Horizontal"
     ElseIf wsDTR.Range("H34").Value = "X" Then
         DeterminerPositionStockage = "Vertical"
     ElseIf wsDTR.Range("J34").Value = "X" Then
-        DeterminerPositionStockage = "Indifférent"
+        DeterminerPositionStockage = "Indifferent"
     Else
         DeterminerPositionStockage = ""
     End If
@@ -389,16 +346,14 @@ Private Function DeterminerPositionStockage(ByRef wsDTR As Worksheet) As String
 End Function
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR STOCKAGE EXTÉRIEUR
+' PROCEDURE: REMPLIR STOCKAGE EXTERIEUR
 ' =========================================================================
-Private Sub RemplirStockageExterieur(ByRef wsEMMST As Worksheet, _
-                                     ByVal ligne As Long, _
-                                     ByRef wsDTR As Worksheet)
-' Colonnes 26-30 : Stockage Extérieur et sous-conditions
+Private Sub RemplirStockageExterieur(ByRef wsEMMST As Worksheet, ByVal ligne As Long, ByRef wsDTR As Worksheet)
+' Colonnes 26-30 : Stockage Exterieur et sous-conditions
     
     With wsEMMST
-        .Cells(ligne, 26).Value = -1        ' Extérieur = -1 (True)
-        .Cells(ligne, 31).Value = 0         ' Intérieur = 0 (False)
+        .Cells(ligne, 26).Value = -1        ' Exterieur = -1 (True)
+        .Cells(ligne, 31).Value = 0         ' Interieur = 0 (False)
         
         ' Sous Abri
         .Cells(ligne, 27).Value = ConvertirCocheNumeric(wsDTR.Range("G36").Value)
@@ -406,7 +361,7 @@ Private Sub RemplirStockageExterieur(ByRef wsEMMST As Worksheet, _
         ' Air Libre
         .Cells(ligne, 28).Value = ConvertirCocheNumeric(wsDTR.Range("I36").Value)
         
-        ' Hors Poussière
+        ' Hors Poussiere
         .Cells(ligne, 29).Value = ConvertirCocheNumeric(wsDTR.Range("K36").Value)
         
         ' Hors Eau
@@ -416,16 +371,14 @@ Private Sub RemplirStockageExterieur(ByRef wsEMMST As Worksheet, _
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR STOCKAGE INTÉRIEUR
+' PROCEDURE: REMPLIR STOCKAGE INTERIEUR
 ' =========================================================================
-Private Sub RemplirStockageInterieur(ByRef wsEMMST As Worksheet, _
-                                     ByVal ligne As Long, _
-                                     ByRef wsDTR As Worksheet)
-' Colonnes 26, 29-34 : Stockage Intérieur et sous-conditions
+Private Sub RemplirStockageInterieur(ByRef wsEMMST As Worksheet, ByVal ligne As Long, ByRef wsDTR As Worksheet)
+' Colonnes 26, 29-34 : Stockage Interieur et sous-conditions
     
     With wsEMMST
-        .Cells(ligne, 26).Value = 0         ' Extérieur = 0 (False)
-        .Cells(ligne, 31).Value = -1        ' Intérieur = -1 (True)
+        .Cells(ligne, 26).Value = 0         ' Exterieur = 0 (False)
+        .Cells(ligne, 31).Value = -1        ' Interieur = -1 (True)
         
         ' Chaud
         .Cells(ligne, 32).Value = ConvertirCocheNumeric(wsDTR.Range("G38").Value)
@@ -433,57 +386,48 @@ Private Sub RemplirStockageInterieur(ByRef wsEMMST As Worksheet, _
         ' Froid
         .Cells(ligne, 33).Value = ConvertirCocheNumeric(wsDTR.Range("I38").Value)
         
-        ' Hors Poussière
+        ' Hors Poussiere
         .Cells(ligne, 29).Value = ConvertirCocheNumeric(wsDTR.Range("K38").Value)
         
         ' Hors Eau
         .Cells(ligne, 30).Value = ConvertirCocheNumeric(wsDTR.Range("M38").Value)
         
-        ' Hors Lumière
+        ' Hors Lumiere
         .Cells(ligne, 34).Value = ConvertirCocheNumeric(wsDTR.Range("O38").Value)
     End With
     
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR TRANSPORT
+' PROCEDURE: REMPLIR TRANSPORT
 ' =========================================================================
-Private Sub RemplirTransport(ByRef wsEMMST As Worksheet, _
-                             ByVal ligne As Long, _
-                             ByRef wsDTR As Worksheet)
-' Colonnes 39-42 : Transport (Moyen, Outillage, Prescription, Précautions)
+Private Sub RemplirTransport(ByRef wsEMMST As Worksheet, ByVal ligne As Long, ByRef wsDTR As Worksheet)
+' Colonnes 39-42 : Transport (Moyen, Outillage, Prescription, Precautions)
     
     ' Colonne 39 : Moyen Transport
-    wsEMMST.Cells(ligne, 39).Value = ConvertirCocheBoolean(wsDTR.Range("E52").Value, _
-                                                            wsDTR.Range("F52").Value)
+    wsEMMST.Cells(ligne, 39).Value = ConvertirCocheBoolean(wsDTR.Range("E52").Value, wsDTR.Range("F52").Value)
     
-    ' Colonne 40 : Outillage Spécifique Transport
-    wsEMMST.Cells(ligne, 40).Value = ConvertirCocheBoolean(wsDTR.Range("E54").Value, _
-                                                            wsDTR.Range("F54").Value)
+    ' Colonne 40 : Outillage Specifique Transport
+    wsEMMST.Cells(ligne, 40).Value = ConvertirCocheBoolean(wsDTR.Range("E54").Value, wsDTR.Range("F54").Value)
     
     ' Colonne 41 : Prescription Transport
-    wsEMMST.Cells(ligne, 41).Value = ConvertirCocheBoolean(wsDTR.Range("E56").Value, _
-                                                            wsDTR.Range("F56").Value)
+    wsEMMST.Cells(ligne, 41).Value = ConvertirCocheBoolean(wsDTR.Range("E56").Value, wsDTR.Range("F56").Value)
     
-    ' Colonne 42 : Précaution Transport
-    wsEMMST.Cells(ligne, 42).Value = ConvertirCocheBoolean(wsDTR.Range("E58").Value, _
-                                                            wsDTR.Range("F58").Value)
+    ' Colonne 42 : Precaution Transport
+    wsEMMST.Cells(ligne, 42).Value = ConvertirCocheBoolean(wsDTR.Range("E58").Value, wsDTR.Range("F58").Value)
     
 End Sub
 
 ' =========================================================================
-' PROCÉDURE: REMPLIR VERSION
+' PROCEDURE: REMPLIR VERSION
 ' =========================================================================
-Private Sub RemplirVersion(ByRef wsEMMST As Worksheet, _
-                           ByVal ligne As Long, _
-                           ByRef wsDTR As Worksheet, _
-                           ByVal langue As String)
-' Colonnes 43-45 : Version, Date Péremption EN, Unité EN
+Private Sub RemplirVersion(ByRef wsEMMST As Worksheet, ByVal ligne As Long, ByRef wsDTR As Worksheet, ByVal langue As String)
+' Colonnes 43-45 : Version, Date Peremption EN, Unite EN
     
     With wsEMMST
         .Cells(ligne, 43).Value = ""                                ' Version (vide)
-        .Cells(ligne, 44).Value = wsDTR.Range("J14").Value          ' Date Péremption EN
-        .Cells(ligne, 45).Value = wsDTR.Range("E16").Value          ' Unité Conditionnement EN
+        .Cells(ligne, 44).Value = wsDTR.Range("J14").Value          ' Date Peremption EN
+        .Cells(ligne, 45).Value = wsDTR.Range("E16").Value          ' Unite Conditionnement EN
     End With
     
 End Sub
@@ -519,10 +463,10 @@ Private Function ConvertirCocheNumeric(ByVal coche As Variant) As Integer
 End Function
 
 ' =========================================================================
-' PROCÉDURE: FORMATER FEUILLE EXTRACTION EMMST
+' PROCEDURE: FORMATER FEUILLE EXTRACTION EMMST
 ' =========================================================================
 Private Sub FormaterFeuilleExtractionEMMST(ByRef wb As Workbook)
-' Désactive le wrap text sur la feuille EMMST
+' Desactive le wrap text sur la feuille EMMST
     
     Dim wsEMMST As Worksheet
     Dim derniereLigne As Long
@@ -530,7 +474,7 @@ Private Sub FormaterFeuilleExtractionEMMST(ByRef wb As Workbook)
     Set wsEMMST = wb.Sheets("EMMST")
     derniereLigne = wsEMMST.Range("A100000").End(xlUp).Row
     
-    ' Désactiver wrap text
+    ' Desactiver wrap text
     wsEMMST.Activate
     wsEMMST.Range("A1:AY" & derniereLigne).Select
     With Selection

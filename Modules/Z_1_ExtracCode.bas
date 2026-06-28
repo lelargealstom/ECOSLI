@@ -1,8 +1,8 @@
 Attribute VB_Name = "Z_1_ExtracCode"
 ' ==========================================
 ' Module: ModPublish
-' Description: Génère le .xlam depuis le .xlsm courant
-' A placer dans le .xlsm uniquement (pas dans le complément)
+' Description: Genere le .xlam depuis le .xlsm courant
+' A placer dans le .xlsm uniquement (pas dans le complement)
 ' ==========================================
 Option Explicit
 
@@ -24,16 +24,11 @@ Public Sub PublishToXlam()
     xlamPath = GetLocalPath(ThisWorkbook.Path & "/" & xlamName)
 
     ' --- Confirmation ---
-    result = MsgBox("Publication du complément :" & vbCrLf & vbCrLf & _
-                    "Source  : " & xlsmName & vbCrLf & _
-                    "Sortie  : " & xlamPath & vbCrLf & vbCrLf & _
-                    "Le fichier .xlam existant sera remplacé." & vbCrLf & _
-                    "Voulez-vous continuer ?", _
-                    vbQuestion + vbYesNo, "Publier le complément")
+    result = MsgBox("Publication du complement :" & vbCrLf & vbCrLf & "Source  : " & xlsmName & vbCrLf & "Sortie  : " & xlamPath & vbCrLf & vbCrLf & "Le fichier .xlam existant sera remplace." & vbCrLf & "Voulez-vous continuer ?", vbQuestion + vbYesNo, "Publier le complement")
 
     If result <> vbYes Then Exit Sub
 
-    ' --- Désactiver les alertes pendant la copie ---
+    ' --- Desactiver les alertes pendant la copie ---
     Application.DisplayAlerts = False
     Application.ScreenUpdating = False
 
@@ -47,8 +42,7 @@ Public Sub PublishToXlam()
     Application.DisplayAlerts = True
     Application.ScreenUpdating = True
 
-    MsgBox "Complément publié avec succès !" & vbCrLf & vbCrLf & _
-           xlamPath, vbInformation, "Publication terminée"
+    MsgBox "Complement publie avec succes !" & vbCrLf & vbCrLf & xlamPath, vbInformation, "Publication terminee"
 
     Exit Sub
 
@@ -71,7 +65,7 @@ Private Function GetLocalPath(ByVal spPath As String) As String
     Dim spBase     As String
     Dim relativePath As String
 
-    ' Cas 1 : chemin déjà local (commence par une lettre de lecteur)
+    ' Cas 1 : chemin deja local (commence par une lettre de lecteur)
     If Mid(spPath, 2, 2) = ":\" Or Left(spPath, 2) = "\\" Then
         GetLocalPath = spPath
         Exit Function
@@ -88,10 +82,10 @@ Private Function GetLocalPath(ByVal spPath As String) As String
     End If
 
     If InStr(spPath, spBase) > 0 Then
-        ' Extraire la partie relative après /Shared Documents/
+        ' Extraire la partie relative apres /Shared Documents/
         relativePath = Mid(spPath, Len(spBase) + 2)  ' +2 pour le slash final
 
-        ' Remplacer les %20 résiduels par des espaces
+        ' Remplacer les %20 residuels par des espaces
         relativePath = Replace(relativePath, "%20", " ")
 
         ' Remplacer les slashs URL par des antislashs Windows
@@ -103,8 +97,8 @@ Private Function GetLocalPath(ByVal spPath As String) As String
         Exit Function
     End If
 
-    ' Cas 3 : URL OneDrive générique
-    ' https://d.docs.live.net/XXXX/... ? ne s'applique pas ici, mais sécurité
+    ' Cas 3 : URL OneDrive generique
+    ' https://d.docs.live.net/XXXX/... ? ne s'applique pas ici, mais securite
     GetLocalPath = spPath  ' retourne tel quel si non reconnu
 
 End Function

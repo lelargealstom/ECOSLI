@@ -93,7 +93,7 @@ Public Function Auteur_Projet(tableau As Variant, projet As String) As String
     Next
     
 End Function
-'Fonction qui met à jour la barre de progression dans le UserForm
+'Fonction qui met a jour la barre de progression dans le UserForm
 Function barprogress(bar_cpt, bar_tot)
     
     UserForm.barre.Width = bar_cpt / bar_tot * UserForm.barreimage.Width
@@ -165,10 +165,10 @@ Public Sub TurnOnFunctionality()
     End With
 End Sub
 Public Function HARD_SOFT(Range As Variant, dtr As String) As String
-' Fonction permettant de renseigner si le DTR recherché est un HARD, un SOFT ou possède les deux dans un range
+' Fonction permettant de renseigner si le DTR recherche est un HARD, un SOFT ou possede les deux dans un range
 ' ---------------- Variable ----------------
-' range : Sélection de la colonne HARD/SOFT de la BDD dans la table 'Taches_ATM' de la BDD
-' ---------------- Résultat ----------------
+' range : Selection de la colonne HARD/SOFT de la BDD dans la table 'Taches_ATM' de la BDD
+' ---------------- Resultat ----------------
 ' Resultat = "HARD" si le DTR ne comprend que des lignes HARD
 ' Resultat = "SOFT" si le DTR ne comprend que des lignes SOFT
 ' Resultat = "BOTH" si le DTR comprend des lignes SOFT et HARD
@@ -653,12 +653,7 @@ End Function
 ' - uf               : instance du UserForm (ex. Me dans le code du UserForm)
 ' - projectValue     : valeur de la cle pour WHERE ([Nom projet_PROJET SLI] = projectValue)
 ' - iStart, iEnd     : bornes de boucle pour la partie SET (par defaut 1..23)
-Public Function BuildUpdateSqlFromArray( _
-    ByVal arr As Variant, _
-    ByVal uf As Object, _
-    ByVal projectValue As String, _
-    Optional ByVal iStart As Long = 1, _
-    Optional ByVal iEnd As Long = 23) As String
+Public Function BuildUpdateSqlFromArray( ByVal arr As Variant, ByVal uf As Object, ByVal projectValue As String, Optional ByVal iStart As Long = 1, Optional ByVal iEnd As Long = 23) As String
 
     Dim i As Long
     Dim colName As String
@@ -706,9 +701,7 @@ Public Function BuildUpdateSqlFromArray( _
     setClause = JoinCollection(setParts, ", ")
 
     ' WHERE sur la cle "Nom projet_PROJET SLI"
-    sql = "UPDATE [Projet_SLI$] " & _
-          "SET " & setClause & " " & _
-          "WHERE [Nom projet_PROJET SLI] = " & ToAceSqlLiteral(projectValue)
+    sql = "UPDATE [Projet_SLI$] SET " & setClause & " WHERE [Nom projet_PROJET SLI] = " & ToAceSqlLiteral(projectValue)
 
     BuildUpdateSqlFromArray = sql
 End Function
@@ -719,12 +712,7 @@ End Function
 ' - uf           : instance du UserForm (ex. Me)
 ' - iStart,iEnd  : bornes de boucle pour l'INSERT (par defaut 1..23)
 ' - skipNulls    : si True, ignore les colonnes dont la valeur est Null => INSERT partiel
-Public Function BuildInsertSqlFromArray( _
-    ByVal arr As Variant, _
-    ByVal uf As Object, _
-    Optional ByVal iStart As Long = 1, _
-    Optional ByVal iEnd As Long = 23, _
-    Optional ByVal skipNulls As Boolean = False) As String
+Public Function BuildInsertSqlFromArray( ByVal arr As Variant, ByVal uf As Object, Optional ByVal iStart As Long = 1, Optional ByVal iEnd As Long = 23, Optional ByVal skipNulls As Boolean = False) As String
 
     Dim i As Long
     Dim colName As String
@@ -771,9 +759,7 @@ Public Function BuildInsertSqlFromArray( _
         Exit Function
     End If
 
-    BuildInsertSqlFromArray = _
-        "INSERT INTO [Projet_SLI$] (" & JoinCollection(cols, ", ") & ") " & _
-        "VALUES (" & JoinCollection(vals, ", ") & ")"
+    BuildInsertSqlFromArray = "INSERT INTO [Projet_SLI$] (" & JoinCollection(cols, ", ") & ") VALUES (" & JoinCollection(vals, ", ") & ")"
 End Function
 
 ' === Helpers ===

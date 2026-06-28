@@ -2,10 +2,10 @@ Attribute VB_Name = "D_Providor_Utilitaires"
 '--------------------------------------------------------------------------------------------------------
 '
 '                                       Generateur Livrables SLI
-'                                       Module D_Providor_Utilitaires (Version Refactorisée)
+'                                       Module D_Providor_Utilitaires (Version Refactorisee)
 '                                       Developpement : LE LARGE Thomas (LGM/Alstom)
 '                                       Module contenant les fonctions utilitaires Providor
-'                                       Refactorisation : Février 2026
+'                                       Refactorisation : Fevrier 2026
 '
 '-----------------------------------------------------------------------------------------------------------
 Option Compare Text
@@ -15,7 +15,7 @@ Option Explicit
 ' =========================================================================
 Public Function TrouverIndexDTR(ByVal dtr As String) As Integer
 ' Trouve l'index d'un DTR dans le tableau tDTR
-' Retourne 0 si non trouvé
+' Retourne 0 si non trouve
 
     Dim i As Integer
     
@@ -30,17 +30,17 @@ Public Function TrouverIndexDTR(ByVal dtr As String) As Integer
     
 End Function
 ' =========================================================================
-' PROCÉDURE: INITIALISER CADRAGE COLONNES (AUTO-FIND)
+' PROCEDURE: INITIALISER CADRAGE COLONNES (AUTO-FIND)
 ' =========================================================================
 Public Sub InitialiserCadrageColonnes()
 ' Initialise toutes les colonnes via Find automatique
-' À appeler APRÈS copie du template et ouverture du workbook
+' ? appeler APRES copie du template et ouverture du workbook
 '
 ' IMPORTANT : Suppose que les feuilles BS, ML, CM, PM, SL, TL, GP
-'             sont déjà déclarées publiques et pointent vers le bon workbook
+'             sont deja declarees publiques et pointent vers le bon workbook
     Dim ligneteteBS, ligneteteSL, ligneteteML, ligneteteTL, ligneteteCM, lignetetePM As Integer
     
-    'Définition des lignes d'entete dans chaque feuille
+    'Definition des lignes d'entete dans chaque feuille
     ligneteteBS = 3
     ligneteteSL = 3
     ligneteteML = 3
@@ -108,7 +108,7 @@ Public Sub InitialiserCadrageColonnes()
         cm_col.JustificationTaskEN = .rows(ligneteteCM).Find(What:="Justification_Tache_C_EN", LookIn:=xlValues, lookat:=xlWhole).Column
         cm_col.MTBF = .rows(ligneteteCM).Find(What:="MTBF", LookIn:=xlValues, lookat:=xlWhole).Column
         cm_col.MTBFUnit = .rows(ligneteteCM).Find(What:="MTBF unit", LookIn:=xlValues, lookat:=xlWhole).Column
-        cm_col.MTBFSource = .rows(ligneteteCM).Find(What:="Commentaire Alstom (taux de défaillance)", LookIn:=xlValues, lookat:=xlWhole).Column
+        cm_col.MTBFSource = .rows(ligneteteCM).Find(What:="Commentaire Alstom (taux de defaillance)", LookIn:=xlValues, lookat:=xlWhole).Column
     End With
     
     ' ======================================================================
@@ -123,12 +123,12 @@ Public Sub InitialiserCadrageColonnes()
         pm_col.FrequencyValue = .rows(lignetetePM).Find(What:="Frequency value", LookIn:=xlValues, lookat:=xlWhole).Column
         pm_col.FrequencyUnit = .rows(lignetetePM).Find(What:="Frequency unit", LookIn:=xlValues, lookat:=xlWhole).Column
         pm_col.TaskTime = .rows(lignetetePM).Find(What:="Task time (in hours)", LookIn:=xlValues, lookat:=xlWhole).Column
-        pm_col.TimeSource = .rows(lignetetePM).Find(What:="Procedure N°", LookIn:=xlValues, lookat:=xlWhole).Column
+        pm_col.TimeSource = .rows(lignetetePM).Find(What:="Procedure N?", LookIn:=xlValues, lookat:=xlWhole).Column
         pm_col.SkillName = .rows(lignetetePM).Find(What:="Skill name", LookIn:=xlValues, lookat:=xlWhole).Column
         pm_col.SkillQty = .rows(lignetetePM).Find(What:="Qty", LookIn:=xlValues, lookat:=xlWhole).Column
         pm_col.MaterialName = .rows(lignetetePM).Find(What:="Material name", LookIn:=xlValues, lookat:=xlWhole).Column
         pm_col.MaterialQty = pm_col.MaterialName + 1
-        pm_col.JustificationTaskFR = .rows(lignetetePM).Find(What:="Justification de la tâche", LookIn:=xlValues, lookat:=xlWhole).Column
+        pm_col.JustificationTaskFR = .rows(lignetetePM).Find(What:="Justification de la tache", LookIn:=xlValues, lookat:=xlWhole).Column
         pm_col.JustificationTaskEN = .rows(lignetetePM).Find(What:="Justification of the task", LookIn:=xlValues, lookat:=xlWhole).Column
     End With
     
@@ -183,10 +183,7 @@ Public Sub InitialiserCadrageColonnes()
     Exit Sub
     
 ErrorHandler:
-    MsgBox "Erreur initialisation cadrage colonnes : " & vbCrLf & _
-           "Colonne non trouvée ou nom d'en-tête incorrect." & vbCrLf & vbCrLf & _
-           "Erreur : " & Err.description & vbCrLf & _
-           "Numéro : " & Err.Number, vbCritical, "Erreur Cadrage Providor"
+    MsgBox "Erreur initialisation cadrage colonnes : " & vbCrLf & "Colonne non trouvee ou nom d'en-tete incorrect." & vbCrLf & vbCrLf & "Erreur : " & Err.description & vbCrLf & "Numero : " & Err.Number, vbCritical, "Erreur Cadrage Providor"
     
 End Sub
 
@@ -194,12 +191,12 @@ End Sub
 ' FONCTION: VALIDER CADRAGE COLONNES
 ' =========================================================================
 Public Function ValiderCadrageColonnes() As Boolean
-' Vérifie que toutes les colonnes ont été initialisées (> 0)
+' Verifie que toutes les colonnes ont ete initialisees (> 0)
 ' Retourne True si OK, False sinon
     
     On Error GoTo ValidationFailed
     
-    ' Vérifier qu'au moins une variable de chaque type est > 0
+    ' Verifier qu'au moins une variable de chaque type est > 0
     If bs_col.NodeLevel = 0 Then GoTo ValidationFailed
     If ml_col.Name = 0 Then GoTo ValidationFailed
     If cm_col.NodeName = 0 Then GoTo ValidationFailed
@@ -213,22 +210,19 @@ Public Function ValiderCadrageColonnes() As Boolean
     
 ValidationFailed:
     ValiderCadrageColonnes = False
-    MsgBox "Cadrage colonnes non initialisé correctement !" & vbCrLf & vbCrLf & _
-           "Vérifier que InitialiserCadrageColonnes() a été appelé APRÈS ouverture du template." & vbCrLf & _
-           "Vérifier que tous les en-têtes sont présents dans le template.", _
-           vbCritical, "Erreur Validation Cadrage"
+    MsgBox "Cadrage colonnes non initialise correctement !" & vbCrLf & vbCrLf & "Verifier que InitialiserCadrageColonnes() a ete appele APRES ouverture du template." & vbCrLf & "Verifier que tous les en-tetes sont presents dans le template.", vbCritical, "Erreur Validation Cadrage"
     
 End Function
 
 ' =========================================================================
-' PROCÉDURE: AFFICHER CADRAGE (DEBUG)
+' PROCEDURE: AFFICHER CADRAGE (DEBUG)
 ' =========================================================================
 Public Sub AfficherCadrageColonnes()
-' Affiche toutes les colonnes cadrées (pour debug)
+' Affiche toutes les colonnes cadrees (pour debug)
     
     Dim msg As String
     
-    msg = "=== CADRAGE COLONNES PROVIDOR (Types Structurés) ===" & vbCrLf & vbCrLf
+    msg = "=== CADRAGE COLONNES PROVIDOR (Types Structures) ===" & vbCrLf & vbCrLf
     
     msg = msg & "BREAKDOWN STRUCTURE (bs_col) :" & vbCrLf
     msg = msg & "  NodeLevel = " & bs_col.NodeLevel & vbCrLf

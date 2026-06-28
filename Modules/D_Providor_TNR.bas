@@ -2,16 +2,16 @@ Attribute VB_Name = "D_Providor_TNR"
 '--------------------------------------------------------------------------------------------------------
 '
 '                                       Generateur Livrables SLI
-'                                       Module D_Providor_TNR (Version Refactorisée)
+'                                       Module D_Providor_TNR (Version Refactorisee)
 '                                       Developpement : LE LARGE Thomas (LGM/Alstom)
-'                                       Module contenant la PBS étalon pour test de non-régression Providor
-'                                       Refactorisation : Février 2026
+'                                       Module contenant la PBS etalon pour test de non-regression Providor
+'                                       Refactorisation : Fevrier 2026
 '
 '-----------------------------------------------------------------------------------------------------------
 Option Explicit
 
 ' =========================================================================
-' STRUCTURE ÉTALON
+' STRUCTURE ETALON
 ' =========================================================================
 Public Type T_PBS_Etalon
     dtr          As String
@@ -28,7 +28,7 @@ Public PBS_Etalon()          As T_PBS_Etalon
 Public Const NB_LIGNES_ETALON As Long = 48
 
 ' =========================================================================
-' INITIALISATION COMPLÈTE
+' INITIALISATION COMPLETE
 ' =========================================================================
 Public Sub InitPBS_Etalon()
     ReDim PBS_Etalon(1 To NB_LIGNES_ETALON) 'base 1
@@ -36,7 +36,7 @@ Public Sub InitPBS_Etalon()
     Call Init_Designation
     Call Init_SS
     Call Init_Qte
-    ' MTBFIntr et MTBFFct vides pour l'instant ? valeurs à 0 par défaut
+    ' MTBFIntr et MTBFFct vides pour l'instant ? valeurs a 0 par defaut
     ' Call _Init_MTBFIntr
     ' Call _Init_MTBFFct
     ' Call _Init_DVLHARD
@@ -47,22 +47,10 @@ Private Sub Init_DTR()
     Dim v As Variant
     Dim i As Long
 
-    v = Array( _
-        "DTR0000120004", "DTR0000221263", "DTR0000228338", "DTR0000253129", _
-        "DTR0000299092", "DTR0000382566", "DTR0000382822", "DTR0000421031", _
-        "DTR0000423752", "DTR0000436717", "DTR0000436719", "DTR0000436720", _
-        "DTR0000445292", "DTR0000459726", "DTR0000460596", "DTR0000460597", _
-        "DTR0000460598", "DTR0000460600", "DTR0000464916", "DTR0000494988", _
-        "DTR0000499404", "DTR0000520477", "DTR0000540751", "DTR0000560752", _
-        "DTR0000560755", "DTR0000560758", "DTR0000564075", "DTR0000564077", _
-        "DTR0000565035", "DTR0000569001", "DTR0000569002", "DTR0000569003", _
-        "DTR0000581177", "DTR0000583207", "DTR0000587713", "DTR0000593059", _
-        "DTR0000593207", "DTR2000000973", "DTR2000014281", "DTR2000014282", _
-        "DTR2000014283", "DTR2000015440", "DTR2000021122", "DTR2000029651", _
-        "DTR2000038851", "DTR2000038852", "DTR2000056364", "DTR2000061970")
+    v = Array( "DTR0000120004", "DTR0000221263", "DTR0000228338", "DTR0000253129", "DTR0000299092", "DTR0000382566", "DTR0000382822", "DTR0000421031", "DTR0000423752", "DTR0000436717", "DTR0000436719", "DTR0000436720", "DTR0000445292", "DTR0000459726", "DTR0000460596", "DTR0000460597", "DTR0000460598", "DTR0000460600", "DTR0000464916", "DTR0000494988", "DTR0000499404", "DTR0000520477", "DTR0000540751", "DTR0000560752", "DTR0000560755", "DTR0000560758", "DTR0000564075", "DTR0000564077", "DTR0000565035", "DTR0000569001", "DTR0000569002", "DTR0000569003", "DTR0000581177", "DTR0000583207", "DTR0000587713", "DTR0000593059", "DTR0000593207", "DTR2000000973", "DTR2000014281", "DTR2000014282", "DTR2000014283", "DTR2000015440", "DTR2000021122", "DTR2000029651", "DTR2000038851", "DTR2000038852", "DTR2000056364", "DTR2000061970")
 
     ' v est base 0 (0 To 47), PBS_Etalon est base 1 (1 To 48)
-    ' ? décalage de +1 sur l'index
+    ' ? decalage de +1 sur l'index
     For i = 1 To NB_LIGNES_ETALON
         PBS_Etalon(i).dtr = v(i - 1)
     Next i
@@ -76,59 +64,11 @@ Private Sub Init_Designation()
     Dim v() As String
     Dim i As Long
 
-    v1 = Array( _
-        "DATAPLUG DMI", _
-        "100MPS FIXED ETHERNET REPEATER", _
-        "DATAPLUG HC", _
-        "ANTENNA SENCITY RAIL", _
-        "POWER OVER ETHERNET POE 6 PORTS", _
-        "GIGABIT ETHERNET SWITCH", _
-        "GIGABIT ETHERNET SWITCH POE HV", _
-        "GES DATAPLUG", _
-        "TRAIN ROUTER SWITCH V1.1", _
-        "NETBOX V2 BASE / NETBOX (WIRELESS)", _
-        "NETBOX V2 MPU / XPU", _
-        "NETBOX V2 MPU 32GB / XPU 32GB", _
-        "CARTE CPU G40A COMPACT PCI SERIAL", _
-        "BRIO XT R201 SIL2", _
-        "BRIO XT R101", _
-        "BRIO XT R102")
+    v1 = Array( "DATAPLUG DMI", "100MPS FIXED ETHERNET REPEATER", "DATAPLUG HC", "ANTENNA SENCITY RAIL", "POWER OVER ETHERNET POE 6 PORTS", "GIGABIT ETHERNET SWITCH", "GIGABIT ETHERNET SWITCH POE HV", "GES DATAPLUG", "TRAIN ROUTER SWITCH V1.1", "NETBOX V2 BASE / NETBOX (WIRELESS)", "NETBOX V2 MPU / XPU", "NETBOX V2 MPU 32GB / XPU 32GB", "CARTE CPU G40A COMPACT PCI SERIAL", "BRIO XT R201 SIL2", "BRIO XT R101", "BRIO XT R102")
 
-    v2 = Array( _
-        "BRIO XT R104", _
-        "BRIO XT R105", _
-        "FMI CARD TECHNICAL SPECIFICATION", _
-        "ANTENA SWA-0759/360/6/0/MIMO", _
-        "RAILWAY ETHERNET SWITCH", _
-        "13 PORT SENCITY RAIL MULTI ANTENNA", _
-        "SECURITY GATEWAY SGTW", _
-        "DMIACE2_121_XGA_TK32", _
-        "DMIACE2_104_XGA_T", _
-        "DMIACE2_104_XGA_TK32", _
-        "PSU BOARD OF NETBOX_V2", _
-        "POWER & I/O BOARD FOR NETBOX V2", _
-        "NETBOX V2 EVO (WIRELESS)", _
-        "IRMA6 POE WITHOUT I/O CONNECTOR", _
-        "IRMA6 ETH WITHOUT I/O CONNECTOR", _
-        "IRMA6 R2 PASSENGERS COUNTING SENSOR")
+    v2 = Array( "BRIO XT R104", "BRIO XT R105", "FMI CARD TECHNICAL SPECIFICATION", "ANTENA SWA-0759/360/6/0/MIMO", "RAILWAY ETHERNET SWITCH", "13 PORT SENCITY RAIL MULTI ANTENNA", "SECURITY GATEWAY SGTW", "DMIACE2_121_XGA_TK32", "DMIACE2_104_XGA_T", "DMIACE2_104_XGA_TK32", "PSU BOARD OF NETBOX_V2", "POWER & I/O BOARD FOR NETBOX V2", "NETBOX V2 EVO (WIRELESS)", "IRMA6 POE WITHOUT I/O CONNECTOR", "IRMA6 ETH WITHOUT I/O CONNECTOR", "IRMA6 R2 PASSENGERS COUNTING SENSOR")
 
-    v3 = Array( _
-        "IP-TS-8GBE 8PORT ETBN", _
-        "GIGABIT ETHERNET SWITCH POE HV", _
-        "MSATA BOARD FOR NETBOX V2", _
-        "SENCITY RAIL MIMO ANTENNA 5 PORT", _
-        "ECP-USB", _
-        "CAPACITOR CABLING ADAPTER KIT", _
-        "STPU EQUIPPED BLOCK", _
-        "IMLI EQUIPPED BLOCK", _
-        "TSA EQUIPPED BLOCK", _
-        "AC4 EQUIPPED FAN RACK", _
-        "CRSv2 evo", _
-        "AC4L-01-L0L00", _
-        "BDOV EQUIPPED BLOCK", _
-        "BDI EQUIPPED BLOCK", _
-        "AC4-05-262200 CONFIGURED RACK", _
-        "Gigabit Cut Shield Cabling Adapter")
+    v3 = Array( "IP-TS-8GBE 8PORT ETBN", "GIGABIT ETHERNET SWITCH POE HV", "MSATA BOARD FOR NETBOX V2", "SENCITY RAIL MIMO ANTENNA 5 PORT", "ECP-USB", "CAPACITOR CABLING ADAPTER KIT", "STPU EQUIPPED BLOCK", "IMLI EQUIPPED BLOCK", "TSA EQUIPPED BLOCK", "AC4 EQUIPPED FAN RACK", "CRSv2 evo", "AC4L-01-L0L00", "BDOV EQUIPPED BLOCK", "BDI EQUIPPED BLOCK", "AC4-05-262200 CONFIGURED RACK", "Gigabit Cut Shield Cabling Adapter")
 
     ReDim v(1 To NB_LIGNES_ETALON)
     For i = 1 To 16: v(i) = v1(i - 1): Next i
@@ -159,7 +99,7 @@ Private Sub Init_SS()
 End Sub
 
 ' =========================================================================
-' QUANTITÉ (toutes à 1)
+' QUANTITE (toutes a 1)
 ' =========================================================================
 Private Sub Init_Qte()
     Dim i As Long
@@ -169,7 +109,7 @@ Private Sub Init_Qte()
 End Sub
 
 ' =========================================================================
-' MTBF INTRINSÈQUE  ? à compléter
+' MTBF INTRINSEQUE  ? a completer
 ' =========================================================================
 Private Sub Init_MTBFIntr()
     Dim i As Long
@@ -179,7 +119,7 @@ Private Sub Init_MTBFIntr()
 End Sub
 
 ' =========================================================================
-' MTBF FONCTIONNEL  ? à compléter
+' MTBF FONCTIONNEL  ? a completer
 ' =========================================================================
 Private Sub Init_MTBFFct()
     Dim i As Long
@@ -189,7 +129,7 @@ Private Sub Init_MTBFFct()
 End Sub
 
 ' =========================================================================
-' DVL HARDWARE  ? à compléter
+' DVL HARDWARE  ? a completer
 ' =========================================================================
 Private Sub Init_DVLHARD()
     Dim i As Long
@@ -199,7 +139,7 @@ Private Sub Init_DVLHARD()
 End Sub
 
 ' =========================================================================
-' DVL SOFTWARE  ? à compléter
+' DVL SOFTWARE  ? a completer
 ' =========================================================================
 Private Sub Init_DVLSOFT()
     Dim i As Long
@@ -209,17 +149,16 @@ Private Sub Init_DVLSOFT()
 End Sub
 
 ' =========================================================================
-' POINT D'ENTRÉE : TEST DE NON-RÉGRESSION PROVIDOR
+' POINT D'ENTREE : TEST DE NON-REGRESSION PROVIDOR
 ' =========================================================================
 Public Sub RunTest_NonRegression_Providor()
     'On initialise la PBS Etalon
     Call InitPBS_Etalon
     
-    'On injecte les données de l'étalon dans les tableaux du code Providor
+    'On injecte les donnees de l'etalon dans les tableaux du code Providor
     Call InjecterDonneesEtalon
     
-    MsgBox "Données étalon injectées (" & NB_LIGNES_ETALON & " lignes)." & vbCrLf & _
-           "Prêt pour le test de génération Providor.", vbInformation, "Test Non-Régression"
+    MsgBox "Donnees etalon injectees (" & NB_LIGNES_ETALON & " lignes)." & vbCrLf & "Pret pour le test de generation Providor.", vbInformation, "Test Non-Regression"
            
     Call Main_Providor(True)
     
@@ -268,20 +207,14 @@ Public Sub Debug_AfficherEtalon()
     Dim n As Long
     n = PBS_Etalon_Count
     If n = 0 Then
-        Debug.Print "PBS_Etalon non initialisé — appeler InitPBS_Etalon() d'abord"
+        Debug.Print "PBS_Etalon non initialise - appeler InitPBS_Etalon() d'abord"
         Exit Sub
     End If
     Debug.Print String(80, "=")
-    Debug.Print "PBS Etalon — " & n & " lignes"
+    Debug.Print "PBS Etalon - " & n & " lignes"
     Debug.Print String(80, "=")
     For i = 1 To n
-        Debug.Print Format(i, "00") & " | " & _
-                    PBS_Etalon(i).dtr & " | " & _
-                    Left(PBS_Etalon(i).Designation, 35) & " | " & _
-                    Left(PBS_Etalon(i).SS, 25) & " | " & _
-                    "Qte=" & PBS_Etalon(i).Qte & " | " & _
-                    "MTBFi=" & PBS_Etalon(i).MTBFIntr & " | " & _
-                    "MTBFf=" & PBS_Etalon(i).MTBFFct
+        Debug.Print Format(i, "00") & " | " & PBS_Etalon(i).dtr & " | " & Left(PBS_Etalon(i).Designation, 35) & " | " & Left(PBS_Etalon(i).SS, 25) & " | Qte=" & PBS_Etalon(i).Qte & " | MTBFi=" & PBS_Etalon(i).MTBFIntr & " | MTBFf=" & PBS_Etalon(i).MTBFFct
     Next i
 End Sub
 Public Sub CollecterMetriquesTest(ByRef wb As Workbook)
@@ -291,7 +224,7 @@ Public Sub CollecterMetriquesTest(ByRef wb As Workbook)
     With ResultatTest
         .Succes = True
 
-        ' --- Nombre de lignes par feuille (à partir de la ligne données) ---
+        ' --- Nombre de lignes par feuille (a partir de la ligne donnees) ---
         .NbLignes_BS = CompterLignesFeuille(wb.Worksheets("Breakdown structure"), 3, 5)
         .NbLignes_ML = CompterLignesFeuille(wb.Worksheets("Material list"), 3, 4)
         .NbLignes_CM = CompterLignesFeuille(wb.Worksheets("Reliability & Corr. maintenance"), 1, 4)
@@ -307,7 +240,7 @@ Public Sub CollecterMetriquesTest(ByRef wb As Workbook)
             .LCC_Final = lccVal
         Else
             .LCC_Final = "N/D"
-            .MessageErreur = "LCC P18 non numérique ou vide"
+            .MessageErreur = "LCC P18 non numerique ou vide"
         End If
     End With
 
@@ -315,12 +248,10 @@ Public Sub CollecterMetriquesTest(ByRef wb As Workbook)
 End Sub
 ' =========================================================================
 ' FONCTION: COMPTER LIGNES FEUILLE
-' Retourne le nombre de lignes de données à partir de ligneDebut
+' Retourne le nombre de lignes de donnees a partir de ligneDebut
 ' en se basant sur la colonne colRef
 ' =========================================================================
-Public Function CompterLignesFeuille(ByRef ws As Worksheet, _
-                                      ByVal colRef As Long, _
-                                      ByVal ligneDebut As Long) As Long
+Public Function CompterLignesFeuille(ByRef ws As Worksheet, ByVal colRef As Long, ByVal ligneDebut As Long) As Long
     Dim derniereLigne As Long
     On Error Resume Next
     derniereLigne = ws.Cells(ws.rows.count, colRef).End(xlUp).Row
@@ -337,33 +268,22 @@ Public Sub AfficherResultatsTest()
     Dim lccStr As String
 
     If IsNumeric(ResultatTest.LCC_Final) Then
-        lccStr = Format(CDbl(ResultatTest.LCC_Final), "#,##0.00 €")
+        lccStr = Format(CDbl(ResultatTest.LCC_Final), "#,##0.00 ?")
     Else
         lccStr = CStr(ResultatTest.LCC_Final)
     End If
 
-    msg = "=== RÉSULTATS TEST NON-RÉGRESSION PROVIDOR ===" & vbCrLf & vbCrLf & _
-          "Projet étalon : " & Code_Projet & vbCrLf & _
-          "Gate          : " & gate & vbCrLf & vbCrLf & _
-          "--- Lignes générées par feuille ---" & vbCrLf & _
-          "Breakdown Structure    : " & ResultatTest.NbLignes_BS & vbCrLf & _
-          "Material List          : " & ResultatTest.NbLignes_ML & vbCrLf & _
-          "Corrective Maintenance : " & ResultatTest.NbLignes_CM & vbCrLf & _
-          "Preventive Maintenance : " & ResultatTest.NbLignes_PM & vbCrLf & _
-          "Skill List             : " & ResultatTest.NbLignes_SL & vbCrLf & _
-          "Tool List              : " & ResultatTest.NbLignes_TL & vbCrLf & vbCrLf & _
-          "--- LCC Final (P18) ---" & vbCrLf & _
-          lccStr
+    msg = "=== RESULTATS TEST NON-REGRESSION PROVIDOR ===" & vbCrLf & vbCrLf & "Projet etalon : " & Code_Projet & vbCrLf & "Gate          : " & gate & vbCrLf & vbCrLf & "--- Lignes generees par feuille ---" & vbCrLf & "Breakdown Structure    : " & ResultatTest.NbLignes_BS & vbCrLf & "Material List          : " & ResultatTest.NbLignes_ML & vbCrLf & "Corrective Maintenance : " & ResultatTest.NbLignes_CM & vbCrLf & "Preventive Maintenance : " & ResultatTest.NbLignes_PM & vbCrLf & "Skill List             : " & ResultatTest.NbLignes_SL & vbCrLf & "Tool List              : " & ResultatTest.NbLignes_TL & vbCrLf & vbCrLf & "--- LCC Final (P18) ---" & vbCrLf & lccStr
 
     If ResultatTest.MessageErreur <> "" Then
         msg = msg & vbCrLf & vbCrLf & "? Avertissement : " & ResultatTest.MessageErreur
     End If
 
-    MsgBox msg, vbInformation, "Test Non-Régression Providor"
+    MsgBox msg, vbInformation, "Test Non-Regression Providor"
 
 End Sub
 ' =========================================================================
-' PROCÉDURE: NETTOYER FICHIER TEST
+' PROCEDURE: NETTOYER FICHIER TEST
 ' Ferme sans sauvegarder et supprime le fichier temporaire
 ' =========================================================================
 Public Sub NettoyerFichierTest(ByRef wb As Workbook)

@@ -19,25 +19,11 @@ Option Explicit
 ' (user32.dll). Pas de droits admin requis.
 ' =========================================================================
 #If VBA7 Then
-    Private Declare PtrSafe Function FindWindowA Lib "user32" ( _
-        ByVal lpClassName As String, _
-        ByVal lpWindowName As String) As LongPtr
-    Private Declare PtrSafe Function SetWindowPos Lib "user32" ( _
-        ByVal hWnd As LongPtr, _
-        ByVal hWndInsertAfter As LongPtr, _
-        ByVal x As Long, ByVal y As Long, _
-        ByVal cx As Long, ByVal cy As Long, _
-        ByVal wFlags As Long) As Long
+    Private Declare PtrSafe Function FindWindowA Lib "user32" ( ByVal lpClassName As String, ByVal lpWindowName As String) As LongPtr
+    Private Declare PtrSafe Function SetWindowPos Lib "user32" ( ByVal hWnd As LongPtr, ByVal hWndInsertAfter As LongPtr, ByVal x As Long, ByVal y As Long, ByVal cx As Long, ByVal cy As Long, ByVal wFlags As Long) As Long
 #Else
-    Private Declare Function FindWindowA Lib "user32" ( _
-        ByVal lpClassName As String, _
-        ByVal lpWindowName As String) As Long
-    Private Declare Function SetWindowPos Lib "user32" ( _
-        ByVal hWnd As Long, _
-        ByVal hWndInsertAfter As Long, _
-        ByVal x As Long, ByVal y As Long, _
-        ByVal cx As Long, ByVal cy As Long, _
-        ByVal wFlags As Long) As Long
+    Private Declare Function FindWindowA Lib "user32" ( ByVal lpClassName As String, ByVal lpWindowName As String) As Long
+    Private Declare Function SetWindowPos Lib "user32" ( ByVal hWnd As Long, ByVal hWndInsertAfter As Long, ByVal x As Long, ByVal y As Long, ByVal cx As Long, ByVal cy As Long, ByVal wFlags As Long) As Long
 #End If
 
 Private Const HWND_TOPMOST    As Long = -1
@@ -122,9 +108,7 @@ End Sub
 '   - Met a jour la StatusBar Excel avec : titre, ratio, DTR, etape,
 '     temps ecoule et temps restant estime
 '   - DoEvents pour laisser Excel re-peindre
-Public Sub Progress_Etape(ByVal lCourant As Long, _
-                          Optional ByVal sEtape As String = "", _
-                          Optional ByVal sIdItem As String = "")
+Public Sub Progress_Etape(ByVal lCourant As Long, Optional ByVal sEtape As String = "", Optional ByVal sIdItem As String = "")
     If Not prog_actif Then Exit Sub
     If prog_total <= 0 Then Exit Sub
 
@@ -193,8 +177,7 @@ Public Sub Progress_Terminer()
 
     Dim tTotal As Double
     tTotal = Timer() - prog_tDebut
-    Debug.Print prog_titre & " : termine en " & FormaterDuree(tTotal) & _
-                " (" & prog_total & " items)"
+    Debug.Print prog_titre & " : termine en " & FormaterDuree(tTotal) & " (" & prog_total & " items)"
 
     prog_actif = False
 
@@ -241,8 +224,7 @@ Private Sub PinUserFormTopMost(ByVal bActif As Boolean)
 
     ' SWP_NOMOVE + SWP_NOSIZE + SWP_NOACTIVATE : on ne change que l'ordre Z,
     ' pas la position, la taille ou le focus (pas de clignotement visuel).
-    SetWindowPos prog_hWndUserForm, hAfter, 0, 0, 0, 0, _
-                 SWP_NOMOVE Or SWP_NOSIZE Or SWP_NOACTIVATE
+    SetWindowPos prog_hWndUserForm, hAfter, 0, 0, 0, 0, SWP_NOMOVE Or SWP_NOSIZE Or SWP_NOACTIVATE
 End Sub
 
 ' =========================================================================
