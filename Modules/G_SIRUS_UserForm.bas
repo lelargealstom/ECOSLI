@@ -25,6 +25,7 @@ Public Sub SIRUS_InitGeneration()
     Call SIRUS_ConfigListViewTaches
     Call SIRUS_ConfigListViewATM
     Call SIRUS_ConfigListViewGeneration
+    Call SIRUS_UI_Generation_InitControls
     G_SIRUS_PBS.SIRUS_LookupDTR_Active = True
     Call G_SIRUS_PBS.SIRUS_RemplirListViewGeneration
 End Sub
@@ -72,6 +73,9 @@ Public Sub SIRUS_ConfigListViewGeneration()
     lv.FullRowSelect = True
     lv.Gridlines = True
     lv.LabelEdit = lvwManual
+    ' MultiSelect : Ctrl+Clic et Shift+Clic pour selectionner plusieurs
+    ' DTRs a envoyer ensemble vers SIRUS (Modifier multi-DTR).
+    lv.MultiSelect = True
 
     ' -- Vider les colonnes existantes ---------------------
     lv.ColumnHeaders.Clear
@@ -1624,3 +1628,125 @@ Private Function SafeCStr(ByVal v As Variant) As String
     End If
     On Error GoTo 0
 End Function
+
+' =========================================================================
+' BLOC : Generation -> SIRUS (multi-selection DTRs)
+' =========================================================================
+' L utilisateur multi-selectionne des lignes dans ListView_Generation
+' (Ctrl+Clic / Shift+Clic), choisit la table cible + l operation dans
+' les ComboBox Cmb_Generation_Table et Cmb_Generation_Operation, puis
+' clique sur Btn_Generation_LancerSIRUS. La feuille SIRUS_<Table>_<Op>
+' est generee dans le classeur projet, pre-remplie depuis la BdD pour
+' les DTRs selectionnes (operation Modifier) ou vierge (Creer).
+'
+' Wiring :
+'   - SIRUS_UI_Generation_InitControls : appele dans UserForm_Initialize
+'     pour peupler les 2 ComboBox.
+'   - SIRUS_UI_Generation_LancerClick : appele depuis le handler
+'     Btn_Generation_LancerSIRUS_Click() du UserForm.frm.
+
+' Peuple Cmb_Generation_Table et Cmb_Generation_Operation. A appeler
+' une seule fois dans UserForm_Initialize.
+Public Sub SIRUS_UI_Generation_InitControls()
+    On Error Resume Next
+
+    With UserForm.Cmb_Generation_Table
+        .Clear
+        .AddItem SIRUS_TBL_PRODUIT
+        .AddItem SIRUS_TBL_INFOATM
+        .AddItem SIRUS_TBL_TACHESATM
+        .AddItem SIRUS_TBL_EMMST
+        .AddItem SIRUS_TBL_PROJETASL
+        .AddItem SIRUS_TBL_PROJETSLI
+        .Style = fmStyleDropDownList
+        .Value = SIRUS_TBL_PRODUIT
+    End With
+
+    With UserForm.Cmb_Generation_Operation
+        .Clear
+        .AddItem SIRUS_OP_CREER
+        .AddItem SIRUS_OP_MODIFIER
+        .Style = fmStyleDropDownList
+        .Value = SIRUS_OP_MODIFIER
+    End With
+
+    On Error GoTo 0
+End Sub
+
+' Renvoie un Variant() de String contenant les DTRs (col 1 de la ListView)
+' des lignes selectionnees. Tableau vide si aucune ligne selectionnee.
+Private Function SIRUS_UI_Generation_DtrsSelectionnes() As Variant
+    Dim lv As MSComctlLib.ListView
+    Dim it As MSComctlLib.ListItem
+    Dim collDtrs As Collection
+    Dim arr() As String
+    Dim i As Long
+
+    Set collDtrs = New Collection
+    On Error Resume Next
+    Set lv = UserForm.ListView_Generation
+    On Error GoTo 0
+    If lv Is Nothing Then
+        SIRUS_UI_Generation_DtrsSelectionnes = Array()
+        Exit Function
+    End If
+
+    For Each it In lv.ListItems
+        If it.Selected Then collDtrs.Add Trim$(CStr(it.Text))
+    Next it
+
+    If collDtrs.count = 0 Then
+        SIRUS_UI_Generation_DtrsSelectionnes = Array()
+        Exit Function
+    End If
+
+    ReDim arr(0 To collDtrs.count - 1)
+    For i = 1 To collDtrs.count
+        arr(i - 1) = collDtrs(i)
+    Next i
+    SIRUS_UI_Generation_DtrsSelectionnes = arr
+End Function
+
+' Handler du bouton Btn_Generation_LancerSIRUS : valide la selection,
+' lit table + operation depuis les ComboBox, appelle l API SIRUS.
+Public Sub SIRUS_UI_Generation_LancerClick()
+    Dim sTable As String
+    Dim sOperation As String
+    Dim vDtrs As Variant
+
+    sTable = ""
+    sOperation = ""
+    On Error Resume Next
+    sTable = CStr(UserForm.Cmb_Generation_Table.Value)
+    sOperation = CStr(UserForm.Cmb_Generation_Operation.Value)
+    On Error GoTo 0
+
+    If LenB(sTable) = 0 Then
+        MsgBox "Selectionner une table cible dans la liste deroulante.", vbExclamation, "SIRUS - Generation"
+        Exit Sub
+    End If
+    If LenB(sOperation) = 0 Then
+        MsgBox "Selectionner une operation (Creer / Modifier).", vbExclamation, "SIRUS - Generation"
+        Exit Sub
+    End If
+
+    ' Modifier : on a besoin d au moins 1 DTR selectionne dans la ListView.
+    ' Creer : la selection est ignoree (feuille vierge).
+    If sOperation = SIRUS_OP_MODIFIER Then
+        vDtrs = SIRUS_UI_Generation_DtrsSelectionnes()
+        If Not IsArray(vDtrs) Then
+            MsgBox "Selection vide. Multi-selectionne au moins 1 DTR dans la ListView (Ctrl+Clic).", _
+                   vbExclamation, "SIRUS - Generation"
+            Exit Sub
+        End If
+        If UBound(vDtrs) < LBound(vDtrs) Then
+            MsgBox "Selection vide. Multi-selectionne au moins 1 DTR dans la ListView (Ctrl+Clic).", _
+                   vbExclamation, "SIRUS - Generation"
+            Exit Sub
+        End If
+        Call G_SIRUS_Generation.SIRUS_GenererFeuilleAnalyse(sTable, sOperation, vDtrs)
+    Else
+        ' Creer : feuille vierge
+        Call G_SIRUS_Generation.SIRUS_GenererFeuilleAnalyse(sTable, sOperation)
+    End If
+End Sub

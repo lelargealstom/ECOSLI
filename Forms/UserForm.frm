@@ -519,6 +519,18 @@ Private Sub Btn_Rafraichir_DataPBS_Click()
     Call G_PBS_Refresh.SIRUS_RafraichirDATA_ASL
 End Sub
 
+' =========================================================================
+' Bouton Lancer SIRUS pour les DTRs selectionnes dans ListView_Generation
+' =========================================================================
+' Cable au CommandButton Btn_Generation_LancerSIRUS du UserForm (a ajouter
+' dans le VBE Designer sous la ListView_Generation, a cote des 2 ComboBox
+' Cmb_Generation_Table et Cmb_Generation_Operation). La logique de
+' validation + collecte selection + appel SIRUS vit dans
+' G_SIRUS_UserForm.SIRUS_UI_Generation_LancerClick.
+Private Sub Btn_Generation_LancerSIRUS_Click()
+    Call G_SIRUS_UserForm.SIRUS_UI_Generation_LancerClick
+End Sub
+
 Private Sub Project_List_Change()
 ' Auto-remplit les controles SLI a partir de la BdD lorsque l utilisateur
 ' choisit un projet. Indispensable avant d ouvrir un ticket ATMAP (la
