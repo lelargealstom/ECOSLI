@@ -157,6 +157,10 @@ Public Sub SIRUS_GenererFeuilleAnalyse(ByVal sTable As String, ByVal sOperation 
             MsgBox "Operation 'Modifier' : il faut fournir des cles (DTR ou Nom projet) a pre-remplir. La feuille a ete creee vierge.", vbExclamation
         Else
             Call PreRemplirDepuisBdD(wsCible, sTable, col, vCles)
+            ' Snapshot des valeurs BdD initiales : feuille jumelle veryHidden
+            ' utilisee par SIRUS_AnalyserFeuille pour detecter les cellules
+            ' modifiees et y ajouter un commentaire "Valeur BdD initiale".
+            Call CreerSnapshotBdD(wsCible, nomFeuille)
         End If
     End If
 
@@ -453,15 +457,12 @@ Private Sub PreRemplirDepuisBdD(ws As Worksheet, ByVal sTable As String, col As 
     Dim trouve As Boolean
     Dim nbOk As Long, nbKo As Long
 
-    ' -- Cle = 1er champ du config -------------------------
-    cleColBdD = ""
-    For Each def In col
-        cleColBdD = def.ColonneBdD
-        Exit For
-    Next def
-
+    ' -- Cle BdD : source unique de verite via helper (avant : 1er champ
+    '    du config = Famille Generique pour Produit, ce qui plantait le
+    '    pre-remplissage multi-DTR Produit Modifier).
+    cleColBdD = SIRUS_ColonneBdDClePourTable(sTable)
     If LenB(cleColBdD) = 0 Then
-        MsgBox "Cle BdD introuvable pour la table '" & sTable & "' (1er champ du config sans ColonneBdD).", vbCritical
+        MsgBox "Cle BdD introuvable pour la table '" & sTable & "'. Voir SIRUS_ColonneBdDClePourTable dans G_SIRUS_Config.", vbCritical
         Exit Sub
     End If
 
@@ -1287,4 +1288,61 @@ Sortie:
     Call Close_CONN(ChaineConnexionSIRUS)
     On Error GoTo 0
     Debug.Print "Erreur DiagnostiquerEcartsTable(" & sTable & ") : " & Err.Description
+End Sub
+
+' =========================================================================
+' CreerSnapshotBdD
+' =========================================================================
+' Cree une feuille jumelle "<nomFeuille>_Snap" en veryHidden dans le
+' meme classeur que la feuille principale (= classeur projet de l user
+' ASL, pas le .xlam). Le snapshot contient une COPIE des valeurs
+' pre-remplies depuis la BdD (avant que l user ne les modifie).
+'
+' Au moment de SIRUS_AnalyserFeuille, on relit le snapshot et on compare
+' cellule par cellule avec les valeurs courantes -> les cellules dont la
+' valeur a change recoivent un commentaire "Valeur BdD initiale : <X>"
+' pour traceabilite de la demande d ecrasement vers ATMAP.
+'
+' Idempotent : si une feuille _Snap existe deja, on la supprime puis
+' la recree (cas Modifier relance sur les memes cles).
+Public Sub CreerSnapshotBdD(ByVal wsPrincipale As Worksheet, ByVal sNomFeuille As String)
+    Dim wb As Workbook
+    Dim wsSnap As Worksheet
+    Dim sNomSnap As String
+
+    On Error GoTo Sortie
+
+    Set wb = wsPrincipale.Parent
+    sNomSnap = sNomFeuille & "_Snap"
+    If Len(sNomSnap) > 31 Then sNomSnap = Left$(sNomSnap, 31)
+
+    ' Suppression si _Snap existe deja (cas relance Modifier)
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    wb.Worksheets(sNomSnap).Visible = xlSheetVisible
+    wb.Worksheets(sNomSnap).Delete
+    Application.DisplayAlerts = True
+    On Error GoTo Sortie
+
+    ' Copie de la feuille principale en mode "valeurs uniquement"
+    wsPrincipale.Copy After:=wb.Worksheets(wb.Worksheets.count)
+    Set wsSnap = wb.Worksheets(wb.Worksheets.count)
+    wsSnap.Name = sNomSnap
+
+    ' Convertir les formules eventuelles en valeurs pures + retirer
+    ' tous les commentaires sur le snapshot (pas utiles, et le
+    ' SIRUS_AnalyserFeuille les recreera sur la feuille principale).
+    On Error Resume Next
+    With wsSnap.UsedRange
+        .Value = .Value
+        .ClearComments
+    End With
+    On Error GoTo Sortie
+
+    ' VeryHidden pour ne pas polluer la barre d onglets
+    wsSnap.Visible = xlSheetVeryHidden
+    Exit Sub
+
+Sortie:
+    Debug.Print "CreerSnapshotBdD(" & sNomFeuille & ") : " & Err.Description
 End Sub

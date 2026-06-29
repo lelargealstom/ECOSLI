@@ -19,6 +19,13 @@ Option Compare Text
 Public Const SIRUS_CONFIG_SHEET    As String = "SIRUS_Config"
 Public Const SIRUS_CONFIG_LISTOBJ  As String = "tblSIRUSConfig"
 
+' Version du peuplement du config. A bumper a chaque modification d un
+' PeuplerXxx ou ajout de champ. Comparee a la valeur stockee en cellule
+' O1 de SIRUS_Config par SIRUS_VerifierConfigAJour : si different,
+' force le rebuild automatique (au prochain Ctrl+W). Permet d eviter
+' que les ingenieurs ASL aient un config obsolete apres une maj du .xlam.
+Public Const SIRUS_CONFIG_VERSION  As String = "2026-06-29-v1"
+
 ' Noms de table (valeurs de la colonne "Table" du config)
 Public Const SIRUS_TBL_PRODUIT     As String = "Produit"
 Public Const SIRUS_TBL_INFOATM     As String = "InfoATM"
@@ -43,6 +50,25 @@ Public Function SIRUS_ColonneClePourTable(ByVal sTable As String) As Long
         Case "ProjetASL":  SIRUS_ColonneClePourTable = 4
         Case "Produit":    SIRUS_ColonneClePourTable = 3
         Case Else:         SIRUS_ColonneClePourTable = 2
+    End Select
+End Function
+
+' =========================================================================
+' SIRUS_ColonneBdDClePourTable
+' =========================================================================
+' Renvoie le NOM EXACT de la colonne cle metier dans la BdD (utilise pour
+' le WHERE des SQL SELECT de PreRemplirDepuisBdD).
+' Source unique de verite (avant : 1er champ du config -> Famille Generique
+' pour Produit, ce qui faisait planter le pre-remplissage Produit Modifier).
+Public Function SIRUS_ColonneBdDClePourTable(ByVal sTable As String) As String
+    Select Case sTable
+        Case SIRUS_TBL_PRODUIT:   SIRUS_ColonneBdDClePourTable = "DTR"
+        Case SIRUS_TBL_INFOATM:   SIRUS_ColonneBdDClePourTable = "DTR_INFOATM"
+        Case SIRUS_TBL_TACHESATM: SIRUS_ColonneBdDClePourTable = "DTR_TACHEATM"
+        Case SIRUS_TBL_EMMST:     SIRUS_ColonneBdDClePourTable = "DTR_EMMST"
+        Case SIRUS_TBL_PROJETASL: SIRUS_ColonneBdDClePourTable = "PROJET_PROJETASL"
+        Case SIRUS_TBL_PROJETSLI: SIRUS_ColonneBdDClePourTable = "Nom projet_PROJET SLI"
+        Case Else:                SIRUS_ColonneBdDClePourTable = ""
     End Select
 End Function
 
@@ -126,14 +152,62 @@ Public Sub SIRUS_InitConfigSheet(Optional ByVal bForcer As Boolean = False)
         End If
     End If
 
-    ' -- 6. Cacher la feuille (veryHidden) -------------------
+    ' -- 6. Ecrire la version en cellule O1 (hors ListObject) pour
+    '    permettre la detection "config obsolete" -> rebuild auto.
+    ws.Range("O1").Value = SIRUS_CONFIG_VERSION
+
+    ' -- 7. Cacher la feuille (veryHidden) -------------------
     ws.Visible = xlSheetVeryHidden
 
-    Debug.Print "SIRUS_InitConfigSheet : feuille " & SIRUS_CONFIG_SHEET & " creee et peuplee pour 6 tables (" & lo.ListRows.Count & " champs au total)."
+    Debug.Print "SIRUS_InitConfigSheet : feuille " & SIRUS_CONFIG_SHEET & " creee et peuplee pour 6 tables (" & lo.ListRows.Count & " champs au total). Version : " & SIRUS_CONFIG_VERSION
     Exit Sub
 
 Sortie:
     MsgBox "Erreur dans SIRUS_InitConfigSheet : " & Err.Description, vbCritical
+End Sub
+
+' =========================================================================
+' SIRUS_VerifierConfigAJour
+' =========================================================================
+' A appeler au demarrage du UserForm (UserForm_Initialize). Verifie si la
+' feuille SIRUS_Config est a jour avec le code (constante SIRUS_CONFIG_VERSION).
+' Si la feuille n'existe pas OU si sa version stockee ne correspond pas a
+' la version du code -> declenche un rebuild force (SIRUS_InitConfigSheet
+' bForcer:=True).
+'
+' Permet aux ingenieurs ASL d obtenir automatiquement la derniere version
+' du config a chaque mise a jour du .xlam, sans intervention manuelle.
+Public Sub SIRUS_VerifierConfigAJour()
+    Dim wb As Workbook
+    Dim ws As Worksheet
+    Dim sVersionFeuille As String
+    Dim bRebuild As Boolean
+
+    On Error GoTo Sortie
+
+    Set wb = ThisWorkbook
+    bRebuild = True
+
+    On Error Resume Next
+    Set ws = wb.Worksheets(SIRUS_CONFIG_SHEET)
+    On Error GoTo Sortie
+
+    If Not ws Is Nothing Then
+        sVersionFeuille = CStr(ws.Range("O1").Value)
+        If sVersionFeuille = SIRUS_CONFIG_VERSION Then
+            bRebuild = False
+        Else
+            Debug.Print "[SIRUS_VerifierConfigAJour] Version obsolete : feuille='" & sVersionFeuille & "' vs code='" & SIRUS_CONFIG_VERSION & "' -> rebuild auto."
+        End If
+    End If
+
+    If bRebuild Then
+        Call SIRUS_InitConfigSheet(bForcer:=True)
+    End If
+    Exit Sub
+
+Sortie:
+    Debug.Print "[SIRUS_VerifierConfigAJour] erreur : " & Err.Description
 End Sub
 
 ' =========================================================================
@@ -149,7 +223,7 @@ Private Sub PeuplerProduit(lo As ListObject)
     ' brief Thomas. Champs marques ??_*_a_definir : nom BdD a confirmer
     ' via Test_DiagnostiquerEcartsConfig_Toutes / Test_DiagnostiquerColonnesBdDFeuille.
 
-    Call AjouterChamp(lo, "Produit", "Famille Generique", "??_FamilleGenerique_a_definir", 10, "Texte", "", "Non", "", "Saisie", "", 1, "", "Famille generique du produit (a definir).")
+    Call AjouterChamp(lo, "Produit", "Famille Generique", "Famille generique_PRODUIT", 10, "Texte", "", "Non", "", "Saisie", "", 1, "", "Famille generique du produit (a definir).")
 
     Call AjouterChamp(lo, "Produit", "DTR", "DTR", 20, "Texte", "", "Oui", "", "Saisie", "", 3, "", "Identifiant unique du produit (cle).")
 
@@ -157,7 +231,7 @@ Private Sub PeuplerProduit(lo As ListObject)
 
     Call AjouterChamp(lo, "Produit", "Node Type", "Node type Produit (LRU/SRU...)_PRODUIT", 40, "Liste", "NodeType", "Oui", "", "Saisie", "", 2, "", "")
 
-    Call AjouterChamp(lo, "Produit", "Ref RAM Report", "??_RefRAMReport_a_definir", 50, "Texte", "", "Non", "", "Saisie", "", 1, "", "Reference RAM Report (a definir).")
+    Call AjouterChamp(lo, "Produit", "Ref RAM Report", "Ref RAM Report_PRODUIT", 50, "Texte", "", "Non", "", "Saisie", "", 1, "", "Reference RAM Report (a definir).")
 
     Call AjouterChamp(lo, "Produit", "Fournisseur", "Fournisseur_PRODUIT", 60, "Texte", "", "Oui", "", "Saisie", "", 1, "", "")
 
@@ -169,35 +243,31 @@ Private Sub PeuplerProduit(lo As ListObject)
 
     Call AjouterChamp(lo, "Produit", "MTBF intrinseque (h)", "MTBF intrinseque Produit (h) issu de la datasheet _PRODUIT", 100, "Nombre", "", "Conditionnel", "Vide si Motif NA renseigne", "Saisie", "", 2, "", "Obligatoire sauf si Motif NA renseigne. Note : espace avant _PRODUIT dans le nom BdD.")
 
-    Call AjouterChamp(lo, "Produit", "DVL HARD generique", "??_DureeVieLimiteeHARDGenerique_a_definir", 110, "Nombre", "", "Non", "", "Saisie", "", 1, "", "Duree de vie limitee HARD generique (a definir).")
+    Call AjouterChamp(lo, "Produit", "DVL HARD generique", "Duree de vie generique Produit HARDWARE (annee)_PRODUIT", 110, "Nombre", "", "Oui", "", "Saisie", "", 1, "", "Duree de vie limitee HARD generique (a definir).")
 
-    Call AjouterChamp(lo, "Produit", "DVL SOFT generique", "??_DureeVieLimiteeSOFTGenerique_a_definir", 120, "Nombre", "", "Non", "", "Saisie", "", 1, "", "Duree de vie limitee SOFT generique (a definir).")
+    Call AjouterChamp(lo, "Produit", "DVL SOFT generique", "Duree de vie generique Produit (annee) SOFTWARE _PRODUIT", 120, "Nombre", "", "Oui", "", "Saisie", "", 1, "", "Duree de vie limitee SOFT generique (a definir).")
 
-    Call AjouterChamp(lo, "Produit", "Prix Spare manuel", "Prix SPARE manuel_PRODUIT", 130, "Nombre", "", "Non", "", "Saisie", "", 1, "", "Prix Spare manuel (saisie libre).")
+    Call AjouterChamp(lo, "Produit", "Prix Spare a date", "Prix SPARE catalogue a date_PRODUIT", 130, "Nombre", "", "Oui", "", "Saisie", "", 1, "", "Prix Spare manuel (saisie libre).")
 
-    Call AjouterChamp(lo, "Produit", "Lead Time Spare", "??_LeadTimeSpare_a_definir", 140, "Nombre", "", "Non", "", "Saisie", "", 1, "", "Lead time Spare (jours) - a definir.")
+    Call AjouterChamp(lo, "Produit", "Lead Time Spare", "Lead time SPARE (jours) manuel_PRODUIT", 140, "Nombre", "", "Oui", "", "Saisie", "", 1, "", "Lead time Spare (jours) - a definir.")
 
-    Call AjouterChamp(lo, "Produit", "Source Spare", "??_SourceSpare_a_definir", 150, "Texte", "", "Non", "", "Saisie", "", 1, "", "Source du prix Spare (a definir).")
+    Call AjouterChamp(lo, "Produit", "Source Spare", "Dates de validite des prix SPARE connus sur Projet (ASL)_PRODUIT", 150, "Texte", "", "Non", "", "Saisie", "", 1, "", "Source du prix Spare (a definir).")
 
-    Call AjouterChamp(lo, "Produit", "Date Source Spare", "??_DateSourceSpare_a_definir", 160, "Date", "", "Non", "", "Saisie", "", 1, "", "Date de la source du prix Spare (a definir).")
-
-    Call AjouterChamp(lo, "Produit", "Prix Repair manuel", "Prix REPAIR manuel_PRODUIT", 170, "Nombre", "", "Non", "", "Saisie", "", 1, "", "Prix Repair manuel (saisie libre).")
+    Call AjouterChamp(lo, "Produit", "Prix Repair a date", "Prix REPAIR catalogue a date_PRODUIT", 170, "Nombre", "", "Non", "", "Saisie", "", 1, "", "Prix Repair manuel (saisie libre).")
 
     Call AjouterChamp(lo, "Produit", "Lead Time Repair", "Lead time REPAIR (jours) manuel_PRODUIT", 180, "Nombre", "", "Non", "", "Saisie", "", 1, "", "Lead time Repair manuel (jours).")
 
-    Call AjouterChamp(lo, "Produit", "Source Repair", "??_SourceRepair_a_definir", 190, "Texte", "", "Non", "", "Saisie", "", 1, "", "Source du prix Repair (a definir).")
+    Call AjouterChamp(lo, "Produit", "Source Repair", "Dates de validite des prix REPAIR connus sur Projet (ASL)_PRODUIT", 190, "Texte", "", "Non", "", "Saisie", "", 1, "", "Source du prix Repair (a definir).")
 
-    Call AjouterChamp(lo, "Produit", "Date Source Repair", "??_DateSourceRepair_a_definir", 200, "Date", "", "Non", "", "Saisie", "", 1, "", "Date de la source du prix Repair (a definir).")
+    Call AjouterChamp(lo, "Produit", "Reference datasheet", "References datasheet_PRODUIT", 210, "Texte", "", "Non", "", "Saisie", "", 1, "", "Reference de la datasheet (a definir).")
 
-    Call AjouterChamp(lo, "Produit", "Reference datasheet", "??_RefDatasheet_a_definir", 210, "Texte", "", "Non", "", "Saisie", "", 1, "", "Reference de la datasheet (a definir).")
+    Call AjouterChamp(lo, "Produit", "Reference MUL installation", "Reference MUL installation_PRODUIT", 220, "Texte", "", "Oui", "", "Saisie", "", 1, "", "Reference MUL installation (a definir).")
 
-    Call AjouterChamp(lo, "Produit", "Reference MUL installation", "??_RefMULInstallation_a_definir", 220, "Texte", "", "Non", "", "Saisie", "", 1, "", "Reference MUL installation (a definir).")
+    Call AjouterChamp(lo, "Produit", "Reference MUL maintenance", "Reference MUL maintenance_PRODUIT", 230, "Texte", "", "Non", "", "Saisie", "", 1, "", "Reference MUL maintenance (a definir).")
 
-    Call AjouterChamp(lo, "Produit", "Reference MUL maintenance", "??_RefMULMaintenance_a_definir", 230, "Texte", "", "Non", "", "Saisie", "", 1, "", "Reference MUL maintenance (a definir).")
+    Call AjouterChamp(lo, "Produit", "Reference MUL software", "Reference MUL software_PRODUIT", 240, "Texte", "", "Non", "", "Saisie", "", 1, "", "Reference MUL software (a definir).")
 
-    Call AjouterChamp(lo, "Produit", "Reference MUL software", "??_RefMULSoftware_a_definir", 240, "Texte", "", "Non", "", "Saisie", "", 1, "", "Reference MUL software (a definir).")
-
-    Call AjouterChamp(lo, "Produit", "Reference MUL interface", "??_RefMULInterface_a_definir", 250, "Texte", "", "Non", "", "Saisie", "", 1, "", "Reference MUL interface (a definir).")
+    Call AjouterChamp(lo, "Produit", "Reference MUL interface", "Reference MUL HW Interface_PRODUIT", 250, "Texte", "", "Non", "", "Saisie", "", 1, "", "Reference MUL interface (a definir).")
 End Sub
 
 ' =========================================================================
@@ -359,7 +429,7 @@ Private Sub PeuplerProjetSLI(lo As ListObject)
     Call AjouterChamp(lo, "ProjetSLI", "Nombre de trains", "Nombre de train_PROJET SLI", 80, "Nombre", "", "Oui", "", "Saisie", "", 2, "", "Note : nom BdD 'train' au singulier.")
     Call AjouterChamp(lo, "ProjetSLI", "Duree garantie", "Duree de garantie_PROJET SLI", 90, "Nombre", "", "Oui", "", "Saisie", "", 1, "", "En annees.")
     Call AjouterChamp(lo, "ProjetSLI", "Niveau de maintenance", "Niv de maintenance_PROJET SLI", 100, "Liste", "NiveauMaintenance", "Oui", "", "Saisie", "", 1, "", "")
-    Call AjouterChamp(lo, "ProjetSLI", "Nombre DTR EAP/PBS", "Nombre de DTR dans l'EAP ou la PBS_PROJET SLI", 110, "Nombre", "", "Non", "", "Saisie", "", 1, "", "")
+    Call AjouterChamp(lo, "ProjetSLI", "Nombre DTR EAP/PBS", "Nombre de DTR dans l EAP ou la PBS_PROJET SLI", 110, "Nombre", "", "Non", "", "Saisie", "", 1, "", "")
     Call AjouterChamp(lo, "ProjetSLI", "Nombre fournisseurs CDRL", "Nombre de fournisseur soumis a CDRL_PROJET SLI", 120, "Nombre", "", "Non", "", "Saisie", "", 1, "", "")
     Call AjouterChamp(lo, "ProjetSLI", "Type de pack", "Type de pack (complexe/standard/mini)_PROJET SLI", 130, "Texte", "", "Non", "", "Saisie", "", 1, "", "complexe / standard / mini.")
     Call AjouterChamp(lo, "ProjetSLI", "UO grand pere du pack", "UO ""grand pere"" du pack_PROJET SLI", 140, "Texte", "", "Non", "", "Saisie", "", 1, "", "")
@@ -475,7 +545,7 @@ Private Sub PeuplerProjetASL(lo As ListObject)
     Call AjouterChamp(lo, "ProjetASL", "Lead Time Repair archive", "Lead time REPAIR (jours)_PROJETASL", 140, "Nombre", "", "Conditionnel", "Obligatoire si NodeType LRU/SRU", "Saisie", "", 1, "", "Lead time REPAIR archive en jours.")
 
     ' --- Testabilite + autres prix (Ordre 150-180) -----------
-    Call AjouterChamp(lo, "ProjetASL", "Testabilite", "Testabilite (DTR du BTE relatif a l'equipement sur le projet concerne)_PROJETASL", 150, "Liste", "Booleen", "Non", "", "Saisie", "", 0, "", "Liste Oui/Non : indique si le DTR est testable sur le projet. Non obligatoire (decision 2026-06-15) : la testabilite n est pas un critere bloquant pour la MeQ Generation.")
+    Call AjouterChamp(lo, "ProjetASL", "Testabilite", "Testabilite (DTR du BTE relatif a l equipement sur le projet concerne)_PROJETASL", 150, "Liste", "Booleen", "Non", "", "Saisie", "", 0, "", "Liste Oui/Non : indique si le DTR est testable sur le projet. Non obligatoire (decision 2026-06-15) : la testabilite n est pas un critere bloquant pour la MeQ Generation.")
     Call AjouterChamp(lo, "ProjetASL", "Prix Preventif", "Prix preventif (DEVISE du projet (SLI))_PROJETASL", 160, "Nombre", "", "Non", "", "Saisie", "", 0, "", "Prix preventif dans la devise du projet SLI.")
     Call AjouterChamp(lo, "ProjetASL", "Prix After Market Spare", "Prix after market Spare_PROJETASL", 170, "Nombre", "", "Non", "", "Saisie", "", 0, "", "")
     Call AjouterChamp(lo, "ProjetASL", "Prix After Market Repair", "Prix after market Repair_PROJETASL", 180, "Nombre", "", "Non", "", "Saisie", "", 0, "", "")

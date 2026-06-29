@@ -703,6 +703,12 @@ Public Sub UserForm_Initialize()
 
 'On cree la connexion a la Base de donnees en ouvrant la fenetre
 Call Open_CONN(Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile")))
+
+'Verifie que SIRUS_Config est a jour avec le code (constante
+'SIRUS_CONFIG_VERSION dans G_SIRUS_Config). Si feuille absente ou
+'version obsolete, rebuild automatique. Conditionnel : pas de rebuild
+'si la version stockee = version code (no-op rapide).
+Call G_SIRUS_Config.SIRUS_VerifierConfigAJour
 Dim wb As Workbook
 'Dim ws As Worksheet
 Dim ts As Object

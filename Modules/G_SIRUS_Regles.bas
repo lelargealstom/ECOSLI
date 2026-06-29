@@ -83,7 +83,7 @@ Public Function SIRUS_RegleObligatoire(ByVal sTable As String, ByVal sColonneBdD
             descTorque = CStr(GetVal(ligne, "Description_TACHEATM"))
             SIRUS_RegleObligatoire = (InStr(1, descTorque, "Torque Tighten", vbTextCompare) > 0)
 
-        Case "TachesATM|OutillageStandard_TACHEATM", "TachesATM|Outillageecifique_TACHEATM"
+        Case "TachesATM|OutillageStandard_TACHEATM", "TachesATM|OutillageSpecifique_TACHEATM"
             ' Outillage standard/specifique obligatoire pour les taches
             ' de rang 2.1 (Outils prerequis Depose) et 5.1 (Outils
             ' prerequis Pose) sur les composants >= SRU (LRU exclus :

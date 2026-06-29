@@ -499,7 +499,15 @@ Public Function SIRUS_AnalyserFeuille(ByVal sTable As String, Optional ByVal sOp
 NextLigne:
     Next ligne
 
-    ' -- 7. Taux MeQ global ---------------------------------
+    ' -- 7. Snapshot Modifier : comparer avec _Snap et poser des
+    '    commentaires "Valeur BdD initiale : <X>" sur les cellules modifiees
+    '    differentes des valeurs BdD originales. Visible au survol pour
+    '    traceabilite de la demande d ecrasement vers ATMAP.
+    If sOperation = "Modifier" Then
+        Call AppliquerCommentairesEcarts(ws, nomFeuille, ligneMax, nbCol)
+    End If
+
+    ' -- 8. Taux MeQ global ---------------------------------
     If totDen > 0 Then
         SIRUS_AnalyserFeuille = totNum / totDen
     Else
@@ -706,4 +714,73 @@ Public Sub Test_AnalyserFeuille_TachesATM_Creer()
     Dim taux As Double
     taux = SIRUS_AnalyserFeuille("TachesATM", "Creer")
     Debug.Print "Taux MeQ TachesATM Creer = " & Format(taux * 100, "0.0") & "%"
+End Sub
+
+' =========================================================================
+' AppliquerCommentairesEcarts (Phase 3.2 Snapshot Modifier)
+' =========================================================================
+' Compare la feuille principale avec sa jumelle _Snap (veryHidden, creee
+' par G_SIRUS_Generation.CreerSnapshotBdD a la generation Modifier).
+'
+' Pour chaque cellule de donnees (lignes 3..ligneMax, cols 2..nbCol+1) :
+'   - Si la valeur courante differe de la valeur _Snap
+'     -> ajoute un commentaire "Valeur BdD initiale : <valeur snap>"
+'     -> permet a l ingenieur (et au Data Owner ATMAP) de tracer
+'        precisement quels champs sont demandes en ecrasement.
+'   - Si identique : retire le commentaire eventuel (cas user qui annule
+'     sa modif).
+'
+' Le commentaire est volontairement court ; le suffixe "Demande
+' d ecrasement PBS" est ajoute a Txt_SIRUS_Description par
+' SIRUS_UI_BtnEnvoyerClick au moment de l envoi.
+Private Sub AppliquerCommentairesEcarts(ByVal ws As Worksheet, ByVal sNomFeuille As String, _
+                                         ByVal ligneMax As Long, ByVal nbCol As Long)
+    Dim wb As Workbook
+    Dim wsSnap As Worksheet
+    Dim sNomSnap As String
+    Dim ligne As Long, c As Long
+    Dim vCourante As Variant, vInit As Variant
+    Dim sCourante As String, sInit As String
+    Dim nbEcarts As Long
+
+    On Error GoTo Sortie
+
+    Set wb = ws.Parent
+    sNomSnap = sNomFeuille & "_Snap"
+    If Len(sNomSnap) > 31 Then sNomSnap = Left$(sNomSnap, 31)
+
+    On Error Resume Next
+    Set wsSnap = wb.Worksheets(sNomSnap)
+    On Error GoTo Sortie
+    ' Pas de snap = on ne fait rien (cas Creer ou snap supprime manuellement)
+    If wsSnap Is Nothing Then Exit Sub
+
+    For ligne = 3 To ligneMax
+        For c = 2 To nbCol + 1
+            vCourante = ws.Cells(ligne, c).Value
+            vInit = wsSnap.Cells(ligne, c).Value
+            sCourante = SafeCStrAnalyse(vCourante)
+            sInit = SafeCStrAnalyse(vInit)
+
+            ' Retire le commentaire existant avant decision (idempotence)
+            On Error Resume Next
+            ws.Cells(ligne, c).ClearComments
+            On Error GoTo Sortie
+
+            If sCourante <> sInit Then
+                ' Difference detectee -> commentaire avec valeur BdD initiale
+                On Error Resume Next
+                ws.Cells(ligne, c).AddComment "Valeur BdD initiale : " & sInit
+                ws.Cells(ligne, c).Comment.Shape.TextFrame.AutoSize = True
+                On Error GoTo Sortie
+                nbEcarts = nbEcarts + 1
+            End If
+        Next c
+    Next ligne
+
+    Debug.Print "[AppliquerCommentairesEcarts] " & nbEcarts & " ecart(s) tracé(s) sur '" & sNomFeuille & "'."
+    Exit Sub
+
+Sortie:
+    Debug.Print "[AppliquerCommentairesEcarts] erreur : " & Err.Description
 End Sub

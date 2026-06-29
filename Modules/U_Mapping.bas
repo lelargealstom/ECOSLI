@@ -26,7 +26,7 @@ Public Function GetChampsProjetsSLI() As Object
     Champs_ProjetsSLI.Add "Type de pack (complexe/standard/mini)_PROJET SLI", "Gen_TypePack"
     Champs_ProjetsSLI.Add "UO ""grand pere"" du pack_PROJET SLI", "Gen_UOPack"
     Champs_ProjetsSLI.Add "Statut (termine/En cours/A planifier)_PROJET SLI", "Gen_StatutUO"
-    Champs_ProjetsSLI.Add "Nombre de DTR dans l'EAP ou la PBS_PROJET SLI", "Gen_NbDTRPBS"
+    Champs_ProjetsSLI.Add "Nombre de DTR dans l EAP ou la PBS_PROJET SLI", "Gen_NbDTRPBS"
     Champs_ProjetsSLI.Add "Nombre de fournisseur soumis a CDRL_PROJET SLI", "Gen_NbFRS"
 
     ' Page Profil de mission : 14 a 23

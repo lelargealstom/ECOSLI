@@ -1089,6 +1089,21 @@ Public Sub SIRUS_UI_BtnEnvoyerClick()
         Exit Sub
     End If
 
+    ' -- 1 ter. Suffix "Demande d ecrasement PBS" si au moins une feuille
+    '    SIRUS_<Table>_Modifier est dans la liste a envoyer. Permet au
+    '    Data Owner ATMAP de savoir que la PJ contient des valeurs qui
+    '    ECRASENT les valeurs existantes en BdD (pas un simple ajout).
+    '    Les cellules concernees portent un commentaire "Valeur BdD
+    '    initiale : <X>" pose par SIRUS_AnalyserFeuille en Modifier.
+    If SIRUS_ContientFeuilleModifier(feuilles) Then
+        Dim sSuffix As String
+        sSuffix = " - Demande d'ecrasement PBS"
+        If InStr(1, sDesc, sSuffix, vbTextCompare) = 0 Then
+            sDesc = sDesc & sSuffix
+            UserForm.Txt_SIRUS_Description.Value = sDesc
+        End If
+    End If
+
     ' -- 1 bis. Garde-fou ProjetASL : aucun projet inconnu en ProjetSLI ----
     '    Critere metier (Thomas 2026-06-11) : impossible de creer/modifier
     '    un ProjetASL pour un code projet qui n existe pas dans ProjetSLI.
@@ -1711,10 +1726,23 @@ End Function
 ' lit table + operation depuis les ComboBox, appelle l API SIRUS, puis
 ' bascule l utilisateur vers l onglet SIRUS avec la feuille generee
 ' active dans la Frame Analyser.
+'
+' Regles de validation (decision Thomas 2026-06-29) :
+' - Table obligatoire (ComboBox renseignee)
+' - Operation obligatoire (Creer ou Modifier)
+' - Au moins 1 DTR selectionne dans la ListView_Generation pour les deux
+'   operations. Pour Creer, les DTRs sont utilises pour pre-remplir les
+'   nouvelles lignes via SIRUS_EnrichirProjetASL_DepuisDATA_ASL si la
+'   table est ProjetASL.
+'
+' Auto-enrichissement ProjetASL : apres la generation pour sTable=
+' ProjetASL, on appelle SIRUS_EnrichirProjetASL_DepuisDATA_ASL qui
+' croise avec DATA_ASL (cascade prix Spare/Repair + donnees RAM).
 Public Sub SIRUS_UI_Generation_LancerClick()
     Dim sTable As String
     Dim sOperation As String
     Dim sNomFeuille As String
+    Dim sProjetCourant As String
     Dim vDtrs As Variant
     Dim bGenereOK As Boolean
 
@@ -1734,26 +1762,30 @@ Public Sub SIRUS_UI_Generation_LancerClick()
         Exit Sub
     End If
 
+    ' Selection DTR obligatoire pour Creer ET Modifier (decision 2026-06-29).
+    vDtrs = SIRUS_UI_Generation_DtrsSelectionnes()
+    If Not IsArray(vDtrs) Then
+        MsgBox "Selection vide. Multi-selectionne au moins 1 DTR dans la ListView Generation (Ctrl+Clic).", _
+               vbExclamation, "SIRUS - Generation"
+        Exit Sub
+    End If
+    If UBound(vDtrs) < LBound(vDtrs) Then
+        MsgBox "Selection vide. Multi-selectionne au moins 1 DTR dans la ListView Generation (Ctrl+Clic).", _
+               vbExclamation, "SIRUS - Generation"
+        Exit Sub
+    End If
+
     bGenereOK = False
     sNomFeuille = "SIRUS_" & sTable & "_" & sOperation
+    sProjetCourant = ""
+    On Error Resume Next
+    sProjetCourant = CStr(UserForm.Project_List.Value)
+    On Error GoTo 0
 
-    ' Modifier : on a besoin d au moins 1 DTR selectionne dans la ListView.
-    ' Creer : la selection est ignoree (feuille vierge).
+    ' Generation : Creer -> feuille vierge ; Modifier -> pre-rempli depuis BdD.
     If sOperation = SIRUS_OP_MODIFIER Then
-        vDtrs = SIRUS_UI_Generation_DtrsSelectionnes()
-        If Not IsArray(vDtrs) Then
-            MsgBox "Selection vide. Multi-selectionne au moins 1 DTR dans la ListView (Ctrl+Clic).", _
-                   vbExclamation, "SIRUS - Generation"
-            Exit Sub
-        End If
-        If UBound(vDtrs) < LBound(vDtrs) Then
-            MsgBox "Selection vide. Multi-selectionne au moins 1 DTR dans la ListView (Ctrl+Clic).", _
-                   vbExclamation, "SIRUS - Generation"
-            Exit Sub
-        End If
         Call G_SIRUS_Generation.SIRUS_GenererFeuilleAnalyse(sTable, sOperation, vDtrs)
     Else
-        ' Creer : feuille vierge
         Call G_SIRUS_Generation.SIRUS_GenererFeuilleAnalyse(sTable, sOperation)
     End If
 
@@ -1761,6 +1793,15 @@ Public Sub SIRUS_UI_Generation_LancerClick()
     ' annuler une confirmation d ecrasement -> pas de feuille).
     bGenereOK = FeuilleExisteSurActiveWorkbook(sNomFeuille)
     If Not bGenereOK Then Exit Sub
+
+    ' Auto-enrichissement ProjetASL depuis DATA_ASL (cascade prix
+    ' Spare/Repair + donnees RAM + DVL spec). Decision Thomas 2026-06-29 :
+    ' s applique pour les 2 ops Creer ET Modifier sur la table ProjetASL.
+    If sTable = SIRUS_TBL_PROJETASL And LenB(sProjetCourant) > 0 Then
+        On Error Resume Next
+        Call G_SIRUS_Generation.SIRUS_EnrichirProjetASL_DepuisDATA_ASL(sOperation, sProjetCourant)
+        On Error GoTo 0
+    End If
 
     ' Peuple le combo de l onglet SIRUS + rend la Frame Analyse visible.
     Call SIRUS_AjouterFeuilleAuCombo(sNomFeuille)
@@ -1800,3 +1841,17 @@ Private Sub SIRUS_UI_BasculerSurOngletSIRUS()
     End With
     On Error GoTo 0
 End Sub
+
+' Helper : True si au moins un nom de feuille dans le tableau contient
+' "_Modifier" -> indique qu il y a une demande d ecrasement de valeurs
+' BdD dans la PJ ATMAP. Utilise par SIRUS_UI_BtnEnvoyerClick pour ajouter
+' le suffix "Demande d ecrasement PBS" a la description du ticket.
+Private Function SIRUS_ContientFeuilleModifier(ByRef feuilles() As String) As Boolean
+    Dim i As Long
+    For i = LBound(feuilles) To UBound(feuilles)
+        If InStr(1, feuilles(i), "_" & SIRUS_OP_MODIFIER, vbTextCompare) > 0 Then
+            SIRUS_ContientFeuilleModifier = True
+            Exit Function
+        End If
+    Next i
+End Function
