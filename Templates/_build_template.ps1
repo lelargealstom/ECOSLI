@@ -261,13 +261,8 @@ foreach ($nm in $namesToDelete) {
 }
 Write-Host "  $nbDeleted nom(s) supprime(s) : $($namesToDelete -join ', ')"
 
-Write-Host "=== Etape 16 : Protection feuille (mdp $pwd) ==="
-$ws.Protect($pwd, $true, $true, $true, $true, $false, $false, $false, $false, $true, $true, $true, $true, $true, $true, $true)
-Write-Host "  OK - UserInterfaceOnly=True"
-
-Write-Host "=== Etape 17 : Protection workbook (Structure=True) ==="
-$wb.Protect($pwd, $true, $false)
-Write-Host "  OK"
+Write-Host "=== Etapes 16-17 : Protection desactivee (decision Thomas 2026-06-29) ==="
+Write-Host "  La feuille DATA_ASL et le workbook restent non proteges."
 
 Write-Host "=== Sauvegarde ==="
 $xl.Calculation = -4105   # xlCalculationAutomatic

@@ -23,9 +23,9 @@ Attribute VB_Name = "G_PBS_Refresh"
 ' de DATA_ASL. Plus robuste que des grosses IN, et le RecordSet n a typi-
 ' quement que quelques milliers de lignes.
 '
-' La feuille DATA_ASL est protegee (mdp LGM69000, UserInterfaceOnly=True).
-' On deprotege au debut, on reprotege a la fin (UserInterfaceOnly ne
-' persiste pas a la sauvegarde, donc geste defensif).
+' La feuille DATA_ASL n est plus protegee (demande utilisateur 2026-06-29).
+' Le DeProtegerFeuille reste appele en debut de Refresh pour les classeurs
+' legacy qui auraient encore la protection LGM69000. Plus de reprotection.
 '
 '--------------------------------------------------------------------------------------------------------
 Option Explicit
@@ -157,7 +157,7 @@ CleanUp:
     If Err.Number <> 0 Then sErreur = Err.description
     Application.Calculation = xlCalculationAutomatic
     Application.ScreenUpdating = True
-    Call ProtegerFeuille(ws, wb)
+    ' Pas de reprotection (decision 2026-06-29 : feuille DATA_ASL libre)
 
     ' Rafraichir la ListView Generation pour refleter les nouvelles
     ' valeurs DATA_ASL sans que l ingenieur ait a fermer/rouvrir le
@@ -1045,19 +1045,17 @@ Private Sub TracerRefreshLog(ByVal wb As Workbook, ByVal sProjet As String, ByVa
 End Sub
 
 ' =========================================================================
-' DEPROTECTION / REPROTECTION
+' DEPROTECTION LEGACY (transition 2026-06-29)
 ' =========================================================================
+' Decision Thomas 2026-06-29 : feuille DATA_ASL plus protegee. La sub
+' DeProtegerFeuille reste pour les classeurs legacy deja deployes qui
+' ont encore la protection LGM69000 : on les deprotege en debut de
+' Refresh et on ne reprotege jamais. Apres 1 Refresh + sauvegarde,
+' le classeur est libre. Sub ProtegerFeuille supprimee.
 Private Sub DeProtegerFeuille(ByVal ws As Worksheet, ByVal wb As Workbook)
     On Error Resume Next
     wb.Unprotect SIRUS_PROTECTION_DATA_ASL
     ws.Unprotect SIRUS_PROTECTION_DATA_ASL
-    On Error GoTo 0
-End Sub
-
-Private Sub ProtegerFeuille(ByVal ws As Worksheet, ByVal wb As Workbook)
-    On Error Resume Next
-    ws.Protect Password:=SIRUS_PROTECTION_DATA_ASL, DrawingObjects:=True, Contents:=True, Scenarios:=True, UserInterfaceOnly:=True, AllowFormattingCells:=False, AllowFormattingColumns:=False, AllowFormattingRows:=False, AllowInsertingColumns:=False, AllowInsertingRows:=True, AllowInsertingHyperlinks:=True, AllowDeletingColumns:=False, AllowDeletingRows:=True, AllowSorting:=True, AllowFiltering:=True, AllowUsingPivotTables:=True
-    wb.Protect Password:=SIRUS_PROTECTION_DATA_ASL, Structure:=True
     On Error GoTo 0
 End Sub
 

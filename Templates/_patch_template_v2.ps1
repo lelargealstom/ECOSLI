@@ -44,10 +44,7 @@ $colW = $lo.ListColumns.Item(23).DataBodyRange
 $colW.Formula = $formulaSOFTgen
 Write-Host "  Col W (Duree SOFT gen) - formule appliquee sur $($colW.Rows.Count) lignes"
 
-Write-Host "=== C. Re-proteger ==="
-$ws.Protect($pwd, $true, $true, $true, $true, $false, $false, $false, $false, $true, $true, $true, $true, $true, $true, $true)
-$wb.Protect($pwd, $true, $false)
-Write-Host "  OK"
+Write-Host "=== C. Pas de re-protection (decision Thomas 2026-06-29) ==="
 
 Write-Host "=== Sauvegarde ==="
 $xl.ScreenUpdating = $true
