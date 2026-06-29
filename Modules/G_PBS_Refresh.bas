@@ -23,9 +23,9 @@ Attribute VB_Name = "G_PBS_Refresh"
 ' de DATA_ASL. Plus robuste que des grosses IN, et le RecordSet n a typi-
 ' quement que quelques milliers de lignes.
 '
-' La feuille DATA_ASL n est plus protegee (demande utilisateur 2026-06-29).
-' Le DeProtegerFeuille reste appele en debut de Refresh pour les classeurs
-' legacy qui auraient encore la protection LGM69000. Plus de reprotection.
+' La feuille DATA_ASL et le workbook ne sont plus proteges du tout
+' (demande utilisateur 2026-06-29 : Thomas a deja deprotege l ensemble
+' a la main). Plus de DeProtegerFeuille / ProtegerFeuille.
 '
 '--------------------------------------------------------------------------------------------------------
 Option Explicit
@@ -34,7 +34,6 @@ Option Compare Text
 ' =========================================================================
 ' CONSTANTES
 ' =========================================================================
-Private Const SIRUS_PROTECTION_DATA_ASL As String = "LGM69000"
 Private Const SHEET_DATA_ASL            As String = "DATA_ASL"
 Private Const LISTOBJ_DATA_ASL          As String = "Providor"
 Private Const REFRESH_LOG_SHEET         As String = "_RefreshLog"
@@ -137,8 +136,6 @@ Public Sub SIRUS_RafraichirDATA_ASL(Optional ByVal wbParam As Workbook = Nothing
     tStart = Timer
     Application.ScreenUpdating = False
     Application.Calculation = xlCalculationManual
-
-    Call DeProtegerFeuille(ws, wb)
 
     On Error GoTo CleanUp
     sErreur = ""
@@ -1044,20 +1041,8 @@ Private Sub TracerRefreshLog(ByVal wb As Workbook, ByVal sProjet As String, ByVa
     ws.Cells(ligne, 5).Value = Environ$("USERNAME")
 End Sub
 
-' =========================================================================
-' DEPROTECTION LEGACY (transition 2026-06-29)
-' =========================================================================
-' Decision Thomas 2026-06-29 : feuille DATA_ASL plus protegee. La sub
-' DeProtegerFeuille reste pour les classeurs legacy deja deployes qui
-' ont encore la protection LGM69000 : on les deprotege en debut de
-' Refresh et on ne reprotege jamais. Apres 1 Refresh + sauvegarde,
-' le classeur est libre. Sub ProtegerFeuille supprimee.
-Private Sub DeProtegerFeuille(ByVal ws As Worksheet, ByVal wb As Workbook)
-    On Error Resume Next
-    wb.Unprotect SIRUS_PROTECTION_DATA_ASL
-    ws.Unprotect SIRUS_PROTECTION_DATA_ASL
-    On Error GoTo 0
-End Sub
+' DeProtegerFeuille / ProtegerFeuille supprimees (decision Thomas
+' 2026-06-29 : plus aucune protection sur DATA_ASL ni sur le workbook).
 
 ' =========================================================================
 ' HELPERS

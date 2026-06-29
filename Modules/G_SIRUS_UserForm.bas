@@ -1708,11 +1708,15 @@ Private Function SIRUS_UI_Generation_DtrsSelectionnes() As Variant
 End Function
 
 ' Handler du bouton Btn_Generation_LancerSIRUS : valide la selection,
-' lit table + operation depuis les ComboBox, appelle l API SIRUS.
+' lit table + operation depuis les ComboBox, appelle l API SIRUS, puis
+' bascule l utilisateur vers l onglet SIRUS avec la feuille generee
+' active dans la Frame Analyser.
 Public Sub SIRUS_UI_Generation_LancerClick()
     Dim sTable As String
     Dim sOperation As String
+    Dim sNomFeuille As String
     Dim vDtrs As Variant
+    Dim bGenereOK As Boolean
 
     sTable = ""
     sOperation = ""
@@ -1729,6 +1733,9 @@ Public Sub SIRUS_UI_Generation_LancerClick()
         MsgBox "Selectionner une operation (Creer / Modifier).", vbExclamation, "SIRUS - Generation"
         Exit Sub
     End If
+
+    bGenereOK = False
+    sNomFeuille = "SIRUS_" & sTable & "_" & sOperation
 
     ' Modifier : on a besoin d au moins 1 DTR selectionne dans la ListView.
     ' Creer : la selection est ignoree (feuille vierge).
@@ -1749,4 +1756,47 @@ Public Sub SIRUS_UI_Generation_LancerClick()
         ' Creer : feuille vierge
         Call G_SIRUS_Generation.SIRUS_GenererFeuilleAnalyse(sTable, sOperation)
     End If
+
+    ' Verifier que la feuille a bien ete creee (l utilisateur a pu
+    ' annuler une confirmation d ecrasement -> pas de feuille).
+    bGenereOK = FeuilleExisteSurActiveWorkbook(sNomFeuille)
+    If Not bGenereOK Then Exit Sub
+
+    ' Peuple le combo de l onglet SIRUS + rend la Frame Analyse visible.
+    Call SIRUS_AjouterFeuilleAuCombo(sNomFeuille)
+    On Error Resume Next
+    UserForm.Frame_SIRUS_Analyse.Visible = True
+    ' Bascule sur l onglet SIRUS pour que l utilisateur poursuive le flow
+    ' (Editer feuille -> modifier valeurs -> Analyser -> Envoyer ATMAP).
+    Call SIRUS_UI_BasculerSurOngletSIRUS
+    On Error GoTo 0
+End Sub
+
+' Helper : test d existence d une feuille dans ActiveWorkbook. Local au
+' module pour eviter la dependance cross-module.
+Private Function FeuilleExisteSurActiveWorkbook(ByVal sNom As String) As Boolean
+    Dim ws As Worksheet
+    On Error Resume Next
+    Set ws = ActiveWorkbook.Worksheets(sNom)
+    On Error GoTo 0
+    FeuilleExisteSurActiveWorkbook = (Not ws Is Nothing)
+End Function
+
+' Helper : bascule ECOSLI_MultiPage sur l onglet dont la caption contient
+' "SIRUS" (case-insensitive). Plus robuste qu un index code en dur car
+' resilient au reordonnancement des onglets.
+Private Sub SIRUS_UI_BasculerSurOngletSIRUS()
+    Dim i As Long
+    Dim sCaption As String
+    On Error Resume Next
+    With UserForm.ECOSLI_MultiPage
+        For i = 0 To .Pages.count - 1
+            sCaption = LCase$(CStr(.Pages(i).Caption))
+            If InStr(1, sCaption, "sirus", vbTextCompare) > 0 Then
+                .Value = i
+                Exit For
+            End If
+        Next i
+    End With
+    On Error GoTo 0
 End Sub

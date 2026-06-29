@@ -531,6 +531,29 @@ Private Sub Btn_Generation_LancerSIRUS_Click()
     Call G_SIRUS_UserForm.SIRUS_UI_Generation_LancerClick
 End Sub
 
+' =========================================================================
+' Handlers OptionButtons + ComboBox Table de l onglet SIRUS
+' =========================================================================
+' Stubs qui delegues a G_SIRUS_UserForm.SIRUS_Op_Click / SIRUS_Table_Change.
+' Sans ces handlers, le clic sur Opt_SIRUS_Modifier / Extraction / Creer
+' ne declenche aucun code -> les Frames Modifier / Extraction restent
+' cachees (etat initial pose par SIRUS_PhaseInit_v2).
+Private Sub Opt_SIRUS_Creer_Click()
+    Call G_SIRUS_UserForm.SIRUS_Op_Click("Creer")
+End Sub
+
+Private Sub Opt_SIRUS_Modifier_Click()
+    Call G_SIRUS_UserForm.SIRUS_Op_Click("Modifier")
+End Sub
+
+Private Sub Opt_SIRUS_Extraction_Click()
+    Call G_SIRUS_UserForm.SIRUS_Op_Click("Extraction")
+End Sub
+
+Private Sub Cmb_SIRUS_Table_Change()
+    Call G_SIRUS_UserForm.SIRUS_Table_Change
+End Sub
+
 Private Sub Project_List_Change()
 ' Auto-remplit les controles SLI a partir de la BdD lorsque l utilisateur
 ' choisit un projet. Indispensable avant d ouvrir un ticket ATMAP (la
