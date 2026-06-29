@@ -554,6 +554,34 @@ Private Sub Cmb_SIRUS_Table_Change()
     Call G_SIRUS_UserForm.SIRUS_Table_Change
 End Sub
 
+Private Sub Btn_SIRUS_Parcourir_Click()
+    Call G_SIRUS_UserForm.SIRUS_UI_BtnParcourirClick
+End Sub
+
+Private Sub Btn_SIRUS_Generer_Click()
+    Call G_SIRUS_UserForm.SIRUS_UI_BtnGenererClick
+End Sub
+
+Private Sub Btn_SIRUS_EditerFeuille_Click()
+    Call G_SIRUS_UserForm.SIRUS_UI_BtnEditerFeuilleClick
+End Sub
+
+Private Sub Btn_SIRUS_Analyser_Click()
+    Call G_SIRUS_UserForm.SIRUS_UI_BtnAnalyserClick
+End Sub
+
+Private Sub ListView_SIRUS_Resultats_DblClick()
+    Call G_SIRUS_UserForm.SIRUS_UI_LvResultatsDblClick
+End Sub
+
+Private Sub Btn_SIRUS_Envoyer_Click()
+    Call G_SIRUS_UserForm.SIRUS_UI_BtnEnvoyerClick
+End Sub
+
+Private Sub Cmb_SIRUS_Priorite_Change()
+    Call G_SIRUS_UserForm.SIRUS_UI_PrioriteChange
+End Sub
+
 Private Sub Project_List_Change()
 ' Auto-remplit les controles SLI a partir de la BdD lorsque l utilisateur
 ' choisit un projet. Indispensable avant d ouvrir un ticket ATMAP (la
