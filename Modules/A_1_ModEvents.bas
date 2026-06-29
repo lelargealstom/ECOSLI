@@ -10,6 +10,12 @@ Public Sub Auto_Open()
 
     Call InitializeEventHandler
 
+    ' Binding raccourci Ctrl+W -> Appel_Usf (W_AppelUsf module).
+    ' Plus fiable que l attribut VB_Invoke_Func qui pose probleme en
+    ' reimport. OnKey s applique a l Application -> persiste tant que
+    ' le complement est charge.
+    Application.OnKey "^w", "Appel_Usf"
+
     ' Verifier si une mise a jour est disponible
     Call A_2_ModUpdate.CheckForUpdatesOnStartup
 End Sub
@@ -18,6 +24,9 @@ End Sub
 ' Auto_Close - Execute automatiquement a la fermeture de l'add-in
 ' ==========================================
 Public Sub Auto_Close()
+    ' Libere le raccourci Ctrl+W (sinon il reste lie meme apres unload)
+    Application.OnKey "^w"
+
     Call TerminateEventHandler
 End Sub
 
