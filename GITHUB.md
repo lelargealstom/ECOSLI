@@ -1,37 +1,27 @@
-Test_SIRUS_DiagPreFillProduit("DTR0000120004")
+Test_SIRUS_TenterADODBPurPourDTR("DTR0000120004")
 ======================================================================
-Diagnostic pre-fill SnapShotPrix pour DTR = 'DTR0000120004'
+Test ADODB pur pour DTR = 'DTR0000120004'
 ======================================================================
 
--- 1. Etat cache m_dictSnapShotPrixCache --
-  Cache : VIDE (Nothing). Sera charge au 1er appel.
+-- Variante 1 : Baseline (config actuelle CONNEXION_EXCEL_BDD_TRAVAIL) --
+  Total lignes lues : 29789 | DTR alphanum : 0 | Matches DTR cible : 0
 
--- 2. Config Produit : champs Source='SnapShotPrix' --
-  Nb champs total dans config Produit : 25
-  [1] Champ='Prix Spare a date' | ColonneBdD='Prix SPARE catalogue a date_PRODUIT' | Obligatoire=Conditionnel
-  [2] Champ='Dates validite Spare' | ColonneBdD='Dates de validite des prix SPARE connus sur Projet (ASL)_PRODUIT' | Obligatoire=Conditionnel
-  [3] Champ='MoQ Spare' | ColonneBdD='MoQ spare catalogue_PRODUIT' | Obligatoire=Conditionnel
-  [4] Champ='Lead Time Spare' | ColonneBdD='Lead time SPARE catalogue (jours) a date_PRODUIT' | Obligatoire=Conditionnel
-  [5] Champ='Prix Repair a date' | ColonneBdD='Prix REPAIR catalogue a date_PRODUIT' | Obligatoire=Conditionnel
-  [6] Champ='Dates validite Repair' | ColonneBdD='Dates de validite des prix REPAIR connus sur Projet (ASL)_PRODUIT' | Obligatoire=Conditionnel
-  [7] Champ='Lead Time Repair' | ColonneBdD='Lead time REPAIR (jours) manuel_PRODUIT' | Obligatoire=Conditionnel
-  -> 7 champs Source='SnapShotPrix' trouves (attendu : 7).
+-- Variante 2 : IMEX=1;TypeGuessRows=0 --
+  Total lignes lues : 29789 | DTR alphanum : 0 | Matches DTR cible : 0
 
--- 3. Lookup dictSnapShotPrix pour DTR='DTR0000120004' --
-  Nb DTR total dans le dict : 3062
-  DTR 'DTR0000120004' PRESENT. Valeurs qui seraient ecrites en cellules :
-    Dates de validite des prix REPAIR connus sur Projet (ASL)_PRODUIT = 'D&IS Catalogue FY26_27_v03'
-    Lead time REPAIR (jours) manuel_PRODUIT = '120'
-    Prix SPARE catalogue a date_PRODUIT = '30,52'
-    Dates de validite des prix SPARE connus sur Projet (ASL)_PRODUIT = 'D&IS Catalogue FY25_26_v05'
-    MoQ spare catalogue_PRODUIT = ''
-    Lead time SPARE catalogue (jours) a date_PRODUIT = ''
+-- Variante 3 : IMEX=1;MaxScanRows=0 --
+  Total lignes lues : 29789 | DTR alphanum : 0 | Matches DTR cible : 0
 
--- 4. Match config <-> dict pour ce DTR --
-  [OK] 'Prix SPARE catalogue a date_PRODUIT' -> '30,52'
-  [OK] 'Dates de validite des prix SPARE connus sur Projet (ASL)_PRODUIT' -> 'D&IS Catalogue FY25_26_v05'
-  [OK] 'MoQ spare catalogue_PRODUIT' -> ''
-  [OK] 'Lead time SPARE catalogue (jours) a date_PRODUIT' -> ''
-  [--] 'Prix REPAIR catalogue a date_PRODUIT' -> ABSENT du dict (cellule restera vide).
-  [OK] 'Dates de validite des prix REPAIR connus sur Projet (ASL)_PRODUIT' -> 'D&IS Catalogue FY26_27_v03'
-  [OK] 'Lead time REPAIR (jours) manuel_PRODUIT' -> '120'
+-- Variante 4 : HDR=No;IMEX=1;TypeGuessRows=0 --
+  ERREUR ouverture ou lecture : Aucune valeur donnée pour un ou plusieurs des paramètres requis.
+
+-- Variante 5 : Excel 8.0 (Jet-style typing) --
+  Total lignes lues : 29789 | DTR alphanum : 0 | Matches DTR cible : 0
+
+-- Variante 6 : Excel 12.0 Xml (xlsb natif) --
+  Total lignes lues : 29789 | DTR alphanum : 0 | Matches DTR cible : 0
+
+Interpretation :
+  Variante viable = nText > 0 (au moins un DTR alphanumerique lu)
+  Variante ideale = nMatch >= 1 pour le DTR cible
+
