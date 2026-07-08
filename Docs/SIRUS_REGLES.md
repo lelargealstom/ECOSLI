@@ -12,9 +12,28 @@ Pour chaque ligne de la feuille d'analyse, et pour chaque champ du config :
 2. **Obligatoire = "Conditionnel"** → on appelle `SIRUS_RegleObligatoire(table, colonneBdD, ligne)` qui renvoie `True/False` selon le contexte de la ligne (ex. NodeType, MotifNA…). Si `True` et le champ est vide, alerte.
 3. **`SIRUS_RegleAlerte(table, colonneBdD, ligne)`** est appelée systématiquement pour tous les champs. Renvoie `""` (rien) ou un libellé d'alerte métier (cohérence transverse : MTBF fonctionnel < intrinsèque, projet inconnu…).
 
-Le **taux MeQ** = somme(`PoidsMeQ` des obligatoires remplis) / somme(`PoidsMeQ` des obligatoires). Seuil d'autorisation envoi = **70%**.
+### Formule MeQ (consolidée 2026-07-08)
 
-L'analyse **ne bloque jamais** — décision verrouillée roadmap. Sauf cas explicite (cf. ProjetASL projet inconnu ci-dessous, blocage à l'envoi).
+**MeQ = nbRempli / nbObl** — comptage 1-champ = 1-unité.
+
+- `nbObl` = nombre de champs obligatoires pour cette ligne. **Variable** selon les règles conditionnelles (ex. matrice Produit v0.2 : 3 / 14 / 15 / 16 / 17 / 18 / 19).
+- `nbRempli` = nombre de ces obligatoires effectivement remplis.
+- **Source unique de vérité** : `G_SIRUS_Regles.SIRUS_MeQLigne(ligneDict, sTable, configCol)`. Renvoie `{nbObl, nbRempli, taux, manquants}` où `manquants` est une Collection de `SIRUS_Champ_Config`.
+- `PoidsMeQ` du config **n'est plus utilisé** pour le calcul (poids uniforme retenu, décision Thomas Q5 2026-07-07).
+
+Appelée depuis 2 chemins avec garantie de résultat identique pour un même DTR :
+- **ListView Generation** → `G_SIRUS_PBS.CalculerMeQDTR_Optim` cumule `nbObl/nbRempli` sur les rows du DTR (tables multi-rows type TachesATM).
+- **Analyse SIRUS feuille** → `G_SIRUS_Analyse.SIRUS_AnalyserFeuille` appelle `SIRUS_MeQLigne` par ligne, cumule sur toutes les lignes de la feuille.
+
+Skip du helper :
+- Champs sans `ColonneBdD` (info pure, headers de bloc).
+- Placeholders `??_*_a_definir`.
+- `Source ∈ {Auto, Herite}` (rempli par le moteur ou hérité d'une autre table).
+- `Source = "SnapShotPrix"` est **inclus** (source virtuelle mais compte comme un champ MeQ à part entière).
+
+### Analyse ne bloque jamais
+
+L'analyse **ne bloque jamais** l'envoi ATMAP — décision verrouillée roadmap v0.2. Le seuil MeQ (historiquement 70%) est purement informatif : le bouton "Envoyer" reste actif quel que soit le taux. Sauf cas explicite documenté (ex. ProjetASL projet inconnu → blocage à l'envoi).
 
 ---
 

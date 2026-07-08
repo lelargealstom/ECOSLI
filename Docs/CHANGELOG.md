@@ -6,6 +6,61 @@ Format : `[Date] — Auteur — Périmètre`, puis liste des changements par mod
 
 ---
 
+## 2026-07-08 — Sprint 2 bis : Consolidation MeQ + ADODB pur SnapShotPrix
+
+Session focus : rendre la formule MeQ identique entre la ListView Generation et l'analyse SIRUS feuille pour un même DTR + basculer la lecture SnapShotPrix sur ADODB pur (BdD fermée) après ajustements côté BdD.
+
+### Consolidation MeQ (helper unique `SIRUS_MeQLigne`)
+
+**Problème identifié** : divergence entre 2 chemins de calcul MeQ.
+- `G_SIRUS_PBS.CalculerMeQDTR_Optim` (ListView Generation) → compte 1-champ = 1-unité (`nbRempli / nbObl`).
+- `G_SIRUS_Analyse.EvaluerChampLigne` (analyse feuille) → utilise `PoidsMeQ` cumulé (`poidsRempli / poidsObl`).
+
+Avec `PoidsMeQ` non uniforme dans le config Produit (DTR=3, Designation=2, MTBF=2, autres=1), le taux MeQ pour un même DTR différait entre les 2 chemins.
+
+**Nouvelle formule unique** : `MeQ = nbRempli / nbObl` (comptage 1-champ = 1-unité), avec `nbObl` variable selon les règles conditionnelles. `PoidsMeQ` **n'est plus utilisé** pour le calcul (décision Q5 2026-07-07 : poids uniforme).
+
+**Implémentation** :
+- **`G_SIRUS_Regles.SIRUS_MeQLigne(ligneDict, sTable, configCol)`** : nouveau helper Public, source unique de vérité. Retourne `Dictionary { nbObl As Long, nbRempli As Long, taux As Double, manquants As Collection (de SIRUS_Champ_Config) }`. Skip Auto/Herite/placeholders `??_*`, applique Obligatoire=Oui direct, Conditionnel via `SIRUS_RegleObligatoire` (routing matrice Produit).
+- **`G_SIRUS_PBS.CalculerMeQDTR_Optim`** : refonte, délègue à `SIRUS_MeQLigne`. Cumule `nbObl`/`nbRempli` sur les rows du DTR (moyenne pour tables multi-rows).
+- **`G_SIRUS_Analyse.SIRUS_AnalyserFeuille`** : loop refactoré en 3 phases claires :
+  - Phase 1 : `SIRUS_MeQLigne` (calcul MeQ + liste manquants)
+  - Phase 2 : `AjouterAlerteManquant` (par def manquant)
+  - Phase 3 : `AjouterAlerteMetier` (SIRUS_RegleAlerte par def)
+  Suppression de `EvaluerChampLigne` (obsolète). Nouvelles subs Private `AjouterAlerteManquant` + `AjouterAlerteMetier`.
+
+**Garantie** : MeQ ListView Generation = MeQ analyse SIRUS feuille pour un même DTR. Validé sur DTR0000120004 (LRUNR + Motif Preventif HARD) : 11/15 = 73,33 % dans les 2 chemins.
+
+**Rappel** : l'analyse ne bloque jamais l'envoi ATMAP (décision v0.2 verrouillée). Le seuil MeQ historique 70 % est purement informatif.
+
+### Bascule SnapShotPrix sur ADODB pur (BdD fermée)
+
+**Historique itératif** :
+- v1 : ADODB direct → NULL sur les DTR alphanumériques (bug ACE mixed-type).
+- v2 : ADODB + `TypeGuessRows=0` dans les Extended Properties → inefficace chez Thomas (32 DTR numériques seulement).
+- v3 : lecture directe de la feuille (bulk array) → fonctionne mais requiert l'ouverture de la BdD dans Excel (1 fois / session).
+- **v4 (retenue)** : ADODB pur redevient viable après 2 modifs BdD côté Thomas 2026-07-08 :
+  1. DTR alphanumériques déplacés en tête de `Produit_SnapShotPrix` (ACE type Text en scannant ses 8 premières lignes).
+  2. Format cellule colonne DTR passe de "Général" à "Texte".
+  Combiné à `IMEX=1` déjà présent dans la connection string, tous les DTR reviennent lisibles. Test `Test_SIRUS_TenterADODBPurPourDTR` valide : 29 748 DTR alphanum lus sur 29 788 lignes totales.
+
+**Effets** :
+- `G_SIRUS_PBS.ChargerSnapShotPrixDernierParDTR` : ADODB pur + cache session (`m_dictSnapShotPrixCache`). BdD ne s'ouvre **plus jamais** dans Excel.
+- `DumpSnapShotBrutPourDTR` : idem, ADODB pur.
+- Suppression des helpers direct-read (`OuvrirFeuilleSnapShotPrix`, `FermerBdDSiOuverte`, `ExtraireCheminBdDSirus`, `TrouverColParLibelleSirus`).
+- Suppression de `Test_SIRUS_TenterADODBPurPourDTR` (mission accomplie).
+- Cache session `m_dictSnapShotPrixCache` toujours en place : évite le re-scan des ~30 k lignes à chaque appel. Reset via `SIRUS_ResetCacheSnapShotPrix`.
+
+### Diagnostic ajouté
+
+- **`Test_SIRUS_DiagPreFillProduit(dtr)`** dans `G_SIRUS_PBS.bas` : dump complet pour un DTR — état du cache, config Produit (champs `Source='SnapShotPrix'`), contenu dict SnapShotPrix, cross-check config ↔ dict. Utile pour diagnostiquer des mismatches ColonneBdD ou un cache pollué.
+
+### Nettoyage
+
+- Suppression du `Attribute VB_Name = "..."` en tête des 41 fichiers `Modules/*.bas` (facilite le copier-coller manuel dans VBE — VBE gère le nom du module automatiquement).
+
+---
+
 ## 2026-07-07 → 2026-07-08 — Sprint 2 : Règle MeQ Produit v0.2 + SnapShotPrix + doc
 
 Refonte complète des règles MeQ Produit selon le brief SIRUS v0.2. Cadrage des 19 champs obligatoires avec logique conditionnelle factorisée (Motif NA / Motif Preventif / NodeType). Câblage du chargement `Produit_SnapShotPrix` (7 champs virtuels prix/leadtime/MoQ/dates) contre le row `Produit$` pour un MeQ complet. Ajout d'un README à la racine + doc des règles Produit dans `SIRUS_REGLES.md`.
