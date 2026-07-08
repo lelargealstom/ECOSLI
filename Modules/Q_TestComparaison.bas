@@ -1,4 +1,3 @@
-Attribute VB_Name = "Q_TestComparaison"
 Option Explicit
 
 Sub ExportAllModules()

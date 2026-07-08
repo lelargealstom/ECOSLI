@@ -166,9 +166,102 @@ Bouton **Rafraichir** (`SIRUS_RafraichirListViewGeneration`) à actionner après
 
 Implémentation : `G_SIRUS_PBS.ChargerRowsTableBdD_Optim` + `CalculerMeQDTR_Optim` + `ProjetsConnusPourDTR` + `AjouterSubItemMeQ` / `AjouterSubItemNbProjets`.
 
+## Table Produit
+
+Couvre les opérations Création et Modification d'une entrée de la table BdD `Produit$`. Refonte 2026-07-07 (brief SIRUS v0.2).
+
+### Périmètre — 19 champs MeQ + 6 champs libres
+
+**19 champs comptés dans le MeQ** :
+
+| Bloc | Champ | ColonneBdD | Source |
+|---|---|---|---|
+| Base (toujours obligatoire) | DTR | `DTR` | Saisie |
+| Base | Designation | `Designation_PRODUIT` | Saisie |
+| Base | Node Type | `Node type Produit (LRU/SRU…)_PRODUIT` (⚠️ U+2026) | Saisie |
+| Mid (obligatoire si MotifNA ≠ NA) | Fournisseur | `Fournisseur_PRODUIT` | Saisie |
+| Mid | Reference fournisseur | `Reference fournisseur_PRODUIT` | Saisie |
+| Mid | Motif NA | `MotifNonApplicabilite_PRODUIT` | Saisie |
+| Mid | Motif NA Preventif | `Motif_NonApplicabilitePreventif_PRODUIT` (⚠️ underscore) | Saisie |
+| Mid | Drawing Number | `Drawing number` | Saisie |
+| Mid | MTBF intrinseque | `MTBF intrinseque Produit (h) issu de la datasheet _PRODUIT` | Saisie |
+| Mid | Reference MUL maintenance | `Reference MUL maintenance_PRODUIT` | Saisie |
+| Conditionnel Preventif | DVL HARDWARE | `Duree de vie generique Produit HARDWARE (annee)_PRODUIT` | Saisie |
+| Conditionnel Preventif | DVL SOFTWARE | `Duree de vie generique Produit (annee) SOFTWARE _PRODUIT` | Saisie |
+| Virtuel Spare (SnapShotPrix) | Prix Spare a date | `Prix SPARE catalogue a date_PRODUIT` | SnapShotPrix |
+| Virtuel Spare | Dates validite Spare | `Dates de validite des prix SPARE connus sur Projet (ASL)_PRODUIT` | SnapShotPrix |
+| Virtuel Spare | MoQ Spare | `MoQ spare catalogue_PRODUIT` | SnapShotPrix |
+| Virtuel Spare | Lead time Spare | `Lead time SPARE catalogue (jours) a date_PRODUIT` | SnapShotPrix |
+| Virtuel Repair (conditionnel non-NR) | Prix Repair a date | `Prix REPAIR catalogue a date_PRODUIT` | SnapShotPrix |
+| Virtuel Repair | Dates validite Repair | `Dates de validite des prix REPAIR connus sur Projet (ASL)_PRODUIT` | SnapShotPrix |
+| Virtuel Repair | Lead time Repair | `Lead time REPAIR (jours) manuel_PRODUIT` | SnapShotPrix |
+
+**6 champs hors MeQ** (info libre, `Obligatoire = Non`) : `Famille generique_PRODUIT`, `Ref RAM Report_PRODUIT`, `References datasheet_PRODUIT`, `Reference MUL installation_PRODUIT`, `Reference MUL software_PRODUIT`, `Reference MUL HW Interface_PRODUIT`.
+
+### Règles d'obligation — matrice factorisée
+
+Logique dans `G_SIRUS_Regles.EstObligatoire_Produit(colonneBdD, ligne)`, appelée depuis `SIRUS_RegleObligatoire("Produit", ...)` via early return.
+
+Étages de décision (les 3 champs pilotes sont `MotifNonApplicabilite_PRODUIT`, `Motif_NonApplicabilitePreventif_PRODUIT`, `Node type Produit (LRU/SRU…)_PRODUIT`) :
+
+1. **Base 3** (`DTR`, `Designation_PRODUIT`, `Node type…_PRODUIT`) → **True** (toujours).
+2. Si `MotifNA = "NA"` → **False** pour tous les autres (rien d'autre n'est obligatoire).
+3. `Duree de vie HARDWARE` → **True** ssi `MotifPreventif ∈ {HARD, BOTH}`.
+4. `Duree de vie SOFTWARE` → **True** ssi `MotifPreventif ∈ {SOFT, BOTH}`.
+5. 3 champs REPAIR → **False** si `NodeType ∈ {LRUNR, SRUNR}` (règle non-réparable transverse), **True** sinon.
+6. Les 11 champs "mid" restants (Fournisseur, Ref frs, MotifNA, MotifNAPrev, Drawing, MTBF, Ref MUL maint, 4 champs SPARE) → **True**.
+7. Champs hors 19 (Famille Gen, Ref RAM Report, etc.) → **False**.
+
+### Matrice de vérification (9 cas)
+
+| MotifNA | MotifPrev | NodeType | Nb Obligatoires | Détail |
+|---|---|---|:---:|---|
+| NA | * | * | **3** | Base seule |
+| OK | HARD | non-NR | **18** | 19 − DVL SW |
+| OK | HARD | LRUNR/SRUNR | **15** | 18 − 3 REPAIR |
+| OK | SOFT | non-NR | **18** | 19 − DVL HW |
+| OK | SOFT | LRUNR/SRUNR | **15** | 18 − 3 REPAIR |
+| OK | BOTH | non-NR | **19** | Complet |
+| OK | BOTH | LRUNR/SRUNR | **16** | 19 − 3 REPAIR |
+| OK | NA | non-NR | **17** | 19 − DVL HW − DVL SW |
+| OK | NA | LRUNR/SRUNR | **14** | 17 − 3 REPAIR |
+
+Tests unitaires : `Test_Regle_Produit_MatriceMeQ` dans `G_SIRUS_Regles.bas`.
+
+### Champs virtuels (source `Produit_SnapShotPrix`)
+
+Les 7 champs prix/leadtime/MoQ/dates ne sont plus stockés dans `Produit$` mais dans `Produit_HistoPrix` (feuille `Produit_SnapShotPrix`). Ils gardent leur `ColonneBdD` "logique" dans le config Produit avec `Source = "SnapShotPrix"` → skippés du SELECT `Produit$` (évite ACE errors), comptés dans le MeQ. Injection dans le row Produit par `G_SIRUS_PBS.EnrichirProduitAvecSnapShot`.
+
+**Règle de rétention par (DTR, Type)** :
+- Filtre : `Prix` numérique non nul **OU** `OnRequestPrix` non vide.
+- Sélection : ligne avec `MAX Date Source` parmi les candidats.
+- Écriture :
+  - `Prix` virtuel uniquement si `Prix` numérique non nul (OnRequest seul → Prix reste absent, MeQ perd 1 point).
+  - `Ref Catalogue`, `MoQ`, `LeadTime` toujours copiés (nul → non compté par MeQ).
+
+**Colonnes attendues** : `DTR`, `Type` (Spare/Repair), `Prix`, `LeadTime`, `OnRequestPrix`, `OnRequestLT`, `MoQ`, `Ref Catalogue`, `Date Source`.
+
+**Contrainte technique** : la colonne `DTR` de `Produit_SnapShotPrix` est mixed-type (numérique + alphanumérique). ACE OLE DB scanne les 8 premières lignes → si numériques, il type Numeric → les DTR alphanumériques reviennent NULL même avec `IMEX=1`. Workaround : `TypeGuessRows=0` dans les Extended Properties de la connection dédiée (`ChargerSnapShotPrixDernierParDTR`) → scan complet + IMEX=1 → colonnes mixed-type en TEXT. Coût : quelques secondes au 1er accès → cache session `m_dictSnapShotPrixCache`, reset via `SIRUS_ResetCacheSnapShotPrix`.
+
+### Colonne calculée `Motif_NonApplicabilitePreventif_PRODUIT`
+
+Formule Excel dans `Produit$` (dépend de `Info_ATM[HARD/SOFT]`) :
+
+```excel
+=SI(NB.SI.ENS(Info_ATM[DTR_INFOATM];[@DTR];Info_ATM[HARD/SOFT];"HARD")+NB.SI.ENS(Info_ATM[DTR_INFOATM];[@DTR];Info_ATM[HARD/SOFT];"SOFT")=0;"NA";SI(ET(NB.SI.ENS(Info_ATM[DTR_INFOATM];[@DTR];Info_ATM[HARD/SOFT];"HARD")>0;NB.SI.ENS(Info_ATM[DTR_INFOATM];[@DTR];Info_ATM[HARD/SOFT];"SOFT")>0);"BOTH";SI(NB.SI.ENS(Info_ATM[DTR_INFOATM];[@DTR];Info_ATM[HARD/SOFT];"HARD")>0;"HARD";"SOFT")))
+```
+
+Sortie :
+- `HARD` : seules des lignes HARD existent dans `Info_ATM` pour ce DTR
+- `SOFT` : seules des lignes SOFT
+- `BOTH` : les 2
+- `NA` : aucune ligne dans `Info_ATM`
+
+---
+
 ## Tables non encore documentées
 
-Les règles des tables Produit, InfoATM, TachesATM, EMMST, ProjetSLI sont dans `G_SIRUS_Regles.bas` (Phase 2 MVP — 10 règles) et `G_SIRUS_Config.bas` (`Peupler*`). À documenter ici au fur et à mesure de l'enrichissement (cf. roadmap Phase 2.1).
+Les règles des tables InfoATM, TachesATM, EMMST, ProjetSLI sont dans `G_SIRUS_Regles.bas` (Phase 2 MVP — 10 règles) et `G_SIRUS_Config.bas` (`Peupler*`). À documenter ici au fur et à mesure de l'enrichissement (cf. roadmap Phase 2.1).
 
 ---
 

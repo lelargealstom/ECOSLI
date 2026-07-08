@@ -1,4 +1,3 @@
-Attribute VB_Name = "G_SIRUS_PBS"
 '--------------------------------------------------------------------------------------------------------
 '
 '                                       Generateur Livrables SLI
@@ -221,9 +220,11 @@ Public Function MapColonnesDATA_ASL(ByVal ws As Worksheet) As Boolean
         .PrixRepair_ProjetArchive = TrouverColonne(ws, Array("Prix Repair projet archive", "Prix Repair sur un projet archive"), False, manqueCritique, manqueOptionnel)
     End With
 
-    If Len(manqueOptionnel) > 0 Then
-        Debug.Print "[DATA_ASL] Colonnes optionnelles introuvables : " & manqueOptionnel
-    End If
+    ' Colonnes optionnelles introuvables : silencieux (non bloquant, code gere
+    ' l'absence). Decommente pour diagnostic si un cadrage part en vrille.
+    ' If Len(manqueOptionnel) > 0 Then
+    '     Debug.Print "[DATA_ASL] Colonnes optionnelles introuvables : " & manqueOptionnel
+    ' End If
 
     If Len(manqueCritique) > 0 Then
         MsgBox "Cadrage DATA_ASL impossible." & vbCrLf & vbCrLf & "Colonnes critiques introuvables sur la ligne " & DATA_ASL_HeaderRow & " :" & vbCrLf & manqueCritique, vbCritical, "ECOSLI - PBS"
@@ -410,6 +411,17 @@ Public Sub SIRUS_RemplirListViewGeneration()
         Set dictTachesATM_Rows = ChargerRowsTableBdD_Optim("Taches_ATM$", "DTR_TACHEATM", cfgTachesATM)
         Set dictEMMST_Rows = ChargerRowsTableBdD_Optim("EMMST$", "DTR_EMMST", cfgEMMST)
         Set dictProduit_Rows = ChargerRowsTableBdD_Optim("Produit$", "DTR", cfgProduit)
+
+        ' Enrichissement des rows Produit avec les 7 champs virtuels
+        ' provenant de Produit_SnapShotPrix (refonte 2026-07-07 : les
+        ' prix / dates / MoQ / lead times sont maintenant historises hors
+        ' de Produit$). Le config Produit garde les 7 ColonneBdD comme
+        ' champs virtuels ; c'est ici qu'on injecte la valeur SnapShotPrix
+        ' la plus recente (Prix non nul, MAX Date Source) dans chaque row
+        ' Produit avant appel a CalculerMeQDTR_Optim.
+        Dim dictSnapShotPrix As Object
+        Set dictSnapShotPrix = ChargerSnapShotPrixDernierParDTR()
+        Call EnrichirProduitAvecSnapShot(dictProduit_Rows, dictSnapShotPrix)
     End If
 
     derniereLigne = wsPBS.Cells(wsPBS.rows.count, DATA_ASL_type.DTR_PBS).End(xlUp).Row
@@ -701,6 +713,292 @@ Sortie:
     On Error GoTo 0
     Set ChargerRowsTableBdD_Optim = dict
 End Function
+
+
+' =========================================================================
+' FONCTION: ChargerSnapShotPrixDernierParDTR
+' =========================================================================
+' Charge Produit_SnapShotPrix$ et renvoie, par DTR, les valeurs a injecter
+' comme champs virtuels dans la row Produit (7 ColonneBdD).
+'
+' Regle metier (2026-07-07) : pour chaque couple (DTR, Type in {Spare, Repair}),
+' on retient la ligne dont [Prix] est non nul et dont [Date Source] est la
+' plus recente. Si aucune ligne avec Prix non nul n'existe pour ce (DTR,Type),
+' aucun champ virtuel n'est cree -> le row Produit reste vide sur ce champ
+' -> CalculerMeQDTR_Optim compte le champ comme non rempli.
+'
+' Retour : Dictionary {DTR (trim) -> Dictionary {ColonneBdD_virtuelle -> valeur}}
+' Cle compareMode = vbTextCompare pour aligner avec dictProduit_Rows.
+'
+' Cast [DTR] & '' AS DTR_str : evite le bug ACE OLE DB avec DTR mixed-type
+' (numerique + alphanumerique). Cf. Test_DryRunRafraichirPrixCatalogue.
+' Cache session : SnapShotPrix est charge une seule fois par session Excel
+' (cout ~seconds a cause du TypeGuessRows=0 qui scanne tout). Reset via
+' SIRUS_ResetCacheSnapShotPrix (a appeler apres un refresh BdD ou changement
+' de projet si necessaire).
+Private m_dictSnapShotPrixCache As Object
+
+Public Sub SIRUS_ResetCacheSnapShotPrix()
+    Set m_dictSnapShotPrixCache = Nothing
+End Sub
+
+Private Function ChargerSnapShotPrixDernierParDTR() As Object
+    ' Refonte 2026-07-07 : ADODB pur (BdD reste fermee) avec TypeGuessRows=0
+    ' dans la connection string. Contexte du choix :
+    '   - ACE OLE DB par defaut scanne les 8 premieres lignes pour typer les
+    '     colonnes. Sur Produit_SnapShotPrix, la colonne DTR est mixed-type
+    '     (numerique 8600xxx + alphanumerique DTR0000xxx). Les 8 premieres
+    '     lignes etant numeriques, ACE type Numeric -> IMEX=1 seul ne suffit
+    '     pas, les valeurs alphanumeriques reviennent NULL.
+    '   - TypeGuessRows=0 force ACE a scanner TOUTES les lignes avant typage
+    '     (cout : quelques secondes au 1er acces). Combine avec IMEX=1, les
+    '     colonnes mixed-type sont retournees en TEXT -> tous les DTR sont
+    '     lisibles, y compris alphanumeriques.
+    '   - Resultat en cache session (m_dictSnapShotPrixCache) : la penalite
+    '     du scan complet n'est payee qu'une fois par session Excel.
+    Dim dict As Object, dictBest As Object
+    Dim conn As Object, rs As Object
+    Dim sConnBdD As String
+    Dim sDTR As String, sType As String
+    Dim vDate As Variant, vPrix As Variant, vLT As Variant, vMoQ As Variant, vRefCat As Variant
+    Dim vOnReqPrix As Variant, vOnReqLT As Variant
+    Dim sKey As String, bPrixConnu As Boolean, bOnRequest As Boolean
+    Dim conserver As Boolean
+
+    ' Cache hit : renvoie directement.
+    If Not m_dictSnapShotPrixCache Is Nothing Then
+        Set ChargerSnapShotPrixDernierParDTR = m_dictSnapShotPrixCache
+        Exit Function
+    End If
+
+    Set dict = CreateObject("Scripting.Dictionary")
+    dict.CompareMode = vbTextCompare
+    Set dictBest = CreateObject("Scripting.Dictionary")
+    dictBest.CompareMode = vbTextCompare
+
+    ' Connection dediee : injection de TypeGuessRows=0 dans les Extended
+    ' Properties de CONNEXION_EXCEL_BDD_TRAVAIL. Extended Properties a le
+    ' format "Excel 12.0 Macro;HDR=Yes;IMEX=1" -> on ajoute ;TypeGuessRows=0
+    ' avant la fermeture de la quote.
+    sConnBdD = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
+    sConnBdD = Replace(sConnBdD, "IMEX=1'", "IMEX=1;TypeGuessRows=0'")
+
+    On Error GoTo Sortie
+    Set conn = CreateObject("ADODB.Connection")
+    conn.Open sConnBdD
+    Set rs = CreateObject("ADODB.Recordset")
+    rs.Open "SELECT [DTR] & '' AS DTR_str, [Type], [Prix], [LeadTime], [OnRequestPrix], [OnRequestLT], [MoQ], [Ref Catalogue], [Date Source] FROM [Produit_SnapShotPrix$]", conn, 3, 1  ' adOpenStatic, adLockReadOnly
+
+    If rs.EOF And rs.BOF Then GoTo Cleanup
+
+    ' 1er passage : pour chaque (DTR,Type) on garde la ligne candidate la
+    ' plus recente (MAX Date Source). Ligne candidate = Prix non nul OU
+    ' OnRequestPrix renseigne.
+    Do While Not rs.EOF
+        sDTR = Trim$(NzSafeStr(rs.Fields("DTR_str").Value))
+        If Right$(sDTR, 2) = ".0" Then sDTR = Left$(sDTR, Len(sDTR) - 2)
+
+        If LenB(sDTR) > 0 Then
+            sType = UCase$(Trim$(NzSafeStr(rs.Fields("Type").Value)))
+            vPrix = rs.Fields("Prix").Value
+            vDate = rs.Fields("Date Source").Value
+            vLT = rs.Fields("LeadTime").Value
+            vOnReqPrix = rs.Fields("OnRequestPrix").Value
+            vOnReqLT = rs.Fields("OnRequestLT").Value
+            vMoQ = rs.Fields("MoQ").Value
+            vRefCat = rs.Fields("Ref Catalogue").Value
+
+            bPrixConnu = EstNumeriqueNonNul(vPrix)
+            bOnRequest = (LenB(Trim$(NzSafeStr(vOnReqPrix))) > 0)
+
+            If (sType = "SPARE" Or sType = "REPAIR") And IsDate(vDate) Then
+                If bPrixConnu Or bOnRequest Then
+                    sKey = sDTR & "|" & sType
+                    conserver = True
+                    If dictBest.Exists(sKey) Then
+                        Dim prev As Variant
+                        prev = dictBest(sKey)
+                        If CDate(prev(0)) >= CDate(vDate) Then conserver = False
+                    End If
+                    If conserver Then
+                        ' Array : 0=Date, 1=Prix, 2=LT, 3=MoQ, 4=RefCat,
+                        '         5=OnReqPrix, 6=OnReqLT.
+                        dictBest(sKey) = Array(vDate, vPrix, vLT, vMoQ, vRefCat, vOnReqPrix, vOnReqLT)
+                    End If
+                End If
+            End If
+        End If
+        rs.MoveNext
+    Loop
+
+    ' 2nd passage : injecte les valeurs retenues dans le dict resultat.
+    ' Prix : ecrit uniquement si numerique non nul (OnRequest seul -> champ
+    ' virtuel Prix reste absent -> MeQ perd 1 point).
+    Dim key As Variant
+    For Each key In dictBest.Keys
+        Dim parts() As String
+        parts = Split(CStr(key), "|")
+        Dim dtrKey As String, typKey As String
+        dtrKey = parts(0)
+        typKey = parts(1)
+        Dim r As Variant
+        r = dictBest(key)
+
+        If Not dict.Exists(dtrKey) Then
+            Dim d As Object
+            Set d = CreateObject("Scripting.Dictionary")
+            d.CompareMode = vbTextCompare
+            dict.Add dtrKey, d
+        End If
+
+        If typKey = "SPARE" Then
+            If EstNumeriqueNonNul(r(1)) Then dict(dtrKey)("Prix SPARE catalogue a date_PRODUIT") = r(1)
+            dict(dtrKey)("Dates de validite des prix SPARE connus sur Projet (ASL)_PRODUIT") = r(4)
+            dict(dtrKey)("MoQ spare catalogue_PRODUIT") = r(3)
+            dict(dtrKey)("Lead time SPARE catalogue (jours) a date_PRODUIT") = r(2)
+        ElseIf typKey = "REPAIR" Then
+            If EstNumeriqueNonNul(r(1)) Then dict(dtrKey)("Prix REPAIR catalogue a date_PRODUIT") = r(1)
+            dict(dtrKey)("Dates de validite des prix REPAIR connus sur Projet (ASL)_PRODUIT") = r(4)
+            dict(dtrKey)("Lead time REPAIR (jours) manuel_PRODUIT") = r(2)
+        End If
+    Next key
+
+Cleanup:
+    On Error Resume Next
+    If Not rs Is Nothing Then If rs.State = 1 Then rs.Close
+    If Not conn Is Nothing Then If conn.State = 1 Then conn.Close
+    On Error GoTo 0
+
+Sortie:
+    If Err.Number <> 0 Then
+        Debug.Print "[Produit_SnapShotPrix] ChargerSnapShotPrixDernierParDTR : " & Err.description
+        On Error Resume Next
+        If Not rs Is Nothing Then If rs.State = 1 Then rs.Close
+        If Not conn Is Nothing Then If conn.State = 1 Then conn.Close
+        On Error GoTo 0
+    End If
+
+    ' Cache le resultat si la charge a reussi (m_dictSnapShotPrixCache reste
+    ' Nothing si erreur -> nouvelle tentative au prochain appel).
+    If dict.count > 0 Then Set m_dictSnapShotPrixCache = dict
+    Set ChargerSnapShotPrixDernierParDTR = dict
+End Function
+
+' Helpers prives pour la lecture directe de Produit_SnapShotPrix (bypass ADODB).
+' Detection workbook deja ouvert : compare par nom de fichier (pas FullName)
+' pour supporter le cas OneDrive/SharePoint ou Office 365 redirige le chemin
+' local vers une URL sharepoint.com -> FullName != chemin local.
+Private Function OuvrirFeuilleSnapShotPrix(ByRef wbBdD As Workbook, ByRef wsBdD As Worksheet, ByRef wasOpen As Boolean) As Boolean
+    Dim sCheminBdD As String
+    Dim sNomFichier As String
+    Dim wb As Workbook
+    Dim posSlash As Long
+
+    sCheminBdD = ExtraireCheminBdDSirus()
+    If LenB(sCheminBdD) = 0 Then Exit Function
+
+    ' Extrait le nom de fichier seul (ex "BDD excel original V4.1.xlsb").
+    posSlash = InStrRev(sCheminBdD, "\")
+    If posSlash > 0 Then
+        sNomFichier = Mid$(sCheminBdD, posSlash + 1)
+    Else
+        sNomFichier = sCheminBdD
+    End If
+
+    wasOpen = False
+    For Each wb In Application.Workbooks
+        If StrComp(wb.Name, sNomFichier, vbTextCompare) = 0 Then
+            Set wbBdD = wb
+            wasOpen = True
+            Exit For
+        End If
+    Next wb
+    If wbBdD Is Nothing Then
+        ' Tentative avec le chemin local. Si Office 365 redirige vers
+        ' l'URL SharePoint et l'echec, on remontre l'erreur au caller
+        ' (via On Error du caller) : la BdD doit alors etre ouverte
+        ' manuellement par l'utilisateur avant relance.
+        Set wbBdD = Application.Workbooks.Open(sCheminBdD, UpdateLinks:=0, ReadOnly:=True, Notify:=False, IgnoreReadOnlyRecommended:=True)
+    End If
+    If wbBdD Is Nothing Then Exit Function
+
+    On Error Resume Next
+    Set wsBdD = wbBdD.Worksheets("Produit_SnapShotPrix")
+    On Error GoTo 0
+    If wsBdD Is Nothing Then
+        If Not wasOpen Then wbBdD.Close SaveChanges:=False
+        Exit Function
+    End If
+
+    OuvrirFeuilleSnapShotPrix = True
+End Function
+
+Private Sub FermerBdDSiOuverte(ByRef wbBdD As Workbook, ByVal wasOpen As Boolean)
+    If Not wasOpen And Not wbBdD Is Nothing Then
+        On Error Resume Next
+        wbBdD.Close SaveChanges:=False
+        On Error GoTo 0
+    End If
+End Sub
+
+Private Function ExtraireCheminBdDSirus() As String
+    Dim cnx As String
+    Dim posDS As Long, posEnd As Long
+    cnx = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
+    posDS = InStr(1, cnx, "Data Source=", vbTextCompare)
+    If posDS = 0 Then Exit Function
+    posDS = posDS + Len("Data Source=")
+    posEnd = InStr(posDS, cnx, ";")
+    If posEnd = 0 Then posEnd = Len(cnx) + 1
+    ExtraireCheminBdDSirus = Mid$(cnx, posDS, posEnd - posDS)
+End Function
+
+Private Function TrouverColParLibelleSirus(ByVal ws As Worksheet, ByVal sLibelle As String) As Long
+    Dim cell As Range
+    On Error Resume Next
+    Set cell = ws.Rows(1).Find(What:=sLibelle, LookIn:=xlValues, LookAt:=xlWhole, MatchCase:=False)
+    If Not cell Is Nothing Then TrouverColParLibelleSirus = cell.Column
+    On Error GoTo 0
+End Function
+
+' Helper local : True si v est numerique et non nul (ni Empty ni Null ni 0).
+' Duplique le helper prive de G_PBS_Refresh (pas d'export public a maintenir).
+Private Function EstNumeriqueNonNul(ByVal v As Variant) As Boolean
+    If IsEmpty(v) Then Exit Function
+    If IsNull(v) Then Exit Function
+    If IsError(v) Then Exit Function
+    If Not IsNumeric(v) Then Exit Function
+    If CDbl(v) = 0 Then Exit Function
+    EstNumeriqueNonNul = True
+End Function
+
+' =========================================================================
+' SUB: EnrichirProduitAvecSnapShot
+' =========================================================================
+' Injecte les 7 champs virtuels (issus de Produit_SnapShotPrix) dans chaque
+' row du dict Produit. Si le DTR n'a pas de ligne SnapShotPrix retenue, les
+' champs restent absents du row -> CalculerMeQDTR_Optim les compte comme
+' vides -> MeQ tombe (comportement attendu : incite a alimenter SnapShotPrix).
+' Ecrit toujours (overwrite) : SnapShotPrix est la source de verite.
+Private Sub EnrichirProduitAvecSnapShot(ByVal dictProduit As Object, ByVal dictSnapShot As Object)
+    Dim dtrKey As Variant
+    Dim rows As Collection
+    Dim row As Object
+    Dim colVirt As Variant
+
+    If dictProduit Is Nothing Or dictSnapShot Is Nothing Then Exit Sub
+
+    For Each dtrKey In dictProduit.Keys
+        If dictSnapShot.Exists(CStr(dtrKey)) Then
+            Set rows = dictProduit(dtrKey)
+            For Each row In rows
+                For Each colVirt In dictSnapShot(CStr(dtrKey)).Keys
+                    row(CStr(colVirt)) = dictSnapShot(CStr(dtrKey))(CStr(colVirt))
+                Next colVirt
+            Next row
+        End If
+    Next dtrKey
+End Sub
 
 
 ' =========================================================================
@@ -1190,6 +1488,225 @@ Public Sub Test_CalculerPrix()
     Application.DisplayAlerts = False
     ws.Delete
     Application.DisplayAlerts = True
+End Sub
+
+
+' =========================================================================
+' Test_SIRUS_DebugMeQProduit_PremierDTR
+' =========================================================================
+' Debug diagnostic pour le 1er DTR de DATA_ASL du ActiveWorkbook.
+' Affiche dans la fenetre Immediate :
+'   * Toutes les lignes brutes Produit_SnapShotPrix pour ce DTR
+'   * La ligne retenue (Prix non nul OU OnRequest, MAX Date Source) par Type
+'   * Le row Produit brut (avant merge)
+'   * Le row Produit apres merge SnapShotPrix
+'   * Pour chacun des 19 champs MeQ : Obligatoire (Oui/Cond/Non) + Rempli + Valeur
+'   * Total nbObl / nbRempli / TauxMeQ
+Public Sub Test_SIRUS_DebugMeQProduit_PremierDTR()
+    Dim wb As Workbook, wsPBS As Worksheet
+    Dim dtr As String
+    Dim cnx As String
+    Dim cfgProduit As Collection
+    Dim dictProduit As Object, dictSnap As Object
+    Dim row As Object
+    Dim def As SIRUS_Champ_Config
+    Dim champs As Variant, cle As Variant
+    Dim nbObl As Long, nbRempli As Long
+    Dim s As String, val As String
+    Dim oblig As Boolean, rempli As Boolean, isSaisieDansConfig As Boolean
+
+    Set wb = ActiveWorkbook
+    If wb Is Nothing Then Debug.Print "Pas de ActiveWorkbook" : Exit Sub
+    If Not VerifierFeuilleDATA_ASL(wb, wsPBS) Then Debug.Print "Pas de DATA_ASL" : Exit Sub
+    If Not MapColonnesDATA_ASL(wsPBS) Then Debug.Print "MapColonnes echec" : Exit Sub
+    If DATA_ASL_type.DTR_PBS = 0 Then Debug.Print "Colonne DTR introuvable" : Exit Sub
+
+    dtr = Trim$(CStr(wsPBS.Cells(DATA_ASL_HeaderRow + 1, DATA_ASL_type.DTR_PBS).Value))
+    If LenB(dtr) = 0 Then Debug.Print "1er DTR vide" : Exit Sub
+
+    Debug.Print String(70, "=")
+    Debug.Print "Debug MeQ Produit pour DTR = '" & dtr & "'"
+    Debug.Print String(70, "=")
+
+    ' Ouvrir la connexion BdD si besoin
+    cnx = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
+    On Error Resume Next
+    If Base Is Nothing Then
+        Call Open_CONN(cnx)
+    ElseIf Base.State <> 1 Then
+        Call Open_CONN(cnx)
+    End If
+    On Error GoTo 0
+
+    ' -- 1. Lignes brutes Produit_SnapShotPrix pour ce DTR ---
+    Debug.Print vbLf & "-- Lignes brutes Produit_SnapShotPrix pour ce DTR --"
+    Call DumpSnapShotBrutPourDTR(dtr)
+
+    ' -- 2. Ligne retenue par ChargerSnapShotPrixDernierParDTR ---
+    Set dictSnap = ChargerSnapShotPrixDernierParDTR()
+    Debug.Print vbLf & "-- Ligne retenue (dernier par Type, Prix non nul OU OnRequest) --"
+    If dictSnap.Exists(dtr) Then
+        Dim cKey As Variant
+        For Each cKey In dictSnap(dtr).Keys
+            Debug.Print "  " & CStr(cKey) & " = " & NzSafeStr(dictSnap(dtr)(cKey))
+        Next cKey
+    Else
+        Debug.Print "  (aucune donnee SnapShotPrix retenue pour ce DTR)"
+    End If
+
+    ' -- 3. Row Produit brut ---
+    Set cfgProduit = SIRUS_LireConfig("Produit")
+    Set dictProduit = ChargerRowsTableBdD_Optim("Produit$", "DTR", cfgProduit)
+
+    Debug.Print vbLf & "-- Row Produit brut (avant merge SnapShotPrix) --"
+    If Not dictProduit.Exists(dtr) Then
+        Debug.Print "  !! DTR '" & dtr & "' absent de Produit$. Voici 5 exemples de cles :"
+        Dim iEx As Long
+        For Each cle In dictProduit.Keys
+            iEx = iEx + 1 : If iEx > 5 Then Exit For
+            Debug.Print "    '" & cle & "'"
+        Next cle
+        Exit Sub
+    End If
+    Dim rowsProd As Collection
+    Set rowsProd = dictProduit(dtr)
+    Debug.Print "  Produit$ row count : " & rowsProd.count
+    Set row = rowsProd(1)
+    Dim k As Variant
+    For Each k In row.Keys
+        Debug.Print "  " & CStr(k) & " = " & NzSafeStr(row(k))
+    Next k
+
+    ' -- 4. Row apres merge ---
+    Call EnrichirProduitAvecSnapShot(dictProduit, dictSnap)
+    Set row = dictProduit(dtr)(1)
+
+    Debug.Print vbLf & "-- 19 champs MeQ (Obligatoire=Ob | Rempli=V) --"
+    Dim sColNT As String
+    sColNT = "Node type Produit (LRU/SRU" & ChrW(&H2026) & ")_PRODUIT"
+    champs = Array( _
+        "DTR", _
+        "Designation_PRODUIT", _
+        sColNT, _
+        "Fournisseur_PRODUIT", _
+        "Reference fournisseur_PRODUIT", _
+        "MotifNonApplicabilite_PRODUIT", _
+        "Motif_NonApplicabilitePreventif_PRODUIT", _
+        "Drawing number", _
+        "MTBF intrinseque Produit (h) issu de la datasheet _PRODUIT", _
+        "Duree de vie generique Produit HARDWARE (annee)_PRODUIT", _
+        "Duree de vie generique Produit (annee) SOFTWARE _PRODUIT", _
+        "Reference MUL maintenance_PRODUIT", _
+        "Prix SPARE catalogue a date_PRODUIT", _
+        "Dates de validite des prix SPARE connus sur Projet (ASL)_PRODUIT", _
+        "MoQ spare catalogue_PRODUIT", _
+        "Lead time SPARE catalogue (jours) a date_PRODUIT", _
+        "Prix REPAIR catalogue a date_PRODUIT", _
+        "Dates de validite des prix REPAIR connus sur Projet (ASL)_PRODUIT", _
+        "Lead time REPAIR (jours) manuel_PRODUIT")
+
+    For Each cle In champs
+        s = CStr(cle)
+
+        ' Trouver Obligatoire via config
+        oblig = False
+        isSaisieDansConfig = False
+        For Each def In cfgProduit
+            If def.ColonneBdD = s Then
+                isSaisieDansConfig = (def.Source = "Saisie")
+                If def.Obligatoire = "Oui" Then
+                    oblig = True
+                ElseIf def.Obligatoire = "Conditionnel" Then
+                    oblig = SIRUS_RegleObligatoire("Produit", s, row)
+                End If
+                Exit For
+            End If
+        Next def
+
+        ' Valeur dans le row (merged)
+        val = ""
+        If row.Exists(s) Then val = NzSafeStr(row(s))
+        rempli = (LenB(Trim$(val)) > 0)
+
+        If oblig Then nbObl = nbObl + 1
+        If oblig And rempli Then nbRempli = nbRempli + 1
+
+        Debug.Print "  " & IIf(oblig, "[Ob]", "[  ]") & " " & _
+                    IIf(oblig, IIf(rempli, "[V]", "[ ]"), "[.]") & " " & _
+                    Left$(s & String(65, " "), 65) & " = '" & val & "'"
+    Next cle
+
+    Debug.Print String(70, "-")
+    Debug.Print "nbObligatoires = " & nbObl & " | nbRemplis = " & nbRempli
+    If nbObl > 0 Then
+        Debug.Print "Taux MeQ = " & Format(nbRempli / nbObl, "0.00%")
+    Else
+        Debug.Print "Taux MeQ = 100% (aucune obligation)"
+    End If
+End Sub
+
+' Dump les lignes brutes de Produit_SnapShotPrix filtrees sur un DTR.
+' Utilise ADODB avec TypeGuessRows=0 (meme workaround que
+' ChargerSnapShotPrixDernierParDTR pour lire les DTR alphanumeriques).
+' Si aucune ligne ne matche, affiche 10 exemples de DTR presents en base.
+Private Sub DumpSnapShotBrutPourDTR(ByVal dtrCible As String)
+    Dim conn As Object, rs As Object
+    Dim sConnBdD As String
+    Dim sDTR As String
+    Dim n As Long, nTotal As Long
+    Dim sExemples As String
+
+    On Error GoTo Sortie
+
+    sConnBdD = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
+    sConnBdD = Replace(sConnBdD, "IMEX=1'", "IMEX=1;TypeGuessRows=0'")
+
+    Set conn = CreateObject("ADODB.Connection")
+    conn.Open sConnBdD
+    Set rs = CreateObject("ADODB.Recordset")
+    rs.Open "SELECT [DTR] & '' AS DTR_str, [Type], [Prix], [OnRequestPrix], [LeadTime], [OnRequestLT], [MoQ], [Ref Catalogue], [Date Source] FROM [Produit_SnapShotPrix$]", conn, 3, 1
+
+    If rs.EOF And rs.BOF Then Debug.Print "  (feuille vide)" : GoTo Cleanup
+
+    Do While Not rs.EOF
+        sDTR = Trim$(NzSafeStr(rs.Fields("DTR_str").Value))
+        If Right$(sDTR, 2) = ".0" Then sDTR = Left$(sDTR, Len(sDTR) - 2)
+        nTotal = nTotal + 1
+        If nTotal <= 10 Then sExemples = sExemples & "'" & sDTR & "' ; "
+
+        If StrComp(sDTR, dtrCible, vbTextCompare) = 0 Then
+            n = n + 1
+            Debug.Print "  [" & NzSafeStr(rs.Fields("Type").Value) & _
+                        "] Date=" & NzSafeStr(rs.Fields("Date Source").Value) & _
+                        " | Prix=" & NzSafeStr(rs.Fields("Prix").Value) & _
+                        " | OnReqPrix=" & NzSafeStr(rs.Fields("OnRequestPrix").Value) & _
+                        " | LT=" & NzSafeStr(rs.Fields("LeadTime").Value) & _
+                        " | OnReqLT=" & NzSafeStr(rs.Fields("OnRequestLT").Value) & _
+                        " | MoQ=" & NzSafeStr(rs.Fields("MoQ").Value) & _
+                        " | RefCat='" & NzSafeStr(rs.Fields("Ref Catalogue").Value) & "'"
+        End If
+        rs.MoveNext
+    Loop
+
+    If n = 0 Then
+        Debug.Print "  (aucune ligne pour ce DTR)"
+        Debug.Print "  Total lignes SnapShotPrix parcourues : " & nTotal
+        Debug.Print "  DTR cible recherche : '" & dtrCible & "'"
+        Debug.Print "  10 premiers DTR presents en base : " & sExemples
+    End If
+
+Cleanup:
+    On Error Resume Next
+    If Not rs Is Nothing Then If rs.State = 1 Then rs.Close
+    If Not conn Is Nothing Then If conn.State = 1 Then conn.Close
+    On Error GoTo 0
+    Exit Sub
+
+Sortie:
+    Debug.Print "  DumpSnapShotBrutPourDTR erreur : " & Err.description
+    On Error Resume Next
+    If Not rs Is Nothing Then If rs.State = 1 Then rs.Close
+    If Not conn Is Nothing Then If conn.State = 1 Then conn.Close
 End Sub
 
 

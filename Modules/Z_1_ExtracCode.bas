@@ -1,4 +1,3 @@
-Attribute VB_Name = "Z_1_ExtracCode"
 ' ==========================================
 ' Module: ModPublish
 ' Description: Genere le .xlam depuis le .xlsm courant

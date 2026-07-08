@@ -1,4 +1,3 @@
-Attribute VB_Name = "E_Extraction_ATM_Tolerant"
 '--------------------------------------------------------------------------------------------------------
 '
 '                                       Generateur Livrables SLI

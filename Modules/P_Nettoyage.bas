@@ -1,4 +1,3 @@
-Attribute VB_Name = "P_Nettoyage"
 Option Compare Text
 Option Explicit
 Public Sub Nettoyage()

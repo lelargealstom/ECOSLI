@@ -1,4 +1,3 @@
-Attribute VB_Name = "F_FonctionsGlobales"
 Option Explicit
 Public Function LastRowInCol(ByVal ws As Worksheet, ByVal colIndex As Long) As Long
     ' Renvoie la derniere ligne utilisee de la colonne colIndex (>= 1)

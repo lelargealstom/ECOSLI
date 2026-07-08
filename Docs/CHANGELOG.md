@@ -6,6 +6,99 @@ Format : `[Date] — Auteur — Périmètre`, puis liste des changements par mod
 
 ---
 
+## 2026-07-07 → 2026-07-08 — Sprint 2 : Règle MeQ Produit v0.2 + SnapShotPrix + doc
+
+Refonte complète des règles MeQ Produit selon le brief SIRUS v0.2. Cadrage des 19 champs obligatoires avec logique conditionnelle factorisée (Motif NA / Motif Preventif / NodeType). Câblage du chargement `Produit_SnapShotPrix` (7 champs virtuels prix/leadtime/MoQ/dates) contre le row `Produit$` pour un MeQ complet. Ajout d'un README à la racine + doc des règles Produit dans `SIRUS_REGLES.md`.
+
+### Règles MeQ Produit (matrice v0.2)
+
+Les 19 champs se répartissent en :
+- **Base 3 champs** toujours obligatoires : `DTR`, `Designation_PRODUIT`, `Node type Produit (LRU/SRU…)_PRODUIT` (⚠️ ellipse Unicode U+2026 construite via `ChrW`).
+- Si `MotifNonApplicabilite_PRODUIT = "NA"` → uniquement les 3 base sont obligatoires.
+- Sinon (Motif=OK) → 16 champs restants obligatoires avec 3 exemptions indépendantes :
+  - `Duree de vie generique Produit HARDWARE (annee)_PRODUIT` obligatoire ssi `Motif_NonApplicabilitePreventif_PRODUIT ∈ {HARD, BOTH}`
+  - `Duree de vie generique Produit (annee) SOFTWARE _PRODUIT` obligatoire ssi `Motif_NonApplicabilitePreventif ∈ {SOFT, BOTH}`
+  - 3 champs REPAIR (Prix, Dates validité, Lead time) non obligatoires si `NodeType ∈ {LRUNR, SRUNR}` (règle non-réparable transverse)
+
+Matrice validée par tests unitaires (9 cas) : `NA/*/* → 3`, `HARD/non-NR → 18`, `HARD/NR → 15`, `SOFT/non-NR → 18`, `SOFT/NR → 15`, `BOTH/non-NR → 19`, `BOTH/NR → 16`, `NA(prev)/non-NR → 17`, `NA(prev)/NR → 14`.
+
+### Champs virtuels alimentés depuis `Produit_SnapShotPrix`
+
+Les 7 champs prix/leadtime/MoQ/dates ne vivent plus dans `Produit$` mais dans la table `Produit_HistoPrix` (feuille `Produit_SnapShotPrix`). Le config Produit les garde comme *champs virtuels* (`Source = "SnapShotPrix"`) : ignorés du SELECT `Produit$` (évite ACE errors) mais comptés dans le MeQ. Injection au moment du chargement par `EnrichirProduitAvecSnapShot`.
+
+Règle de retention : **ligne candidate** = `Prix` non nul OU `OnRequestPrix` renseigné. Sur les candidates, on garde la ligne avec `MAX Date Source` par (DTR, Type). Sur cette ligne :
+- `Prix` virtuel écrit uniquement si numérique non nul (OnRequest seul → Prix reste vide, MeQ perd 1 point Prix).
+- `Ref Catalogue`, `MoQ`, `LeadTime` toujours copiés (nul → non compté par MeQ).
+
+Mapping :
+| Champ virtuel Produit | Source SnapShotPrix |
+|---|---|
+| `Prix SPARE catalogue a date_PRODUIT` | `Prix` (Type=Spare) |
+| `Dates de validite des prix SPARE connus sur Projet (ASL)_PRODUIT` | `Ref Catalogue` |
+| `MoQ spare catalogue_PRODUIT` | `MoQ` |
+| `Lead time SPARE catalogue (jours) a date_PRODUIT` | `LeadTime` |
+| `Prix REPAIR catalogue a date_PRODUIT` | `Prix` (Type=Repair) |
+| `Dates de validite des prix REPAIR connus sur Projet (ASL)_PRODUIT` | `Ref Catalogue` |
+| `Lead time REPAIR (jours) manuel_PRODUIT` | `LeadTime` |
+
+### Bug ACE OLE DB sur DTR mixed-type
+
+`Produit_SnapShotPrix` a la colonne `DTR` mixed-type (numérique 8600xxx + alphanumérique DTR0000xxx / TRVPxxx). ACE OLE DB scanne par défaut les 8 premières lignes pour typer les colonnes → si numériques, type Numeric → les valeurs alphanumériques reviennent NULL même avec `IMEX=1`.
+
+**Workaround retenu** : ajout de `TypeGuessRows=0` dans les Extended Properties de la connection dédiée (force ACE à scanner toutes les lignes). Combiné à `IMEX=1`, les colonnes mixed-type reviennent en TEXT — les DTR alphanumériques sont lisibles. Coût : quelques secondes au 1er accès (scan complet 29789 lignes) → mise en cache session `m_dictSnapShotPrixCache`, reset via `SIRUS_ResetCacheSnapShotPrix`. Fallback direct-read de feuille (open .xlsb) laissé en place pour dépannage.
+
+### Detail des modifications
+
+**`Modules/G_SIRUS_Config.bas`** :
+- Bump `SIRUS_CONFIG_VERSION` → `2026-07-07-v3` (force rebuild auto au Ctrl+W).
+- `PeuplerProduit` refondu : 19 champs MeQ + 6 champs hors 19 (info libre, `Obligatoire=Non`).
+- Rename `Designation manuelle_PRODUIT` → `Designation_PRODUIT` (nouveau nom BdD).
+- Ajout `Motif_NonApplicabilitePreventif_PRODUIT` (⚠️ underscore après Motif — nom BdD) et `MoQ spare catalogue_PRODUIT`.
+- Rename `Lead time SPARE (jours) manuel_PRODUIT` → `Lead time SPARE catalogue (jours) a date_PRODUIT`.
+- 7 champs virtuels prix passés en `Source = "SnapShotPrix"` (skippés du SELECT `Produit$`, comptés en MeQ).
+- `Motif NA` passe de `Oui` à `Conditionnel` (honore les "3 obligatoires" quand valeur = "NA").
+- NodeType : nom construit via `ChrW(&H2026)` pour l'ellipse Unicode (BdD utilise `…`, code source utilisait `...`).
+
+**`Modules/G_SIRUS_Regles.bas`** :
+- Suppression des 2 anciens Case Produit (règle MTBF conditionnelle + règle MotifNA conditionnelle — obsolètes).
+- Ajout `EstObligatoire_Produit(colonne, ligne)` : helper privé qui applique la matrice v0.2 en 4 étages (base 3 → court-circuit MotifNA=NA → DVL HW/SW → 3 REPAIR non-NR → 11 mid).
+- `SIRUS_RegleObligatoire` fait un early return `If sTable = "Produit"` vers le helper.
+- Test unitaire `Test_Regle_Produit_MatriceMeQ` couvrant les 9 cas de la matrice.
+- Anciens tests Produit remplacés (MTBFConditionnel obsolète).
+
+**`Modules/G_SIRUS_PBS.bas`** :
+- Cache module `m_dictSnapShotPrixCache` + sub publique `SIRUS_ResetCacheSnapShotPrix`.
+- `ChargerSnapShotPrixDernierParDTR()` : ADODB pur avec `TypeGuessRows=0` injecté dans la connection string. Filtre "Prix non nul OU OnRequestPrix" pour la retention. Mise en cache session au 1er appel.
+- `EnrichirProduitAvecSnapShot(dictProduit, dictSnap)` : injecte les 7 champs virtuels dans chaque row Produit avant `CalculerMeQDTR_Optim`.
+- `SIRUS_RemplirListViewGeneration` : appel des 2 fonctions après le chargement de `dictProduit_Rows`.
+- Sub debug `Test_SIRUS_DebugMeQProduit_PremierDTR` : dump complet pour le 1er DTR de DATA_ASL (lignes brutes SnapShotPrix + ligne retenue + row Produit + les 19 champs MeQ avec obligation/rempli/valeur).
+- Silence du `Debug.Print` "Colonnes optionnelles introuvables" (non bloquant, laisse les vrais warnings).
+- Helpers direct-read `OuvrirFeuilleSnapShotPrix` / `FermerBdDSiOuverte` / `ExtraireCheminBdDSirus` / `TrouverColParLibelleSirus` conservés en fallback (utilisent le match par nom de fichier pour supporter le redirect OneDrive/SharePoint).
+
+**`Modules/G_SIRUS_Listes.bas`** :
+- `MotifNA` simplifié : `{NA, NA MECA, NA KIT}` → `{OK, NA}`.
+- Ajout liste `MotifNAPreventif` : `{HARD, SOFT, BOTH, NA}` (calculée automatiquement depuis `Info_ATM[HARD/SOFT]` par la formule `NB.SI.ENS` — session 2026-07-07).
+
+### Racine du dépôt
+
+- Ajout `README.md` : contexte projet ECOSLI (livrables SLI + pipeline SIRUS), structure, conventions, pointeurs vers `Docs/`.
+
+### Nettoyage `Modules/*.bas`
+
+- Suppression de la ligne `Attribute VB_Name = "..."` en tête de chacun des 41 modules (facilite le copier-coller manuel dans VBE — VBE gère le nom du module automatiquement).
+
+### Formule MotifNonApplicabilitePreventif (colonne BdD calculée)
+
+Ajoutée dans `Produit$` :
+
+```excel
+=SI(NB.SI.ENS(Info_ATM[DTR_INFOATM];[@DTR];Info_ATM[HARD/SOFT];"HARD")+NB.SI.ENS(Info_ATM[DTR_INFOATM];[@DTR];Info_ATM[HARD/SOFT];"SOFT")=0;"NA";SI(ET(NB.SI.ENS(Info_ATM[DTR_INFOATM];[@DTR];Info_ATM[HARD/SOFT];"HARD")>0;NB.SI.ENS(Info_ATM[DTR_INFOATM];[@DTR];Info_ATM[HARD/SOFT];"SOFT")>0);"BOTH";SI(NB.SI.ENS(Info_ATM[DTR_INFOATM];[@DTR];Info_ATM[HARD/SOFT];"HARD")>0;"HARD";"SOFT")))
+```
+
+Alimente le champ `Motif_NonApplicabilitePreventif_PRODUIT` de `Produit$` : `HARD` si Info_ATM ne contient que des lignes HARD pour ce DTR, `SOFT` si seulement SOFT, `BOTH` si les 2, `NA` si aucune ligne Info_ATM.
+
+---
+
 ## 2026-06-27 → 2026-06-28 — Sprint 1 ter : Alignement DATA_ASL / cascade prix / UX
 
 Session post-Sprint 1 bis. Le bouton Rafraichir étant en place, on aligne `MapColonnesDATA_ASL` sur les nouveaux libellés du template, on refond la logique cascade prix (Manuel sorti, sous-priorité D&IS/FCS), on supprime toutes les formules Excel locales au profit d'écritures VBA en valeurs pures, et on ajoute 2 améliorations UX (pré-sélection projet au Ctrl+W + ListView auto-rafraîchie après Refresh).

@@ -1,4 +1,3 @@
-Attribute VB_Name = "B_ATM_Commun"
 Public Sub RecupererDonneesBDD_ATM(ByVal versionATM As Integer)
 ' Recupere les donnees de la BDD pour ATM V1 ou V2
 '

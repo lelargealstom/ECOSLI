@@ -1,4 +1,3 @@
-Attribute VB_Name = "Y_Cadrage_SLI"
 Public Sub Cadrage_Infos_ATM(Infos_tab As Variant)
 ' Macro de cadrage de la feuille Info ATM de la BDD
 ' Il est possible de changer la disposition des colonnes mais pas la nomination des colonnes

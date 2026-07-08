@@ -1,4 +1,3 @@
-Attribute VB_Name = "G_SIRUS_ATMAP"
 Option Explicit
 
 ' ============================================================

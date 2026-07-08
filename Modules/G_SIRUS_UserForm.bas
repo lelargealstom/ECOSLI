@@ -1,4 +1,3 @@
-Attribute VB_Name = "G_SIRUS_UserForm"
 
 ' -- Constante : colonnes de la ListBox Produit -------------
 ' Col 0 = DTR | Col 1 = Designation | Col 2 = Node Type
