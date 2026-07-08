@@ -465,14 +465,28 @@ Public Function SIRUS_AnalyserFeuille(ByVal sTable As String, Optional ByVal sOp
             GoTo NextLigne
         End If
 
-        ' Evaluer les regles pour chaque champ du config
+        ' Evaluer les regles pour chaque champ du config.
         sStatutLigne = ""
         nAlertesLigne = 0
         poidsLigneNum = 0
         poidsLigneDen = 0
 
+        ' Phase 1 : MeQ + manquants via le helper unique SIRUS_MeQLigne
+        ' (source de verite partagee avec CalculerMeQDTR_Optim / ListView).
+        Dim resMeQ As Object
+        Set resMeQ = SIRUS_MeQLigne(ligneDict, sTable, col)
+        poidsLigneDen = CDbl(resMeQ("nbObl"))
+        poidsLigneNum = CDbl(resMeQ("nbRempli"))
+
+        ' Phase 2 : convertir les manquants en alertes "Obligatoire manquant"
+        Dim defManquant As SIRUS_Champ_Config
+        For Each defManquant In resMeQ("manquants")
+            Call AjouterAlerteManquant(defManquant, sCle, ligne, mapColBdD_Index, sStatutLigne, nAlertesLigne)
+        Next defManquant
+
+        ' Phase 3 : alertes metier (SIRUS_RegleAlerte) par champ
         For Each def In col
-            Call EvaluerChampLigne(def, sTable, ligneDict, sCle, ligne, mapColBdD_Index, sStatutLigne, nAlertesLigne, poidsLigneNum, poidsLigneDen)
+            Call AjouterAlerteMetier(def, sTable, ligneDict, sCle, ligne, mapColBdD_Index, sStatutLigne, nAlertesLigne)
         Next def
 
         ' Ecrire le Statut court en col 1 + detail en commentaire de cellule
@@ -521,71 +535,46 @@ Sortie:
 End Function
 
 ' =========================================================================
-' EvaluerChampLigne (helper interne)
-' =========================================================================
-' Applique les 3 controles SIRUS sur un champ d'une ligne :
-'   - obligatoire (config Oui OU regle conditionnelle)
-'   - regle d'alerte (coherence metier)
-'   - cumul poids MeQ (pour le taux global)
-' Modifie en sortie le statut ligne + compteurs (passes ByRef) ET pousse
-' chaque alerte dans la collection structuree sirusAlertes (UI consume).
-Private Sub EvaluerChampLigne(ByVal def As SIRUS_Champ_Config, ByVal sTable As String, ByRef ligneDict As Object, ByVal sCle As String, ByVal nLigne As Long, ByRef mapColBdD_Index As Object, ByRef sStatutLigne As String, ByRef nAlertes As Long, ByRef poidsNum As Double, ByRef poidsDen As Double)
-
-    Dim sVal As String
-    Dim bRempli As Boolean
-    Dim bObligConfig As Boolean
-    Dim bObligRegle As Boolean
-    Dim sAlerte As String
+' AjouterAlerteManquant : convertit un def manquant (issu de SIRUS_MeQLigne)
+' en alerte "Obligatoire manquant '<Champ>'" + trace dans sirusAlertes.
+' Refonte 2026-07-08 : remplace la partie "Cas 1" de l ancien EvaluerChampLigne.
+' Le MeQ (nb obligatoires / nb remplis) est calcule ailleurs, dans le helper
+' unique G_SIRUS_Regles.SIRUS_MeQLigne, source de verite partagee avec la
+' ListView Generation (formule : nbRempli / nbObl, comptage 1-champ = 1-unite).
+Private Sub AjouterAlerteManquant(ByVal def As SIRUS_Champ_Config, ByVal sCle As String, ByVal nLigne As Long, ByRef mapColBdD_Index As Object, ByRef sStatutLigne As String, ByRef nAlertes As Long)
     Dim colChamp As Long
-
-    ' Champs sans ColonneBdD (ex. infos pures heritees, MTBF intrins
-    ' note dans ProjetASL) : pas evalues.
-    If LenB(def.ColonneBdD) = 0 Then Exit Sub
-
-    ' Champs Auto/Herite : pas de controle obligatoire cote utilisateur
-    ' (rempli par le moteur ou herite d'une autre table).
-    If def.Source = "Auto" Or def.Source = "Herite" Then Exit Sub
-
-    sVal = ""
-    If ligneDict.Exists(def.ColonneBdD) Then
-        sVal = CStr(ligneDict(def.ColonneBdD))
-    End If
-    bRempli = (LenB(Trim$(sVal)) > 0)
-
-    bObligConfig = (def.Obligatoire = "Oui")
-    bObligRegle = False
-    If def.Obligatoire = "Conditionnel" Then
-        bObligRegle = SIRUS_RegleObligatoire(sTable, def.ColonneBdD, ligneDict)
-    End If
-
-    ' Numero de colonne du champ dans la feuille (pour goto cellule depuis UI)
     colChamp = 0
     If mapColBdD_Index.Exists(def.ColonneBdD) Then
         colChamp = CLng(mapColBdD_Index(def.ColonneBdD))
     End If
 
-    ' Cas 1 : Champ obligatoire manquant
-    If (bObligConfig Or bObligRegle) And Not bRempli Then
-        nAlertes = nAlertes + 1
-        sStatutLigne = AjouterAlerte(sStatutLigne, "Obligatoire manquant '" & def.Champ & "'")
-        sirusAlertes.Add Array(sCle, def.Champ, "Obligatoire manquant", nLigne, colChamp)
-    End If
+    nAlertes = nAlertes + 1
+    sStatutLigne = AjouterAlerte(sStatutLigne, "Obligatoire manquant '" & def.Champ & "'")
+    sirusAlertes.Add Array(sCle, def.Champ, "Obligatoire manquant", nLigne, colChamp)
+End Sub
 
-    ' Cas 2 : Regle d'alerte metier
+' =========================================================================
+' AjouterAlerteMetier : evalue la regle d alerte metier (SIRUS_RegleAlerte)
+' pour un champ, et si non vide -> ajoute a la ligne + trace dans sirusAlertes.
+' Refonte 2026-07-08 : extraction de la partie "Cas 2" de l ancien EvaluerChampLigne.
+Private Sub AjouterAlerteMetier(ByVal def As SIRUS_Champ_Config, ByVal sTable As String, ByRef ligneDict As Object, ByVal sCle As String, ByVal nLigne As Long, ByRef mapColBdD_Index As Object, ByRef sStatutLigne As String, ByRef nAlertes As Long)
+    Dim sAlerte As String
+    Dim colChamp As Long
+
+    If LenB(def.ColonneBdD) = 0 Then Exit Sub
+    If def.Source = "Auto" Or def.Source = "Herite" Then Exit Sub
+
     sAlerte = SIRUS_RegleAlerte(sTable, def.ColonneBdD, ligneDict)
-    If LenB(sAlerte) > 0 Then
-        nAlertes = nAlertes + 1
-        sStatutLigne = AjouterAlerte(sStatutLigne, def.Champ & ": " & sAlerte)
-        sirusAlertes.Add Array(sCle, def.Champ, sAlerte, nLigne, colChamp)
+    If LenB(sAlerte) = 0 Then Exit Sub
+
+    colChamp = 0
+    If mapColBdD_Index.Exists(def.ColonneBdD) Then
+        colChamp = CLng(mapColBdD_Index(def.ColonneBdD))
     End If
 
-    ' Cas 3 : Cumul poids MeQ
-    '    Denominateur = somme PoidsMeQ des champs obligatoires (oui + cond.).
-    '    Numerateur = somme PoidsMeQ des champs obligatoires effectivement remplis.
-    If (bObligConfig Or bObligRegle) And def.PoidsMeQ > 0 Then
-        poidsDen = poidsDen + def.PoidsMeQ
-        If bRempli Then poidsNum = poidsNum + def.PoidsMeQ
-    End If
+    nAlertes = nAlertes + 1
+    sStatutLigne = AjouterAlerte(sStatutLigne, def.Champ & ": " & sAlerte)
+    sirusAlertes.Add Array(sCle, def.Champ, sAlerte, nLigne, colChamp)
 End Sub
 
 ' Formate les alertes pour la colonne Commentaires :

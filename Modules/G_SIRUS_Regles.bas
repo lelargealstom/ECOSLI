@@ -181,6 +181,92 @@ Public Function SIRUS_RegleAlerte(ByVal sTable As String, ByVal sColonneBdD As S
 End Function
 
 ' =========================================================================
+' SIRUS_MeQLigne : calcul unifie du MeQ pour une ligne
+' =========================================================================
+' Source unique de verite pour le calcul MeQ. Utilise par :
+'   - G_SIRUS_PBS.CalculerMeQDTR_Optim (ListView Generation)
+'   - G_SIRUS_Analyse.SIRUS_AnalyserFeuille (analyse feuille SIRUS)
+'
+' Formule : MeQ = nbRempli / nbObl
+'   nbObl = nombre de champs obligatoires POUR CETTE LIGNE (variable selon
+'           les regles conditionnelles ex. matrice Produit v0.2 : 3/14..19)
+'   nbRempli = nombre de ces obligatoires effectivement remplis
+'
+' Comptage 1-champ = 1-unite (PoidsMeQ ignore : la ponderation n'est pas
+' active pour l'instant, decision Thomas Q5 2026-07-07).
+'
+' Skip :
+'   - champs sans ColonneBdD (infos pures, heritages du config)
+'   - placeholders ??_*_a_definir
+'   - Source in {Auto, Herite} (rempli automatiquement ou herite -> pas
+'     concerne par la saisie utilisateur)
+'   - Source = "SnapShotPrix" est INCLUS dans le comptage (source virtuelle
+'     mais compte comme un champ MeQ).
+'
+' Retour : Dictionary {
+'   nbObl       As Long
+'   nbRempli    As Long
+'   taux        As Double  (nbRempli / nbObl, 1.0 si nbObl = 0)
+'   manquants   As Collection (de SIRUS_Champ_Config, les obligatoires vides)
+' }
+Public Function SIRUS_MeQLigne(ByRef ligneDict As Object, ByVal sTable As String, _
+                                ByVal configCol As Collection) As Object
+    Dim result As Object
+    Set result = CreateObject("Scripting.Dictionary")
+    result("nbObl") = 0&
+    result("nbRempli") = 0&
+    result("taux") = 1#
+
+    Dim manquants As Collection
+    Set manquants = New Collection
+
+    If configCol Is Nothing Or ligneDict Is Nothing Then
+        Set result("manquants") = manquants
+        Set SIRUS_MeQLigne = result
+        Exit Function
+    End If
+
+    Dim def As SIRUS_Champ_Config
+    Dim nbObl As Long, nbRempli As Long
+    Dim bOblig As Boolean
+    Dim sVal As String
+
+    For Each def In configCol
+        If LenB(def.ColonneBdD) = 0 Then GoTo NextDef
+        If Left$(def.ColonneBdD, 3) = "??_" Then GoTo NextDef
+        If def.Source = "Auto" Or def.Source = "Herite" Then GoTo NextDef
+
+        bOblig = False
+        Select Case def.Obligatoire
+            Case "Oui":          bOblig = True
+            Case "Conditionnel": bOblig = SIRUS_RegleObligatoire(sTable, def.ColonneBdD, ligneDict)
+        End Select
+
+        If Not bOblig Then GoTo NextDef
+
+        nbObl = nbObl + 1
+
+        sVal = CStr(GetVal(ligneDict, def.ColonneBdD))
+        If LenB(Trim$(sVal)) > 0 Then
+            nbRempli = nbRempli + 1
+        Else
+            manquants.Add def
+        End If
+NextDef:
+    Next def
+
+    result("nbObl") = nbObl
+    result("nbRempli") = nbRempli
+    If nbObl > 0 Then
+        result("taux") = nbRempli / nbObl
+    Else
+        result("taux") = 1#
+    End If
+    Set result("manquants") = manquants
+    Set SIRUS_MeQLigne = result
+End Function
+
+' =========================================================================
 ' SIRUS_ProjetsSLI : cache des projets connus en BdD ProjetSLI
 ' =========================================================================
 ' Chargement paresseux au 1er appel. Renvoie un Dictionary {NomProjetUCase

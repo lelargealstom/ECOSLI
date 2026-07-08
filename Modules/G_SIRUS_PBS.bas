@@ -1000,15 +1000,17 @@ End Sub
 '
 ' Pour les tables a plusieurs rows par DTR (TachesATM), moyenne (somme
 ' numerateurs / somme denominateurs) sur toutes les rows.
+'
+' Refonte 2026-07-08 : delegue le comptage au helper unique
+' G_SIRUS_Regles.SIRUS_MeQLigne pour aligner MeQ ListView Generation et
+' MeQ analyse SIRUS feuille sur la meme formule (comptage 1-champ = 1-unite).
 ' =========================================================================
 Private Function CalculerMeQDTR_Optim(ByVal dictTable As Object, ByVal dtr As String, ByVal sTable As String, ByVal configCol As Collection) As Double
     Dim col As Collection
-    Dim def As SIRUS_Champ_Config
     Dim row As Object
     Dim rows As Collection
-    Dim totNum As Double, totDen As Double
-    Dim sVal As String
-    Dim bRequis As Boolean
+    Dim res As Object
+    Dim totObl As Long, totRempli As Long
 
     If dictTable Is Nothing Then
         CalculerMeQDTR_Optim = -1
@@ -1027,33 +1029,14 @@ Private Function CalculerMeQDTR_Optim(ByVal dictTable As Object, ByVal dtr As St
     End If
 
     Set rows = dictTable(dtr)
-
     For Each row In rows
-        For Each def In col
-            ' Skip champs sans ColonneBdD (info pure, heritages)
-            If LenB(def.ColonneBdD) = 0 Then GoTo NextDef
-            ' Skip champs Auto / Herite (pas saisis cote BdD)
-            If def.Source = "Auto" Or def.Source = "Herite" Then GoTo NextDef
-
-            bRequis = (def.Obligatoire = "Oui")
-            If Not bRequis Then
-                If def.Obligatoire = "Conditionnel" Then
-                    bRequis = SIRUS_RegleObligatoire(sTable, def.ColonneBdD, row)
-                End If
-            End If
-
-            If bRequis Then
-                totDen = totDen + 1
-                sVal = ""
-                If row.Exists(def.ColonneBdD) Then sVal = NzSafeStr(row(def.ColonneBdD))
-                If LenB(Trim$(sVal)) > 0 Then totNum = totNum + 1
-            End If
-NextDef:
-        Next def
+        Set res = SIRUS_MeQLigne(row, sTable, col)
+        totObl = totObl + CLng(res("nbObl"))
+        totRempli = totRempli + CLng(res("nbRempli"))
     Next row
 
-    If totDen > 0 Then
-        CalculerMeQDTR_Optim = totNum / totDen
+    If totObl > 0 Then
+        CalculerMeQDTR_Optim = totRempli / totObl
     Else
         ' Aucune obligation -> considere 100% (cas tables sans champ
         ' obligatoire pour ce DTR dans le config).
