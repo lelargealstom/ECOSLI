@@ -4,7 +4,7 @@ Diagnostic pre-fill SnapShotPrix pour DTR = 'DTR0000120004'
 ======================================================================
 
 -- 1. Etat cache m_dictSnapShotPrixCache --
-  Cache : POPULATED. 3062 DTR distincts en cache.
+  Cache : VIDE (Nothing). Sera charge au 1er appel.
 
 -- 2. Config Produit : champs Source='SnapShotPrix' --
   Nb champs total dans config Produit : 25
