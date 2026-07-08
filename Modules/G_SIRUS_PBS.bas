@@ -746,22 +746,27 @@ Public Sub SIRUS_ResetCacheSnapShotPrix()
 End Sub
 
 Public Function ChargerSnapShotPrixDernierParDTR() As Object
-    ' Refonte 2026-07-07 : ADODB pur (BdD reste fermee) avec TypeGuessRows=0
-    ' dans la connection string. Contexte du choix :
-    '   - ACE OLE DB par defaut scanne les 8 premieres lignes pour typer les
-    '     colonnes. Sur Produit_SnapShotPrix, la colonne DTR est mixed-type
-    '     (numerique 8600xxx + alphanumerique DTR0000xxx). Les 8 premieres
-    '     lignes etant numeriques, ACE type Numeric -> IMEX=1 seul ne suffit
-    '     pas, les valeurs alphanumeriques reviennent NULL.
-    '   - TypeGuessRows=0 force ACE a scanner TOUTES les lignes avant typage
-    '     (cout : quelques secondes au 1er acces). Combine avec IMEX=1, les
-    '     colonnes mixed-type sont retournees en TEXT -> tous les DTR sont
-    '     lisibles, y compris alphanumeriques.
-    '   - Resultat en cache session (m_dictSnapShotPrixCache) : la penalite
-    '     du scan complet n'est payee qu'une fois par session Excel.
+    ' Refonte 2026-07-08 : lecture directe de la feuille Produit_SnapShotPrix
+    ' (BdD ouverte read-only si necessaire) + cache session.
+    '
+    ' Historique du choix :
+    '   - v1 : ADODB direct -> bug ACE DTR mixed-type (DTR alphanumeriques
+    '     reviennent NULL car ACE type la colonne Numeric sur les 8 premieres
+    '     lignes qui sont numeriques).
+    '   - v2 : ADODB + IMEX=1 + TypeGuessRows=0 -> testé chez Thomas, ACE ne
+    '     respecte pas TypeGuessRows sur cette version -> 32 DTR remontent
+    '     (uniquement les numeriques), les alphanumeriques manquent.
+    '   - v3 (retenue) : lecture directe de la feuille (bulk array). Cost :
+    '     ouvre la BdD si elle n'est pas deja ouverte (Refresh ou manuel).
+    '     Cache session -> penalite payee au 1er acces uniquement.
     Dim dict As Object, dictBest As Object
-    Dim conn As Object, rs As Object
-    Dim sConnBdD As String
+    Dim wbBdD As Workbook, wsBdD As Worksheet
+    Dim wasOpen As Boolean
+    Dim arr As Variant
+    Dim derLigne As Long, ligne As Long
+    Dim colDTR As Long, colType As Long, colPrix As Long, colLT As Long
+    Dim colOnReqPrix As Long, colOnReqLT As Long, colMoQ As Long, colRefCat As Long, colDate As Long
+    Dim maxCol As Long
     Dim sDTR As String, sType As String
     Dim vDate As Variant, vPrix As Variant, vLT As Variant, vMoQ As Variant, vRefCat As Variant
     Dim vOnReqPrix As Variant, vOnReqLT As Variant
@@ -779,37 +784,49 @@ Public Function ChargerSnapShotPrixDernierParDTR() As Object
     Set dictBest = CreateObject("Scripting.Dictionary")
     dictBest.CompareMode = vbTextCompare
 
-    ' Connection dediee : injection de TypeGuessRows=0 dans les Extended
-    ' Properties de CONNEXION_EXCEL_BDD_TRAVAIL. Extended Properties a le
-    ' format "Excel 12.0 Macro;HDR=Yes;IMEX=1" -> on ajoute ;TypeGuessRows=0
-    ' avant la fermeture de la quote.
-    sConnBdD = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
-    sConnBdD = Replace(sConnBdD, "IMEX=1'", "IMEX=1;TypeGuessRows=0'")
-
     On Error GoTo Sortie
-    Set conn = CreateObject("ADODB.Connection")
-    conn.Open sConnBdD
-    Set rs = CreateObject("ADODB.Recordset")
-    rs.Open "SELECT [DTR] & '' AS DTR_str, [Type], [Prix], [LeadTime], [OnRequestPrix], [OnRequestLT], [MoQ], [Ref Catalogue], [Date Source] FROM [Produit_SnapShotPrix$]", conn, 3, 1  ' adOpenStatic, adLockReadOnly
+    If Not OuvrirFeuilleSnapShotPrix(wbBdD, wsBdD, wasOpen) Then
+        Debug.Print "[Produit_SnapShotPrix] Impossible d'ouvrir la feuille (BdD introuvable ou verouillee)."
+        GoTo Sortie
+    End If
 
-    If rs.EOF And rs.BOF Then GoTo Cleanup
+    ' Mapper les colonnes par libelle en ligne 1.
+    colDTR = TrouverColParLibelleSirus(wsBdD, "DTR")
+    colType = TrouverColParLibelleSirus(wsBdD, "Type")
+    colPrix = TrouverColParLibelleSirus(wsBdD, "Prix")
+    colLT = TrouverColParLibelleSirus(wsBdD, "LeadTime")
+    colOnReqPrix = TrouverColParLibelleSirus(wsBdD, "OnRequestPrix")
+    colOnReqLT = TrouverColParLibelleSirus(wsBdD, "OnRequestLT")
+    colMoQ = TrouverColParLibelleSirus(wsBdD, "MoQ")
+    colRefCat = TrouverColParLibelleSirus(wsBdD, "Ref Catalogue")
+    colDate = TrouverColParLibelleSirus(wsBdD, "Date Source")
+    If colDTR = 0 Or colType = 0 Or colPrix = 0 Or colDate = 0 Then
+        Debug.Print "[Produit_SnapShotPrix] Colonnes essentielles manquantes (DTR/Type/Prix/Date Source)."
+        GoTo CleanupBdD
+    End If
 
-    ' 1er passage : pour chaque (DTR,Type) on garde la ligne candidate la
+    derLigne = wsBdD.Cells(wsBdD.rows.count, colDTR).End(xlUp).Row
+    If derLigne < 2 Then GoTo CleanupBdD
+
+    maxCol = Application.WorksheetFunction.Max(colDTR, colType, colPrix, colLT, colOnReqPrix, colOnReqLT, colMoQ, colRefCat, colDate)
+    arr = wsBdD.Range(wsBdD.Cells(2, 1), wsBdD.Cells(derLigne, maxCol)).Value
+
+    ' 1er passage : pour chaque (DTR,Type) on garde la ligne candidat la
     ' plus recente (MAX Date Source). Ligne candidate = Prix non nul OU
     ' OnRequestPrix renseigne.
-    Do While Not rs.EOF
-        sDTR = Trim$(NzSafeStr(rs.Fields("DTR_str").Value))
+    For ligne = 1 To UBound(arr, 1)
+        sDTR = Trim$(NzSafeStr(arr(ligne, colDTR)))
         If Right$(sDTR, 2) = ".0" Then sDTR = Left$(sDTR, Len(sDTR) - 2)
 
         If LenB(sDTR) > 0 Then
-            sType = UCase$(Trim$(NzSafeStr(rs.Fields("Type").Value)))
-            vPrix = rs.Fields("Prix").Value
-            vDate = rs.Fields("Date Source").Value
-            vLT = rs.Fields("LeadTime").Value
-            vOnReqPrix = rs.Fields("OnRequestPrix").Value
-            vOnReqLT = rs.Fields("OnRequestLT").Value
-            vMoQ = rs.Fields("MoQ").Value
-            vRefCat = rs.Fields("Ref Catalogue").Value
+            sType = UCase$(Trim$(NzSafeStr(arr(ligne, colType))))
+            vPrix = arr(ligne, colPrix)
+            vDate = arr(ligne, colDate)
+            vLT = arr(ligne, colLT)
+            If colOnReqPrix > 0 Then vOnReqPrix = arr(ligne, colOnReqPrix) Else vOnReqPrix = Empty
+            If colOnReqLT > 0 Then vOnReqLT = arr(ligne, colOnReqLT) Else vOnReqLT = Empty
+            If colMoQ > 0 Then vMoQ = arr(ligne, colMoQ) Else vMoQ = Empty
+            vRefCat = arr(ligne, colRefCat)
 
             bPrixConnu = EstNumeriqueNonNul(vPrix)
             bOnRequest = (LenB(Trim$(NzSafeStr(vOnReqPrix))) > 0)
@@ -831,8 +848,7 @@ Public Function ChargerSnapShotPrixDernierParDTR() As Object
                 End If
             End If
         End If
-        rs.MoveNext
-    Loop
+    Next ligne
 
     ' 2nd passage : injecte les valeurs retenues dans le dict resultat.
     ' Prix : ecrit uniquement si numerique non nul (OnRequest seul -> champ
@@ -866,23 +882,17 @@ Public Function ChargerSnapShotPrixDernierParDTR() As Object
         End If
     Next key
 
-Cleanup:
-    On Error Resume Next
-    If Not rs Is Nothing Then If rs.State = 1 Then rs.Close
-    If Not conn Is Nothing Then If conn.State = 1 Then conn.Close
-    On Error GoTo 0
+CleanupBdD:
+    Call FermerBdDSiOuverte(wbBdD, wasOpen)
 
 Sortie:
     If Err.Number <> 0 Then
         Debug.Print "[Produit_SnapShotPrix] ChargerSnapShotPrixDernierParDTR : " & Err.description
-        On Error Resume Next
-        If Not rs Is Nothing Then If rs.State = 1 Then rs.Close
-        If Not conn Is Nothing Then If conn.State = 1 Then conn.Close
-        On Error GoTo 0
+        Call FermerBdDSiOuverte(wbBdD, wasOpen)
     End If
 
-    ' Cache le resultat si la charge a reussi (m_dictSnapShotPrixCache reste
-    ' Nothing si erreur -> nouvelle tentative au prochain appel).
+    ' Cache le resultat si la charge a reussi. Sinon m_dictSnapShotPrixCache
+    ' reste Nothing -> nouvelle tentative au prochain appel.
     If dict.count > 0 Then Set m_dictSnapShotPrixCache = dict
     Set ChargerSnapShotPrixDernierParDTR = dict
 End Function
@@ -1649,47 +1659,60 @@ Public Sub Test_SIRUS_DebugMeQProduit_PremierDTR()
 End Sub
 
 ' Dump les lignes brutes de Produit_SnapShotPrix filtrees sur un DTR.
-' Utilise ADODB avec TypeGuessRows=0 (meme workaround que
-' ChargerSnapShotPrixDernierParDTR pour lire les DTR alphanumeriques).
+' Lecture directe (bypass ADODB) pour eviter le bug ACE DTR mixed-type.
 ' Si aucune ligne ne matche, affiche 10 exemples de DTR presents en base.
 Private Sub DumpSnapShotBrutPourDTR(ByVal dtrCible As String)
-    Dim conn As Object, rs As Object
-    Dim sConnBdD As String
+    Dim wbBdD As Workbook, wsBdD As Worksheet
+    Dim wasOpen As Boolean
+    Dim arr As Variant
+    Dim derLigne As Long, ligne As Long
+    Dim colDTR As Long, colType As Long, colPrix As Long, colLT As Long
+    Dim colOnReqPrix As Long, colOnReqLT As Long, colMoQ As Long, colRefCat As Long, colDate As Long
+    Dim maxCol As Long
     Dim sDTR As String
     Dim n As Long, nTotal As Long
     Dim sExemples As String
 
     On Error GoTo Sortie
+    If Not OuvrirFeuilleSnapShotPrix(wbBdD, wsBdD, wasOpen) Then
+        Debug.Print "  (impossible d'ouvrir Produit_SnapShotPrix)" : GoTo Sortie
+    End If
 
-    sConnBdD = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
-    sConnBdD = Replace(sConnBdD, "IMEX=1'", "IMEX=1;TypeGuessRows=0'")
+    colDTR = TrouverColParLibelleSirus(wsBdD, "DTR")
+    colType = TrouverColParLibelleSirus(wsBdD, "Type")
+    colPrix = TrouverColParLibelleSirus(wsBdD, "Prix")
+    colLT = TrouverColParLibelleSirus(wsBdD, "LeadTime")
+    colOnReqPrix = TrouverColParLibelleSirus(wsBdD, "OnRequestPrix")
+    colOnReqLT = TrouverColParLibelleSirus(wsBdD, "OnRequestLT")
+    colMoQ = TrouverColParLibelleSirus(wsBdD, "MoQ")
+    colRefCat = TrouverColParLibelleSirus(wsBdD, "Ref Catalogue")
+    colDate = TrouverColParLibelleSirus(wsBdD, "Date Source")
+    If colDTR = 0 Then Debug.Print "  (colonne DTR introuvable)" : GoTo Cleanup
 
-    Set conn = CreateObject("ADODB.Connection")
-    conn.Open sConnBdD
-    Set rs = CreateObject("ADODB.Recordset")
-    rs.Open "SELECT [DTR] & '' AS DTR_str, [Type], [Prix], [OnRequestPrix], [LeadTime], [OnRequestLT], [MoQ], [Ref Catalogue], [Date Source] FROM [Produit_SnapShotPrix$]", conn, 3, 1
+    derLigne = wsBdD.Cells(wsBdD.rows.count, colDTR).End(xlUp).Row
+    If derLigne < 2 Then Debug.Print "  (feuille vide)" : GoTo Cleanup
 
-    If rs.EOF And rs.BOF Then Debug.Print "  (feuille vide)" : GoTo Cleanup
+    maxCol = Application.WorksheetFunction.Max(colDTR, colType, colPrix, colLT, colOnReqPrix, colOnReqLT, colMoQ, colRefCat, colDate)
+    arr = wsBdD.Range(wsBdD.Cells(2, 1), wsBdD.Cells(derLigne, maxCol)).Value
 
-    Do While Not rs.EOF
-        sDTR = Trim$(NzSafeStr(rs.Fields("DTR_str").Value))
+    For ligne = 1 To UBound(arr, 1)
+        sDTR = Trim$(NzSafeStr(arr(ligne, colDTR)))
         If Right$(sDTR, 2) = ".0" Then sDTR = Left$(sDTR, Len(sDTR) - 2)
         nTotal = nTotal + 1
         If nTotal <= 10 Then sExemples = sExemples & "'" & sDTR & "' ; "
 
         If StrComp(sDTR, dtrCible, vbTextCompare) = 0 Then
             n = n + 1
-            Debug.Print "  [" & NzSafeStr(rs.Fields("Type").Value) & _
-                        "] Date=" & NzSafeStr(rs.Fields("Date Source").Value) & _
-                        " | Prix=" & NzSafeStr(rs.Fields("Prix").Value) & _
-                        " | OnReqPrix=" & NzSafeStr(rs.Fields("OnRequestPrix").Value) & _
-                        " | LT=" & NzSafeStr(rs.Fields("LeadTime").Value) & _
-                        " | OnReqLT=" & NzSafeStr(rs.Fields("OnRequestLT").Value) & _
-                        " | MoQ=" & NzSafeStr(rs.Fields("MoQ").Value) & _
-                        " | RefCat='" & NzSafeStr(rs.Fields("Ref Catalogue").Value) & "'"
+            Debug.Print "  [" & NzSafeStr(arr(ligne, colType)) & _
+                        "] Date=" & NzSafeStr(arr(ligne, colDate)) & _
+                        " | Prix=" & NzSafeStr(arr(ligne, colPrix)) & _
+                        IIf(colOnReqPrix > 0, " | OnReqPrix=" & NzSafeStr(arr(ligne, colOnReqPrix)), "") & _
+                        " | LT=" & NzSafeStr(arr(ligne, colLT)) & _
+                        IIf(colOnReqLT > 0, " | OnReqLT=" & NzSafeStr(arr(ligne, colOnReqLT)), "") & _
+                        IIf(colMoQ > 0, " | MoQ=" & NzSafeStr(arr(ligne, colMoQ)), "") & _
+                        " | RefCat='" & NzSafeStr(arr(ligne, colRefCat)) & "'"
         End If
-        rs.MoveNext
-    Loop
+    Next ligne
 
     If n = 0 Then
         Debug.Print "  (aucune ligne pour ce DTR)"
@@ -1699,17 +1722,12 @@ Private Sub DumpSnapShotBrutPourDTR(ByVal dtrCible As String)
     End If
 
 Cleanup:
-    On Error Resume Next
-    If Not rs Is Nothing Then If rs.State = 1 Then rs.Close
-    If Not conn Is Nothing Then If conn.State = 1 Then conn.Close
-    On Error GoTo 0
+    Call FermerBdDSiOuverte(wbBdD, wasOpen)
     Exit Sub
 
 Sortie:
     Debug.Print "  DumpSnapShotBrutPourDTR erreur : " & Err.description
-    On Error Resume Next
-    If Not rs Is Nothing Then If rs.State = 1 Then rs.Close
-    If Not conn Is Nothing Then If conn.State = 1 Then conn.Close
+    Call FermerBdDSiOuverte(wbBdD, wasOpen)
 End Sub
 
 
