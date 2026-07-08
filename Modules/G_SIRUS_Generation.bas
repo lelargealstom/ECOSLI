@@ -487,6 +487,15 @@ Private Sub PreRemplirDepuisBdD(ws As Worksheet, ByVal sTable As String, col As 
     Set dictAbsentes = CreateObject("Scripting.Dictionary")
     dictAbsentes.CompareMode = 1
 
+    ' -- SnapShotPrix : chargement UNE fois pour la table Produit ---
+    ' Pour Modifier Produit, on doit egalement pre-remplir les 7 champs
+    ' virtuels (Source = "SnapShotPrix") depuis Produit_SnapShotPrix.
+    ' Sinon les cellules restent vides et l analyse MeQ dinguerait.
+    Dim dictSnapShotProduit As Object
+    If sTable = "Produit" Then
+        Set dictSnapShotProduit = G_SIRUS_PBS.ChargerSnapShotPrixDernierParDTR()
+    End If
+
     ' SELECT * : on recupere toutes les colonnes BdD existantes puis on
     ' lit champ par champ avec tolerance aux colonnes manquantes (cas des
     ' ??_*_a_definir et des colonnes BdD non encore creees comme
@@ -513,24 +522,40 @@ Private Sub PreRemplirDepuisBdD(ws As Worksheet, ByVal sTable As String, col As 
                         Dim sColTrim As String
                         Dim vVal As Variant
                         sColTrim = TronquerColonneBdD(def.ColonneBdD)
-                        On Error Resume Next
-                        Err.Clear
-                        vVal = REQSEL.Fields(sColTrim).Value
-                        If Err.Number <> 0 Then
-                            ' Colonne absente cote BdD : on laisse la
-                            ' cellule vide et on trace dans Debug.Print
-                            ' (1 fois par colonne).
-                            If Not dictAbsentes.Exists(sColTrim) Then
-                                dictAbsentes.Add sColTrim, Empty
-                                Debug.Print "PreRemplirDepuisBdD : colonne BdD absente '" & sColTrim & "' (champ '" & def.Champ & "')"
+
+                        ' Champs virtuels (Source = "SnapShotPrix") : lookup
+                        ' dans le dict SnapShotPrix par DTR au lieu du SELECT
+                        ' Produit$. Cellule reste vide si le DTR n a pas de
+                        ' snapshot retenu ou si le champ n est pas populous
+                        ' (ex. Prix null + OnRequest -> Prix virtuel absent).
+                        If def.Source = "SnapShotPrix" Then
+                            If Not dictSnapShotProduit Is Nothing Then
+                                If dictSnapShotProduit.Exists(CStr(cle)) Then
+                                    If dictSnapShotProduit(CStr(cle)).Exists(def.ColonneBdD) Then
+                                        ws.Cells(ligne, i).Value = dictSnapShotProduit(CStr(cle))(def.ColonneBdD)
+                                    End If
+                                End If
                             End If
-                            Err.Clear
                         Else
-                            If Not IsNull(vVal) Then
-                                ws.Cells(ligne, i).Value = vVal
+                            On Error Resume Next
+                            Err.Clear
+                            vVal = REQSEL.Fields(sColTrim).Value
+                            If Err.Number <> 0 Then
+                                ' Colonne absente cote BdD : on laisse la
+                                ' cellule vide et on trace dans Debug.Print
+                                ' (1 fois par colonne).
+                                If Not dictAbsentes.Exists(sColTrim) Then
+                                    dictAbsentes.Add sColTrim, Empty
+                                    Debug.Print "PreRemplirDepuisBdD : colonne BdD absente '" & sColTrim & "' (champ '" & def.Champ & "')"
+                                End If
+                                Err.Clear
+                            Else
+                                If Not IsNull(vVal) Then
+                                    ws.Cells(ligne, i).Value = vVal
+                                End If
                             End If
+                            On Error GoTo SortieBdD
                         End If
-                        On Error GoTo SortieBdD
                     End If
                     i = i + 1
                 Next def

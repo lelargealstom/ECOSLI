@@ -745,7 +745,7 @@ Public Sub SIRUS_ResetCacheSnapShotPrix()
     Set m_dictSnapShotPrixCache = Nothing
 End Sub
 
-Private Function ChargerSnapShotPrixDernierParDTR() As Object
+Public Function ChargerSnapShotPrixDernierParDTR() As Object
     ' Refonte 2026-07-07 : ADODB pur (BdD reste fermee) avec TypeGuessRows=0
     ' dans la connection string. Contexte du choix :
     '   - ACE OLE DB par defaut scanne les 8 premieres lignes pour typer les
