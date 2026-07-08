@@ -1,10 +1,10 @@
-Test_SIRUS_DiagPreFillProduit(DTR0000120004)
+Test_SIRUS_DiagPreFillProduit("DTR0000120004")
 ======================================================================
-Diagnostic pre-fill SnapShotPrix pour DTR = ''
+Diagnostic pre-fill SnapShotPrix pour DTR = 'DTR0000120004'
 ======================================================================
 
 -- 1. Etat cache m_dictSnapShotPrixCache --
-  Cache : VIDE (Nothing). Sera charge au 1er appel.
+  Cache : POPULATED. 3062 DTR distincts en cache.
 
 -- 2. Config Produit : champs Source='SnapShotPrix' --
   Nb champs total dans config Produit : 25
@@ -17,18 +17,21 @@ Diagnostic pre-fill SnapShotPrix pour DTR = ''
   [7] Champ='Lead Time Repair' | ColonneBdD='Lead time REPAIR (jours) manuel_PRODUIT' | Obligatoire=Conditionnel
   -> 7 champs Source='SnapShotPrix' trouves (attendu : 7).
 
--- 3. Lookup dictSnapShotPrix pour DTR='' --
-  Nb DTR total dans le dict : 32
-  DTR '' ABSENT du dict SnapShotPrix (pas de snapshot retenu).
-  Verifier : le DTR a-t-il des lignes Prix non nul ou OnRequestPrix dans Produit_SnapShotPrix ?
-  10 premiers DTR presents en dict :
-    '8600361'
-    '8600385'
-    '8600562'
-    '8600602'
-    '8600611'
-    '8600635'
-    '8600711'
-    '8600715'
-    '8600716'
-    '8600723'
+-- 3. Lookup dictSnapShotPrix pour DTR='DTR0000120004' --
+  Nb DTR total dans le dict : 3062
+  DTR 'DTR0000120004' PRESENT. Valeurs qui seraient ecrites en cellules :
+    Dates de validite des prix REPAIR connus sur Projet (ASL)_PRODUIT = 'D&IS Catalogue FY26_27_v03'
+    Lead time REPAIR (jours) manuel_PRODUIT = '120'
+    Prix SPARE catalogue a date_PRODUIT = '30,52'
+    Dates de validite des prix SPARE connus sur Projet (ASL)_PRODUIT = 'D&IS Catalogue FY25_26_v05'
+    MoQ spare catalogue_PRODUIT = ''
+    Lead time SPARE catalogue (jours) a date_PRODUIT = ''
+
+-- 4. Match config <-> dict pour ce DTR --
+  [OK] 'Prix SPARE catalogue a date_PRODUIT' -> '30,52'
+  [OK] 'Dates de validite des prix SPARE connus sur Projet (ASL)_PRODUIT' -> 'D&IS Catalogue FY25_26_v05'
+  [OK] 'MoQ spare catalogue_PRODUIT' -> ''
+  [OK] 'Lead time SPARE catalogue (jours) a date_PRODUIT' -> ''
+  [--] 'Prix REPAIR catalogue a date_PRODUIT' -> ABSENT du dict (cellule restera vide).
+  [OK] 'Dates de validite des prix REPAIR connus sur Projet (ASL)_PRODUIT' -> 'D&IS Catalogue FY26_27_v03'
+  [OK] 'Lead time REPAIR (jours) manuel_PRODUIT' -> '120'
