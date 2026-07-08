@@ -1732,6 +1732,118 @@ End Sub
 
 
 ' =========================================================================
+' Test_SIRUS_TenterADODBPurPourDTR
+' =========================================================================
+' Teste plusieurs variantes de connection string ADODB pour lire un DTR
+' alphanumerique dans Produit_SnapShotPrix SANS ouvrir la BdD. But :
+' identifier une combinaison qui contourne le bug ACE DTR mixed-type
+' (colonne typee Numeric -> DTR alphanumeriques renvoyes NULL).
+'
+' Pour chaque variante : lit toute la table, compte les lignes totales,
+' compte les DTR alphanumeriques (non-numeriques) lus, et le nombre de
+' matches pour le DTR cible. Si nText > 0 et nMatch >= 1 pour une variante,
+' on a un candidat viable.
+'
+' Usage : Test_SIRUS_TenterADODBPurPourDTR "DTR0000120004"
+Public Sub Test_SIRUS_TenterADODBPurPourDTR(ByVal dtrCible As String)
+    Debug.Print String(70, "=")
+    Debug.Print "Test ADODB pur pour DTR = '" & dtrCible & "'"
+    Debug.Print String(70, "=")
+
+    Dim sBase As String
+    sBase = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
+
+    Dim variants(1 To 6) As String
+    Dim variantNames(1 To 6) As String
+
+    ' V1 - Baseline (attendue : cassee)
+    variantNames(1) = "Baseline (config actuelle CONNEXION_EXCEL_BDD_TRAVAIL)"
+    variants(1) = sBase
+
+    ' V2 - TypeGuessRows=0
+    variantNames(2) = "IMEX=1;TypeGuessRows=0"
+    variants(2) = Replace(sBase, "IMEX=1'", "IMEX=1;TypeGuessRows=0'")
+
+    ' V3 - MaxScanRows=0 (alias legacy pour meme fonctionnalite)
+    variantNames(3) = "IMEX=1;MaxScanRows=0"
+    variants(3) = Replace(sBase, "IMEX=1'", "IMEX=1;MaxScanRows=0'")
+
+    ' V4 - HDR=No + IMEX=1 + TypeGuessRows=0 (headers non traites)
+    variantNames(4) = "HDR=No;IMEX=1;TypeGuessRows=0"
+    variants(4) = Replace(sBase, "HDR=Yes;IMEX=1'", "HDR=No;IMEX=1;TypeGuessRows=0'")
+
+    ' V5 - Excel 8.0 (driver Jet-style, moins strict sur les types)
+    variantNames(5) = "Excel 8.0 (Jet-style typing)"
+    variants(5) = Replace(sBase, "Excel 12.0 Macro", "Excel 8.0")
+    variants(5) = Replace(variants(5), "IMEX=1'", "IMEX=1;TypeGuessRows=0'")
+
+    ' V6 - Excel 12.0 Xml (parfois different pour xlsb)
+    variantNames(6) = "Excel 12.0 Xml (xlsb natif)"
+    variants(6) = Replace(sBase, "Excel 12.0 Macro", "Excel 12.0 Xml")
+    variants(6) = Replace(variants(6), "IMEX=1'", "IMEX=1;TypeGuessRows=0'")
+
+    Dim i As Long
+    For i = 1 To 6
+        Debug.Print vbLf & "-- Variante " & i & " : " & variantNames(i) & " --"
+        Call TenterUneVarianteADODB(variants(i), dtrCible)
+    Next i
+
+    Debug.Print vbLf & "Interpretation :"
+    Debug.Print "  Variante viable = nText > 0 (au moins un DTR alphanumerique lu)"
+    Debug.Print "  Variante ideale = nMatch >= 1 pour le DTR cible"
+End Sub
+
+Private Sub TenterUneVarianteADODB(ByVal sConnStr As String, ByVal dtrCible As String)
+    Dim conn As Object, rs As Object
+    Dim nTotal As Long, nMatch As Long, nText As Long, nBOFT0 As Long, nSpare As Long, nRepair As Long
+    Dim sDTR As String, sType As String
+    Dim exText As String, nExText As Long
+
+    On Error GoTo Sortie
+
+    Set conn = CreateObject("ADODB.Connection")
+    conn.Open sConnStr
+    Set rs = CreateObject("ADODB.Recordset")
+    rs.Open "SELECT [DTR] & '' AS DTR_str, [Type], [Prix], [Date Source], [Ref Catalogue] FROM [Produit_SnapShotPrix$]", conn, 3, 1
+
+    Do While Not rs.EOF
+        sDTR = Trim$(NzSafeStr(rs.Fields("DTR_str").Value))
+        If Right$(sDTR, 2) = ".0" Then sDTR = Left$(sDTR, Len(sDTR) - 2)
+        sType = NzSafeStr(rs.Fields("Type").Value)
+        nTotal = nTotal + 1
+
+        If LenB(sDTR) > 0 And Not IsNumeric(sDTR) Then
+            nText = nText + 1
+            If nExText < 5 Then
+                exText = exText & "'" & sDTR & "' ; "
+                nExText = nExText + 1
+            End If
+        End If
+
+        If StrComp(sDTR, dtrCible, vbTextCompare) = 0 Then
+            nMatch = nMatch + 1
+            Debug.Print "  MATCH " & nMatch & " : [" & sType & "] Date=" & NzSafeStr(rs.Fields("Date Source").Value) & " | Prix=" & NzSafeStr(rs.Fields("Prix").Value) & " | RefCat='" & NzSafeStr(rs.Fields("Ref Catalogue").Value) & "'"
+        End If
+        rs.MoveNext
+    Loop
+
+    Debug.Print "  Total lignes lues : " & nTotal & " | DTR alphanum : " & nText & " | Matches DTR cible : " & nMatch
+    If nText > 0 Then Debug.Print "  Exemples DTR alphanum : " & exText
+
+    On Error Resume Next
+    rs.Close
+    conn.Close
+    On Error GoTo 0
+    Exit Sub
+
+Sortie:
+    Debug.Print "  ERREUR ouverture ou lecture : " & Err.description
+    On Error Resume Next
+    If Not rs Is Nothing Then If rs.State = 1 Then rs.Close
+    If Not conn Is Nothing Then If conn.State = 1 Then conn.Close
+End Sub
+
+' =========================================================================
 ' Test_SIRUS_DiagPreFillProduit
 ' =========================================================================
 ' Diagnostic pour le pre-remplissage SnapShotPrix cote SIRUS_Produit_Modifier.
