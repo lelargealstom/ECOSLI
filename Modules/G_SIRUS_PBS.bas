@@ -84,6 +84,12 @@ Private dictTachesATM_Rows As Object
 Private dictEMMST_Rows     As Object
 Private dictProduit_Rows   As Object
 
+' Cache session : SnapShotPrix est charge une seule fois par session Excel
+' (cout ~quelques secondes a cause du TypeGuessRows=0 qui scanne tout).
+' Reset via SIRUS_ResetCacheSnapShotPrix (a appeler apres un refresh BdD
+' ou changement de projet si necessaire).
+Private m_dictSnapShotPrixCache As Object
+
 
 ' =========================================================================
 ' FONCTION: VerifierFeuilleDATA_ASL
@@ -732,13 +738,10 @@ End Function
 '
 ' Cast [DTR] & '' AS DTR_str : evite le bug ACE OLE DB avec DTR mixed-type
 ' (numerique + alphanumerique). Cf. Test_DryRunRafraichirPrixCatalogue.
-' Cache session : SnapShotPrix est charge une seule fois par session Excel
-' (cout ~seconds a cause du TypeGuessRows=0 qui scanne tout). Reset via
-' SIRUS_ResetCacheSnapShotPrix (a appeler apres un refresh BdD ou changement
-' de projet si necessaire).
-Private m_dictSnapShotPrixCache As Object
-
 Public Sub SIRUS_ResetCacheSnapShotPrix()
+    ' Vide le cache SnapShotPrix. A appeler si Produit_SnapShotPrix a ete
+    ' modifiee entre 2 refresh (nouvelle ligne, nouveau catalogue...). Declaration
+    ' du cache m_dictSnapShotPrixCache dans la section General en tete de module.
     Set m_dictSnapShotPrixCache = Nothing
 End Sub
 
