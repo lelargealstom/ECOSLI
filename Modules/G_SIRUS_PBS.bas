@@ -1713,3 +1713,101 @@ Sortie:
 End Sub
 
 
+' =========================================================================
+' Test_SIRUS_DiagPreFillProduit
+' =========================================================================
+' Diagnostic pour le pre-remplissage SnapShotPrix cote SIRUS_Produit_Modifier.
+' Affiche dans la fenetre Immediate :
+'   1. Etat du cache SnapShotPrix (populated / vide)
+'   2. Contenu du config Produit : les 7 champs virtuels avec leur Source
+'   3. Pour un DTR donne, ce qui serait ecrit dans la feuille par
+'      PreRemplirDepuisBdD (branche Source = "SnapShotPrix")
+'
+' Usage : Test_SIRUS_DiagPreFillProduit "DTR0000120004"
+Public Sub Test_SIRUS_DiagPreFillProduit(ByVal dtr As String)
+    Debug.Print String(70, "=")
+    Debug.Print "Diagnostic pre-fill SnapShotPrix pour DTR = '" & dtr & "'"
+    Debug.Print String(70, "=")
+
+    ' -- 1. Etat du cache ------------------------------------
+    Debug.Print vbLf & "-- 1. Etat cache m_dictSnapShotPrixCache --"
+    If m_dictSnapShotPrixCache Is Nothing Then
+        Debug.Print "  Cache : VIDE (Nothing). Sera charge au 1er appel."
+    Else
+        Debug.Print "  Cache : POPULATED. " & m_dictSnapShotPrixCache.count & " DTR distincts en cache."
+        If m_dictSnapShotPrixCache.count = 0 Then
+            Debug.Print "  ATTENTION : cache populated MAIS vide (0 DTR) -> il faut ResetCache et retenter."
+        End If
+    End If
+
+    ' -- 2. Config Produit : les 7 champs virtuels ------------
+    Debug.Print vbLf & "-- 2. Config Produit : champs Source='SnapShotPrix' --"
+    Dim cfg As Collection
+    Set cfg = SIRUS_LireConfig("Produit")
+    If cfg Is Nothing Or cfg.count = 0 Then
+        Debug.Print "  ATTENTION : config Produit vide. Verifier feuille SIRUS_Config."
+        Exit Sub
+    End If
+    Debug.Print "  Nb champs total dans config Produit : " & cfg.count
+
+    Dim def As SIRUS_Champ_Config
+    Dim nbSnap As Long
+    For Each def In cfg
+        If def.Source = "SnapShotPrix" Then
+            nbSnap = nbSnap + 1
+            Debug.Print "  [" & nbSnap & "] Champ='" & def.Champ & "' | ColonneBdD='" & def.ColonneBdD & "' | Obligatoire=" & def.Obligatoire
+        End If
+    Next def
+    Debug.Print "  -> " & nbSnap & " champs Source='SnapShotPrix' trouves (attendu : 7)."
+    If nbSnap = 0 Then
+        Debug.Print "  ATTENTION : aucun champ Source='SnapShotPrix'. La feuille SIRUS_Config n'a pas ete regeneree apres bump version."
+        Debug.Print "  Verifier SIRUS_CONFIG_VERSION et forcer un rebuild via SIRUS_InitConfigSheet."
+    End If
+
+    ' -- 3. Force le chargement + lookup pour le DTR ---------
+    Debug.Print vbLf & "-- 3. Lookup dictSnapShotPrix pour DTR='" & dtr & "' --"
+    Dim dictSnap As Object
+    Set dictSnap = ChargerSnapShotPrixDernierParDTR()
+    If dictSnap Is Nothing Then
+        Debug.Print "  ATTENTION : ChargerSnapShotPrixDernierParDTR a renvoye Nothing (erreur ADODB ?)."
+        Exit Sub
+    End If
+    Debug.Print "  Nb DTR total dans le dict : " & dictSnap.count
+    If dictSnap.count = 0 Then
+        Debug.Print "  ATTENTION : dict vide. TypeGuessRows=0 n'a peut-etre pas fonctionne."
+        Debug.Print "  Verifier avec DumpSnapShotBrutPourDTR ou lancer Test_CompterPatternsDTR."
+        Exit Sub
+    End If
+
+    If Not dictSnap.Exists(dtr) Then
+        Debug.Print "  DTR '" & dtr & "' ABSENT du dict SnapShotPrix (pas de snapshot retenu)."
+        Debug.Print "  Verifier : le DTR a-t-il des lignes Prix non nul ou OnRequestPrix dans Produit_SnapShotPrix ?"
+        Dim k As Variant, iEx As Long
+        Debug.Print "  10 premiers DTR presents en dict :"
+        For Each k In dictSnap.Keys
+            iEx = iEx + 1 : If iEx > 10 Then Exit For
+            Debug.Print "    '" & k & "'"
+        Next k
+        Exit Sub
+    End If
+
+    Debug.Print "  DTR '" & dtr & "' PRESENT. Valeurs qui seraient ecrites en cellules :"
+    Dim colKey As Variant
+    For Each colKey In dictSnap(dtr).Keys
+        Debug.Print "    " & CStr(colKey) & " = '" & NzSafeStr(dictSnap(dtr)(CStr(colKey))) & "'"
+    Next colKey
+
+    ' -- 4. Verification croisee : chaque champ config match dict ? --
+    Debug.Print vbLf & "-- 4. Match config <-> dict pour ce DTR --"
+    For Each def In cfg
+        If def.Source = "SnapShotPrix" Then
+            If dictSnap(dtr).Exists(def.ColonneBdD) Then
+                Debug.Print "  [OK] '" & def.ColonneBdD & "' -> '" & NzSafeStr(dictSnap(dtr)(def.ColonneBdD)) & "'"
+            Else
+                Debug.Print "  [--] '" & def.ColonneBdD & "' -> ABSENT du dict (cellule restera vide)."
+            End If
+        End If
+    Next def
+End Sub
+
+
