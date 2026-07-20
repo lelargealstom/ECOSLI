@@ -67,8 +67,6 @@ Private Function InitialiserContexteGeneration() As Boolean
 ' Recupere et valide les parametres du UserForm
 ' Retourne True si tout est OK, False sinon
 
-    On Error GoTo ErrHandler
-    
     ' Definir classeur generateur
     Set Generateur = ActiveWorkbook
     Set DS1 = Generateur.Worksheets("DATA_ASL")
@@ -99,11 +97,6 @@ Private Function InitialiserContexteGeneration() As Boolean
     End If
     
     InitialiserContexteGeneration = True
-    Exit Function
-    
-ErrHandler:
-    MsgBox "Erreur lors de l'initialisation : " & Err.description, vbCritical
-    InitialiserContexteGeneration = False
 End Function
 
 ' =========================================================================

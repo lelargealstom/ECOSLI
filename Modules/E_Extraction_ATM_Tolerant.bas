@@ -30,8 +30,6 @@ Public Sub Extraction_Fiches_ATM_Tolerant(ByRef wb As Workbook, ByVal langue As 
     Dim ws As Worksheet
     Dim indexFiche As Integer
 
-    On Error GoTo ErrorHandler
-
     ' Recordsets BdD (memes que ancien algo)
     Call InitialiserRecordsetsATM_T
 
@@ -48,7 +46,7 @@ Public Sub Extraction_Fiches_ATM_Tolerant(ByRef wb As Workbook, ByVal langue As 
             Call ExtraireTachesATM_T(ws, langue)
             On Error Resume Next
             Call barprogress(indexFiche, nbFiches)
-            On Error GoTo ErrorHandler
+            On Error GoTo 0
         End If
     Next ws
 
@@ -58,13 +56,7 @@ Public Sub Extraction_Fiches_ATM_Tolerant(ByRef wb As Workbook, ByVal langue As 
     On Error Resume Next
     REQSEL_INFO.Close
     REQSEL_TACHES.Close
-    Exit Sub
-
-ErrorHandler:
-    MsgBox "Erreur extraction ATM tolerante : " & Err.Description & vbCrLf & "Feuille en cours : " & IIf(ws Is Nothing, "n/a", ws.Name), vbCritical
-    On Error Resume Next
-    REQSEL_INFO.Close
-    REQSEL_TACHES.Close
+    On Error GoTo 0
 End Sub
 
 ' =========================================================================

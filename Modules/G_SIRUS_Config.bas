@@ -94,8 +94,6 @@ Public Sub SIRUS_InitConfigSheet(Optional ByVal bForcer As Boolean = False)
     Dim entetes As Variant
     Dim deja As Boolean
 
-    On Error GoTo Sortie
-
     ' La config vit dans le complement ECOSLI.xlam (ThisWorkbook = .xlam).
     ' Convention : ActiveWorkbook est reserve a la PBS du classeur projet ;
     ' la config interne du complement est bien ThisWorkbook.
@@ -159,10 +157,6 @@ Public Sub SIRUS_InitConfigSheet(Optional ByVal bForcer As Boolean = False)
     ws.Visible = xlSheetVeryHidden
 
     Debug.Print "SIRUS_InitConfigSheet : feuille " & SIRUS_CONFIG_SHEET & " creee et peuplee pour 6 tables (" & lo.ListRows.Count & " champs au total). Version : " & SIRUS_CONFIG_VERSION
-    Exit Sub
-
-Sortie:
-    MsgBox "Erreur dans SIRUS_InitConfigSheet : " & Err.Description, vbCritical
 End Sub
 
 ' =========================================================================
@@ -182,14 +176,12 @@ Public Sub SIRUS_VerifierConfigAJour()
     Dim sVersionFeuille As String
     Dim bRebuild As Boolean
 
-    On Error GoTo Sortie
-
     Set wb = ThisWorkbook
     bRebuild = True
 
     On Error Resume Next
     Set ws = wb.Worksheets(SIRUS_CONFIG_SHEET)
-    On Error GoTo Sortie
+    On Error GoTo 0
 
     If Not ws Is Nothing Then
         sVersionFeuille = CStr(ws.Range("O1").Value)
@@ -203,10 +195,6 @@ Public Sub SIRUS_VerifierConfigAJour()
     If bRebuild Then
         Call SIRUS_InitConfigSheet(bForcer:=True)
     End If
-    Exit Sub
-
-Sortie:
-    Debug.Print "[SIRUS_VerifierConfigAJour] erreur : " & Err.Description
 End Sub
 
 ' =========================================================================
@@ -632,8 +620,6 @@ Public Function SIRUS_LireConfig(ByVal sTable As String) As Collection
 
     Set col = New Collection
 
-    On Error GoTo Sortie
-
     Set wb = ThisWorkbook
 
     ' -- Verifier presence de la feuille --------------------
@@ -692,11 +678,6 @@ Public Function SIRUS_LireConfig(ByVal sTable As String) As Collection
         End If
     Next r
 
-    Set SIRUS_LireConfig = col
-    Exit Function
-
-Sortie:
-    Debug.Print "SIRUS_LireConfig : erreur " & Err.Description
     Set SIRUS_LireConfig = col
 End Function
 

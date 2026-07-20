@@ -35,8 +35,6 @@ Public Sub SIRUS_DeverserExtractionDansSIRUS(ByVal sTable As String, ByVal sFich
     Dim wbProjet As Workbook
     Dim sLivrable As String
 
-    On Error GoTo Sortie
-
     Set wbProjet = ActiveWorkbook
     If wbProjet Is Nothing Then
         MsgBox "Aucun classeur projet actif.", vbCritical, "SIRUS Extraction"
@@ -75,13 +73,6 @@ Public Sub SIRUS_DeverserExtractionDansSIRUS(ByVal sTable As String, ByVal sFich
 
     wbProjet.Activate
     MsgBox "Extraction terminee : donnees deversees dans les feuilles SIRUS_*_Extraction.", vbInformation, "SIRUS Extraction"
-    Exit Sub
-
-Sortie:
-    On Error Resume Next
-    If Not wbExtr Is Nothing Then wbExtr.Close SaveChanges:=False
-    On Error GoTo 0
-    MsgBox "Erreur SIRUS_DeverserExtractionDansSIRUS : " & Err.Description, vbCritical
 End Sub
 
 ' =========================================================================
@@ -119,15 +110,13 @@ Private Sub DeverserFeuilleVersSIRUS(ByVal wbSrc As Workbook, ByVal sSrcFeuille 
     Dim valeur As Variant
     Dim colsIgnorees As String
 
-    On Error GoTo Sortie
-
     ' Localiser les feuilles
     Set wsSrc = Nothing
     Set wsDest = Nothing
     On Error Resume Next
     Set wsSrc = wbSrc.Worksheets(sSrcFeuille)
     Set wsDest = wbDest.Worksheets(sDestFeuille)
-    On Error GoTo Sortie
+    On Error GoTo 0
 
     If wsSrc Is Nothing Then
         MsgBox "SIRUS Extraction : feuille source '" & sSrcFeuille & "' absente du livrable apres extraction." & vbCrLf & "Feuilles disponibles : " & FeuillesDispo(wbSrc), vbCritical, "SIRUS"
@@ -222,10 +211,6 @@ Private Sub DeverserFeuilleVersSIRUS(ByVal wbSrc As Workbook, ByVal sSrcFeuille 
         cellSt.Value = "A analyser"
         cellSt.Font.Color = RGB(80, 80, 80)
     Next ligneSrc
-    Exit Sub
-
-Sortie:
-    MsgBox "Erreur DeverserFeuilleVersSIRUS [" & sDestFeuille & "] : " & Err.Description, vbCritical, "SIRUS"
 End Sub
 
 ' =========================================================================

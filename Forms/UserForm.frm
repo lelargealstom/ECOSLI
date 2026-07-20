@@ -597,8 +597,6 @@ Dim val As Variant
 Dim key As Variant
 Dim ChampControl As String
 
-On Error GoTo Sortie
-
 ' -- Garde 1 : projet vide -> rien a faire ----------------
 If LenB(Trim$(CStr(Project_List.Value))) = 0 Then Exit Sub
 
@@ -666,10 +664,6 @@ On Error Resume Next
 Call G_SIRUS_UserForm.SIRUS_UI_ProjetListChange
 On Error GoTo 0
 
-Exit Sub
-
-Sortie:
-    MsgBox "Erreur Project_List_Change : " & Err.Description & vbCrLf & vbCrLf & "Verifier que la BdD TRAVAIL est accessible.", vbExclamation, "SIRUS"
 End Sub
 Private Sub Refresh_BDD_Button_Click()
 'Ouvre la base de donnees et ferme direct

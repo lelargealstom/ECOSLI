@@ -370,8 +370,6 @@ Public Sub SIRUS_RemplirListViewGeneration()
     Dim li As MSComctlLib.ListItem
     Dim nbAjoutees As Long
 
-    On Error GoTo Sortie
-
     Set wb = ActiveWorkbook
     If wb Is Nothing Then Exit Sub
     Set lv = UserForm.ListView_Generation
@@ -405,7 +403,7 @@ Public Sub SIRUS_RemplirListViewGeneration()
         ElseIf Base.State <> 1 Then
             Call Open_CONN(Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile")))
         End If
-        On Error GoTo Sortie
+        On Error GoTo 0
     End If
 
     ' Caches rows BdD - une seule requete SELECT (cible) par table.
@@ -506,11 +504,7 @@ SuivanteLigne:
     Debug.Print "    PrixRepairCatalogue    = col " & DATA_ASL_type.PrixRepairCatalogue
     Debug.Print "    PrixRepair_ProjetArchive=col " & DATA_ASL_type.PrixRepair_ProjetArchive
 
-Sortie:
     Application.ScreenUpdating = True
-    If Err.Number <> 0 Then
-        Debug.Print "ERREUR SIRUS_RemplirListViewGeneration : " & Err.Description
-    End If
 End Sub
 
 
@@ -550,8 +544,6 @@ Private Function ChargerSetDTR_BdD(ByVal nomTable As String, ByVal colonneDTR As
     Set dict = CreateObject("Scripting.Dictionary")
     dict.CompareMode = vbTextCompare
 
-    On Error GoTo Sortie
-
     Call open_REQSEL("SELECT [" & colonneDTR & "] FROM [" & nomTable & "]")
     If REQSEL Is Nothing Then GoTo Sortie
     If REQSEL.EOF And REQSEL.BOF Then GoTo Sortie
@@ -563,9 +555,6 @@ Private Function ChargerSetDTR_BdD(ByVal nomTable As String, ByVal colonneDTR As
     Next i
 
 Sortie:
-    If Err.Number <> 0 Then
-        Debug.Print "[" & nomTable & "] ChargerSetDTR_BdD : " & Err.Description
-    End If
     On Error Resume Next
     If Not REQSEL Is Nothing Then If REQSEL.State = 1 Then REQSEL.Close
     On Error GoTo 0
@@ -676,10 +665,10 @@ Private Function ChargerRowsTableBdD_Optim(ByVal nomTable As String, ByVal colon
     If Err.Number <> 0 Then
         Debug.Print "[" & nomTable & "] SELECT cible echoue (" & Err.description & "), fallback SELECT *"
         Err.Clear
-        On Error GoTo Sortie
+        On Error GoTo 0
         Call open_REQSEL("SELECT * FROM [" & nomTable & "]")
     Else
-        On Error GoTo Sortie
+        On Error GoTo 0
     End If
     If REQSEL Is Nothing Then GoTo Sortie
     If REQSEL.EOF And REQSEL.BOF Then GoTo Sortie
@@ -711,9 +700,6 @@ Private Function ChargerRowsTableBdD_Optim(ByVal nomTable As String, ByVal colon
     Loop
 
 Sortie:
-    If Err.Number <> 0 Then
-        Debug.Print "[" & nomTable & "] ChargerRowsTableBdD_Optim : " & Err.description
-    End If
     On Error Resume Next
     If Not REQSEL Is Nothing Then If REQSEL.State = 1 Then REQSEL.Close
     On Error GoTo 0
@@ -788,7 +774,6 @@ Public Function ChargerSnapShotPrixDernierParDTR() As Object
 
     sConnBdD = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
 
-    On Error GoTo Sortie
     Set conn = CreateObject("ADODB.Connection")
     conn.Open sConnBdD
     Set rs = CreateObject("ADODB.Recordset")
@@ -873,15 +858,6 @@ Cleanup:
     If Not rs Is Nothing Then If rs.State = 1 Then rs.Close
     If Not conn Is Nothing Then If conn.State = 1 Then conn.Close
     On Error GoTo 0
-
-Sortie:
-    If Err.Number <> 0 Then
-        Debug.Print "[Produit_SnapShotPrix] ChargerSnapShotPrixDernierParDTR : " & Err.description
-        On Error Resume Next
-        If Not rs Is Nothing Then If rs.State = 1 Then rs.Close
-        If Not conn Is Nothing Then If conn.State = 1 Then conn.Close
-        On Error GoTo 0
-    End If
 
     ' Cache le resultat si la charge a reussi. Sinon m_dictSnapShotPrixCache
     ' reste Nothing -> nouvelle tentative au prochain appel.
@@ -1570,8 +1546,6 @@ Private Sub DumpSnapShotBrutPourDTR(ByVal dtrCible As String)
     Dim n As Long, nTotal As Long
     Dim sExemples As String
 
-    On Error GoTo Sortie
-
     sConnBdD = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
     Set conn = CreateObject("ADODB.Connection")
     conn.Open sConnBdD
@@ -1612,13 +1586,6 @@ Cleanup:
     If Not rs Is Nothing Then If rs.State = 1 Then rs.Close
     If Not conn Is Nothing Then If conn.State = 1 Then conn.Close
     On Error GoTo 0
-    Exit Sub
-
-Sortie:
-    Debug.Print "  DumpSnapShotBrutPourDTR erreur : " & Err.description
-    On Error Resume Next
-    If Not rs Is Nothing Then If rs.State = 1 Then rs.Close
-    If Not conn Is Nothing Then If conn.State = 1 Then conn.Close
 End Sub
 
 

@@ -61,9 +61,7 @@ Private Function RecupererProfilMission(ByVal codeProjet As String, ByRef profil
 '   - Gain : -85% temps execution
 
     Dim sql As String
-    
-    On Error GoTo ErrHandler
-    
+
     ' Construction requete SQL optimisee
     sql = "SELECT [Km by year_PROJET SLI], [Servicing day by year_PROJET SLI], [PH by year_PROJET SLI], [RH by year_PROJET SLI], [Nombre de train_PROJET SLI], [Duree de circulation_PROJET SLI], [Duree de garantie_PROJET SLI] FROM [Projet_SLI$] WHERE [Nom projet_PROJET SLI] = '" & Replace(codeProjet, "'", "''") & "'"
     
@@ -89,12 +87,8 @@ Private Function RecupererProfilMission(ByVal codeProjet As String, ByRef profil
     
     ' Fermer recordset
     REQSEL.Close
-    
+
     RecupererProfilMission = True
-    Exit Function
-    
-ErrHandler:
-    RecupererProfilMission = False
 End Function
 ' =========================================================================
 ' PROCEDURE: REMPLIR OPERATING UNITS
@@ -367,8 +361,6 @@ Private Function EstPrixValide(ByVal valeur As Variant) As Boolean
 '   - 0
 '   - Non numerique
 
-    On Error GoTo InvalidValue
-    
     ' Verifier NULL ou Empty
     If IsNull(valeur) Or IsEmpty(valeur) Then
         EstPrixValide = False
@@ -412,12 +404,7 @@ Private Function EstPrixValide(ByVal valeur As Variant) As Boolean
     
     ' Prix valide
     EstPrixValide = True
-    Exit Function
-    
-InvalidValue:
-    ' Erreur conversion ? prix invalide
-    EstPrixValide = False
-    
+
 End Function
 
 ' =========================================================================
@@ -427,8 +414,6 @@ Private Function ValeurToString(ByVal valeur As Variant) As String
 ' Convertit une valeur en String pour affichage dans commentaire
 ' Gere NULL, Empty, Erreur, etc.
 
-    On Error GoTo ErrorHandler
-    
     If IsNull(valeur) Then
         ValeurToString = "NULL"
     ElseIf IsEmpty(valeur) Then
@@ -440,11 +425,7 @@ Private Function ValeurToString(ByVal valeur As Variant) As String
     Else
         ValeurToString = CStr(valeur)
     End If
-    Exit Function
-    
-ErrorHandler:
-    ValeurToString = "Valeur invalide"
-    
+
 End Function
 ' =========================================================================
 ' PROCEDURE: EXECUTER CALCUL LCC (SANS MOT DE PASSE)
@@ -454,9 +435,7 @@ Public Sub ExecuterCalculLCC(ByRef wb As Workbook)
 ' VERSION SIMPLE : Juste le script VBS pour msgbox (pas de mot de passe)
     
     Dim vbsPath As String
-    
-    On Error GoTo SafeExit
-    
+
     ' Activer le classeur Providor AVANT d'appeler les macros
     wb.Activate
     Application.Wait Now + TimeValue("00:00:01")
@@ -477,14 +456,13 @@ Public Sub ExecuterCalculLCC(ByRef wb As Workbook)
     
     ' Appeler macro LCC_Button_Click
     Application.Run "'" & wb.Name & "'!Feuil29.LCC_Button_Click"
-    
-SafeExit:
+
     ' Nettoyage du fichier VBS
     On Error Resume Next
     Application.Wait Now + TimeValue("00:00:01")
     If Len(vbsPath) > 0 Then Kill vbsPath
     On Error GoTo 0
-    
+
 End Sub
 
 ' =========================================================================
@@ -549,17 +527,10 @@ Public Function Build_DoubleClicker_VBS( ByVal msgTitleQuestion As String, ByVal
     script = script & "Loop" & vbCrLf
 
     ' Ecrit le .vbs
-    On Error GoTo Fail
     f = FreeFile
     Open vbsPath For Output As #f
     Print #f, script
     Close #f
 
     Build_DoubleClicker_VBS = vbsPath
-    Exit Function
-
-Fail:
-    On Error Resume Next
-    If f <> 0 Then Close #f
-    Build_DoubleClicker_VBS = ""
 End Function

@@ -52,8 +52,6 @@ Public Function Main_Extraction_Params(ByVal sFichier As String, ByVal sLivrable
     Dim ws As Worksheet
     Dim feuillesDispo As String
 
-    On Error GoTo ErrorHandler
-
     TurnOffFunctionality
 
     ' Propager la langue au global (utilisee dans les SQL ADODB)
@@ -96,7 +94,7 @@ Public Function Main_Extraction_Params(ByVal sFichier As String, ByVal sLivrable
     ' ETAPE 3 : Extraction selon livrable
     On Error Resume Next
     UserForm.Lb_Nb_Ref.Caption = "Il existe " & nbFiches & " references 'DTR' possedant une fiche " & sLivrable & " dans le document."
-    On Error GoTo ErrorHandler
+    On Error GoTo 0
 
     Select Case sLivrable
         Case "ATM"
@@ -120,12 +118,6 @@ Public Function Main_Extraction_Params(ByVal sFichier As String, ByVal sLivrable
 
     TurnOnFunctionality
     Set Main_Extraction_Params = wb
-    Exit Function
-
-ErrorHandler:
-    MsgBox "Erreur lors de l'extraction : " & Err.Description, vbCritical
-    Set Main_Extraction_Params = Nothing
-    TurnOnFunctionality
 End Function
 
 ' =========================================================================
@@ -172,8 +164,6 @@ Private Function ValiderFormatLivrable(ByRef wb As Workbook, ByVal typeLivrable 
     Dim nbDTRTestees As Long
     Dim nbDTRMatch As Long
 
-    On Error GoTo ValidationFailed
-
     ' Mots-cles a chercher (au moins 1 doit matcher dans la zone A1:J10)
     Select Case typeLivrable
         Case "ATM"
@@ -215,10 +205,6 @@ NextWs:
 
     ' On accepte si au moins 1 feuille DTR contient un mot-cle.
     ValiderFormatLivrable = (nbDTRMatch > 0)
-    Exit Function
-
-ValidationFailed:
-    ValiderFormatLivrable = False
 End Function
 
 

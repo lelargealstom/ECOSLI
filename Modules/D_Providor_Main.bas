@@ -86,8 +86,6 @@ Private Function InitialiserContexteProvidor(test As Boolean) As Boolean
 ' Recupere et valide les parametres du UserForm
 ' Retourne True si tout est OK, False sinon
 
-    On Error GoTo ErrHandler
-    
     ' Creer objets
     Set fso = CreateObject("Scripting.FileSystemObject")
     
@@ -140,7 +138,7 @@ Private Function InitialiserContexteProvidor(test As Boolean) As Boolean
         ' DS1 pointe pour eviter erreurs dans fonctions annexes
         On Error Resume Next
         Set DS1 = Generateur.Worksheets("DATA_ASL")
-        On Error GoTo ErrHandler
+        On Error GoTo 0
 
         Code_Projet = "ETALON"
         Projet_Abrev = "ETALON"
@@ -151,12 +149,7 @@ Private Function InitialiserContexteProvidor(test As Boolean) As Boolean
     End If
     
     InitialiserContexteProvidor = True
-    Exit Function
-    
-ErrHandler:
-    MsgBox "Erreur lors de l'initialisation Providor : " & Err.description, vbCritical
-    InitialiserContexteProvidor = False
-    
+
 End Function
 
 ' =========================================================================
@@ -346,9 +339,7 @@ Private Function CopierTemplateProvidor(ByVal chemin As String, ByVal test As Bo
 
     Dim nomFichier As String
     Dim fichierComplet As String
-    
-    On Error GoTo ErrHandler
-    
+
     If Not (test) Then
     
         ' Construire nom fichier
@@ -379,10 +370,7 @@ Private Function CopierTemplateProvidor(ByVal chemin As String, ByVal test As Bo
         Exit Function
     
     End If
-    
-ErrHandler:
-    MsgBox "Erreur lors de la copie du template Providor : " & Err.description, vbCritical
-    Set CopierTemplateProvidor = Nothing
+
 End Function
 
 ' =========================================================================

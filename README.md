@@ -102,7 +102,7 @@ Roadmap complète : voir [`Docs/SIRUS_ROADMAP.md`](Docs/SIRUS_ROADMAP.md).
 | Source PBS | `ActiveWorkbook` (jamais `ThisWorkbook`) |
 | Cadrage colonnes | `Range.Find(LookIn:=xlValues, LookAt:=xlWhole)` puis fallback `xlPart`. Stockage dans un `Type` dédié (ex : `DATA_ASL_Col`). Pas de magic number. |
 | Détection ligne d'entête | `DetecterLigneEntete(ws, libelleAncre)` — robuste aux lignes de titre au-dessus |
-| Gestion d'erreur | `On Error GoTo Sortie` + label. `MsgBox` métier (`vbCritical` / `vbExclamation`), `Debug.Print` diagnostic. |
+| Gestion d'erreur | **Pas de handler défensif** (règle inversée 2026-07-20 pour faciliter le debug avec les ingénieurs). Pas de `On Error GoTo <label>` + `MsgBox Err.Description` : les erreurs remontent naturellement à la ligne exacte (surlignage jaune VBE). Seuls sont conservés : les `On Error Resume Next` **fonctionnels** (test d'existence de feuille / clé Dictionary, `CopyFile` idempotent, patterns UI tolerants), les labels `Sortie:` utilisés en early-exit pour du nettoyage (ex. `Close_CONN`), et les `Err.Raise` explicites en pré-condition. |
 | Tableaux à l'écran | ListView ActiveX (`MSComctlLib`) en `lvwReport`, `FullRowSelect = True`, `Gridlines = True`. Pas de ListBox. |
 | Références VBA | Ne pas en ajouter — toutes déjà déclarées dans le projet |
 | Commentaires | Français sans accents (compat cp1252 / UTF-8 à l'import VBA) |

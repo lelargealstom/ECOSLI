@@ -91,7 +91,6 @@ Public Sub SIRUS_RafraichirDATA_ASL(Optional ByVal wbParam As Workbook = Nothing
     Dim dictDtrs As Object
     Dim sProjet As String
     Dim tStart As Double
-    Dim sErreur As String
 
     ' -- 1. Localiser le classeur cible -----------------------
     If wbParam Is Nothing Then Set wb = ActiveWorkbook Else Set wb = wbParam
@@ -136,9 +135,6 @@ Public Sub SIRUS_RafraichirDATA_ASL(Optional ByVal wbParam As Workbook = Nothing
     Application.ScreenUpdating = False
     Application.Calculation = xlCalculationManual
 
-    On Error GoTo CleanUp
-    sErreur = ""
-
     Call RafraichirDepuisProduit(lo, dictDtrs)
     Call RafraichirHARDSOFT(lo, dictDtrs)
     Call RafraichirDepuisInfoATM(lo, dictDtrs)
@@ -149,8 +145,6 @@ Public Sub SIRUS_RafraichirDATA_ASL(Optional ByVal wbParam As Workbook = Nothing
     Call EcrireCellulesProjetDate(wb, sProjet)
     Call TracerRefreshLog(wb, sProjet, dictDtrs.count, Timer - tStart)
 
-CleanUp:
-    If Err.Number <> 0 Then sErreur = Err.description
     Application.Calculation = xlCalculationAutomatic
     Application.ScreenUpdating = True
     ' Pas de reprotection (decision 2026-06-29 : feuille DATA_ASL libre)
@@ -159,17 +153,11 @@ CleanUp:
     ' valeurs DATA_ASL sans que l ingenieur ait a fermer/rouvrir le
     ' UserForm. Wrap en On Error : si la ListView n est pas dispo
     ' (UserForm pas charge), on ignore silencieusement.
-    If LenB(sErreur) = 0 Then
-        On Error Resume Next
-        Call G_SIRUS_PBS.SIRUS_RemplirListViewGeneration
-        On Error GoTo 0
-    End If
+    On Error Resume Next
+    Call G_SIRUS_PBS.SIRUS_RemplirListViewGeneration
+    On Error GoTo 0
 
-    If LenB(sErreur) > 0 Then
-        MsgBox "Erreur Rafraichir DATA_ASL :" & vbCrLf & vbCrLf & sErreur, vbCritical, "Rafraichir DATA_ASL"
-    Else
-        MsgBox "Rafraichissement termine." & vbCrLf & vbCrLf & dictDtrs.count & " DTR(s) traite(s)." & vbCrLf & "Projet : " & sProjet & vbCrLf & "Duree : " & Format$(Timer - tStart, "0.0") & " s.", vbInformation, "Rafraichir DATA_ASL"
-    End If
+    MsgBox "Rafraichissement termine." & vbCrLf & vbCrLf & dictDtrs.count & " DTR(s) traite(s)." & vbCrLf & "Projet : " & sProjet & vbCrLf & "Duree : " & Format$(Timer - tStart, "0.0") & " s.", vbInformation, "Rafraichir DATA_ASL"
 End Sub
 
 ' =========================================================================
@@ -229,7 +217,6 @@ Private Sub RafraichirDepuisProduit(ByVal lo As ListObject, ByVal dictDtrs As Ob
     Dim colMTBFGen As Range, colDVLHardGen As Range, colDVLSoftGen As Range
 
     cnx = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
-    On Error GoTo Sortie
     Call Open_CONN(cnx)
     ' SELECT explicit + cast DTR en String via "& ''" (force ACE OLE DB
     ' a retourner les DTRs alphanumeriques meme si les 8 premieres lignes
@@ -282,7 +269,6 @@ Private Sub RafraichirHARDSOFT(ByVal lo As ListObject, ByVal dictDtrs As Object)
     Dim dictAgreg As Object   ' { DTR_UC -> "H" / "S" / "HS" }
 
     cnx = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
-    On Error GoTo Sortie
     Call Open_CONN(cnx)
     ' Cast DTR en String (cf. note dans RafraichirDepuisProduit)
     Call open_REQSEL("SELECT [DTR_TACHEATM] & '' AS DTR_str, [HARD/SOFT] FROM [Taches_ATM$]")
@@ -359,7 +345,6 @@ Private Sub RafraichirDepuisInfoATM(ByVal lo As ListObject, ByVal dictDtrs As Ob
     Dim vTempsGen As Variant, vTempsAna As Variant
 
     cnx = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
-    On Error GoTo Sortie
     Call Open_CONN(cnx)
     ' Cast DTR en String (cf. note dans RafraichirDepuisProduit)
     Call open_REQSEL("SELECT [DTR_INFOATM] & '' AS DTR_str, [HARD/SOFT], [Temps generique de la tache_INFOATM], [Temps analytique cumule de la tache_INFOATM] FROM [Info_ATM$]")
@@ -508,8 +493,6 @@ Private Sub RafraichirPrixCatalogue(ByVal lo As ListObject, ByVal dictDtrs As Ob
     Dim key As Variant
     Dim ligneCell As Long
     Dim wasOpen As Boolean
-
-    On Error GoTo Sortie
 
     sCheminBdD = ExtraireCheminBdD()
     If LenB(sCheminBdD) = 0 Then Exit Sub
@@ -709,7 +692,6 @@ Private Sub RafraichirPrixArchive(ByVal lo As ListObject, ByVal dictDtrs As Obje
     Dim prevSpare As Variant, prevRepair As Variant
 
     cnx = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
-    On Error GoTo Sortie
     Call Open_CONN(cnx)
     ' Cast DTR en String (cf. note dans RafraichirDepuisProduit)
     Call open_REQSEL("SELECT [DTR_PROJETASL] & '' AS DTR_str, [PROJET_PROJETASL], [ISP TIS HORS FRANCE (archive)], [Prix repair (DEVISE du projet (SLI))_PROJETASL] FROM [Projet_ASL$]")
@@ -834,8 +816,6 @@ Private Sub RafraichirCalculs(ByVal ws As Worksheet, ByVal lo As ListObject, ByV
     Dim sNode As String, sDesPBS As String, sDesBDD As String
     Dim v As Variant
 
-    On Error GoTo Sortie
-
     Set colDesPBS = lo.ListColumns(COL_DESIGNATION_PBS).DataBodyRange
     Set colDesBDD = lo.ListColumns(COL_DESIGNATION_BDD).DataBodyRange
     Set colDesProv = lo.ListColumns(COL_DESIGNATION_PROVIDOR).DataBodyRange
@@ -929,10 +909,6 @@ Private Sub RafraichirCalculs(ByVal ws As Worksheet, ByVal lo As ListObject, ByV
     ' Format Comptabilite ? sur toutes les colonnes de prix (cf. comment
     ' tete de sub). Idempotent : reapplique a chaque Refresh.
     Call AppliquerFormatPrix(lo)
-    Exit Sub
-
-Sortie:
-    Debug.Print "[RafraichirCalculs] erreur : " & Err.description
 End Sub
 
 ' Helper : True si v est numerique ET different de 0. Filtre Empty, Null,
@@ -1092,7 +1068,6 @@ Public Sub Test_DumpFeuillesBdD()
     Dim rs As Object
 
     cnx = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
-    On Error GoTo Sortie
 
     Set cn = CreateObject("ADODB.Connection")
     cn.Open cnx
@@ -1108,14 +1083,6 @@ Public Sub Test_DumpFeuillesBdD()
 
     rs.Close
     cn.Close
-    Exit Sub
-
-Sortie:
-    Debug.Print "Erreur Test_DumpFeuillesBdD : " & Err.description
-    On Error Resume Next
-    If Not rs Is Nothing Then If rs.State = 1 Then rs.Close
-    If Not cn Is Nothing Then If cn.State = 1 Then cn.Close
-    On Error GoTo 0
 End Sub
 
 ' =========================================================================
@@ -1131,7 +1098,6 @@ Public Sub Test_CompterPatternsDTR()
     Dim key As Variant
 
     cnx = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
-    On Error GoTo Sortie
     Call Open_CONN(cnx)
     ' Cast DTR en String pour recuperer aussi les DTR alphanumeriques
     Call open_REQSEL("SELECT DISTINCT [DTR] & '' AS DTR_str FROM [Produit_SnapShotPrix$]")
@@ -1180,7 +1146,6 @@ Public Sub Test_CompterPatternsDTR()
     Next key
 
 Sortie:
-    If Err.Number <> 0 Then Debug.Print "ERREUR : " & Err.description
     On Error Resume Next
     Call Close_CONN(cnx)
     On Error GoTo 0
@@ -1204,7 +1169,6 @@ Public Sub Test_RafraichirPrixDryRun()
     Dim nbLignesDTR As Long, nbMatchFiltre As Long
 
     cnx = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
-    On Error GoTo Sortie
     Call Open_CONN(cnx)
     ' Cast DTR en String (cf. note RafraichirDepuisProduit)
     Call open_REQSEL("SELECT [DTR] & '' AS DTR_str, [Type], [Prix], [LeadTime], [Ref Catalogue], [Date Source] FROM [Produit_SnapShotPrix$]")
@@ -1277,7 +1241,6 @@ Public Sub Test_RafraichirPrixDryRun()
     Next key
 
 Sortie:
-    If Err.Number <> 0 Then Debug.Print "ERREUR : " & Err.description
     On Error Resume Next
     Call Close_CONN(cnx)
     On Error GoTo 0
@@ -1296,7 +1259,6 @@ Public Sub Test_DistinctRefCatalogue()
     Dim total As Long
 
     cnx = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
-    On Error GoTo Sortie
     Call Open_CONN(cnx)
     Call open_REQSEL("SELECT [Type], [Ref Catalogue] FROM [Produit_SnapShotPrix$]")
 
@@ -1345,7 +1307,6 @@ Public Sub Test_DumpSnapShotPrix()
     Dim i As Long
 
     cnx = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
-    On Error GoTo Sortie
     Call Open_CONN(cnx)
     Call open_REQSEL("SELECT * FROM [Produit_SnapShotPrix$]")
 

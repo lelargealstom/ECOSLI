@@ -46,9 +46,7 @@ Public Sub InitialiserCadrageColonnes()
     ligneteteTL = 3
     ligneteteCM = 3
     lignetetePM = 3
-    
-    On Error GoTo ErrorHandler
-    
+
     ' ======================================================================
     ' BREAKDOWN STRUCTURE (ligne 4)
     ' ======================================================================
@@ -178,12 +176,7 @@ Public Sub InitialiserCadrageColonnes()
         gp_col.CurrUnit_pjctchangerate = .rows(35).Find(What:="Project change rate (/ Euro)", LookIn:=xlValues, lookat:=xlWhole).Column
         gp_col.CurrUnit_datereviewpjctrate = .rows(35).Find(What:="Date of review for project rate", LookIn:=xlValues, lookat:=xlWhole).Column
     End With
-    
-    Exit Sub
-    
-ErrorHandler:
-    MsgBox "Erreur initialisation cadrage colonnes : " & vbCrLf & "Colonne non trouvee ou nom d'en-tete incorrect." & vbCrLf & vbCrLf & "Erreur : " & Err.description & vbCrLf & "Numero : " & Err.Number, vbCritical, "Erreur Cadrage Providor"
-    
+
 End Sub
 
 ' =========================================================================
@@ -192,9 +185,7 @@ End Sub
 Public Function ValiderCadrageColonnes() As Boolean
 ' Verifie que toutes les colonnes ont ete initialisees (> 0)
 ' Retourne True si OK, False sinon
-    
-    On Error GoTo ValidationFailed
-    
+
     ' Verifier qu'au moins une variable de chaque type est > 0
     If bs_col.NodeLevel = 0 Then GoTo ValidationFailed
     If ml_col.Name = 0 Then GoTo ValidationFailed

@@ -1056,7 +1056,6 @@ Public Sub SIRUS_UI_BtnEnvoyerClick()
     Dim feuilles() As String
 
     cheminPJ = ""
-    On Error GoTo Sortie
 
     ' -- 1. Validation des inputs ----------------------------
     sProjet = CStr(UserForm.Project_List.Value)
@@ -1206,14 +1205,6 @@ Public Sub SIRUS_UI_BtnEnvoyerClick()
     UserForm.Lbl_SIRUS_StatutEnvoi.ForeColor = RGB(39, 80, 10)
 
     MsgBox "Ticket cree avec succes !" & vbCrLf & vbCrLf & "Numero ticket  : " & sNumeroVBN & vbCrLf & "Numero import  : " & sNumeroImport & vbCrLf & "SharePoint ID  : " & ticketID & vbCrLf & vbCrLf & resultPJ, vbInformation, "SIRUS - Envoi termine"
-    Exit Sub
-
-Sortie:
-    UserForm.Lbl_SIRUS_StatutEnvoi.Caption = "Erreur : " & Err.Description
-    UserForm.Lbl_SIRUS_StatutEnvoi.ForeColor = RGB(163, 45, 45)
-    On Error Resume Next
-    If LenB(cheminPJ) > 0 Then Kill cheminPJ
-    On Error GoTo 0
 End Sub
 
 ' =========================================================================

@@ -88,8 +88,6 @@ Private Function CreateTicketREST(digest As String, userID As Long, outilID As L
     ' Pas de Title a champ non utilisa dans ATMAP
     body = "{""__metadata"":{""type"":""" & LIST_ENTITY_TYPE & """},""Numero_ticket"":""" & EscJson(numeroTicket) & """," & champImport & """Sujet"":""" & EscJson(sujet) & """,""Statut"":""" & EscJson(statut) & """,""Description"":""" & EscJson(description) & """,""Attentes"":""" & EscJson(attentes) & """,""Typedemande"":""" & EscJson(typedemande) & """,""Priorit_x00e9_"":""" & EscJson(priorite) & """,""Datecr_x00e9_ation"":""" & today & """," & champDateEst & """DemandeurId"":" & userID & ",""Assign_x00e9__x00e0_Id"":" & userID & ",""NomoutilId"":" & outilID & "}"
 
-    On Error GoTo ErrCreate
-
     xhr.Open "POST", url, False
     xhr.setRequestHeader "Accept", "application/json;odata=verbose"
     xhr.setRequestHeader "Content-Type", "application/json;odata=verbose"
@@ -104,11 +102,6 @@ Private Function CreateTicketREST(digest As String, userID As Long, outilID As L
     Else
         CreateTicketREST = "Erreur HTTP " & xhr.Status & vbCrLf & Left(resp, 500)
     End If
-    Exit Function
-
-ErrCreate:
-    CreateTicketREST = "Erreur : " & Err.Number & " a " & Err.description
-    MsgBox CreateTicketREST, vbCritical, "ATMAP a CreateTicketREST"
 
 End Function
 
@@ -138,8 +131,6 @@ Private Function AttachExcelToTicket(ticketID As Long, digest As String, tableNa
     ' -- 1. Chemin temporaire --------------------------------
     xlName = "SIRUS_" & tableName & "_" & Format(Now(), "yyyymmdd_hhmmss") & ".xlsx"
     xlPath = Environ("TEMP") & "\" & xlName
-
-    On Error GoTo ErrExcel
 
     ' -- 2. Creer le classeur --------------------------------
     Set xlApp = CreateObject("Excel.Application")
@@ -257,15 +248,6 @@ Private Function AttachExcelToTicket(ticketID As Long, digest As String, tableNa
     Else
         AttachExcelToTicket = "PJ HTTP " & uploadStatus & vbCrLf & Left(xhr.responseText, 300)
     End If
-    Exit Function
-
-ErrExcel:
-    AttachExcelToTicket = "Erreur Excel : " & Err.Number & " a " & Err.description
-    MsgBox AttachExcelToTicket, vbCritical, "ATMAP a AttachExcelToTicket"
-    On Error Resume Next
-    If Not xlWb Is Nothing Then xlWb.Close False
-    If Not xlApp Is Nothing Then xlApp.Quit
-    On Error GoTo 0
 
 End Function
 
@@ -362,8 +344,6 @@ Private Function ChercherMaxNumeroVBN() As Long
 
     maxNum = 0
 
-    On Error GoTo Sortie
-
     Set xhr = CreateObject("MSXML2.XMLHTTP.6.0")
     ' Recupere les 500 derniers tickets (tous types). Suffisant pour le
     ' max courant VBN_<nb>.
@@ -402,11 +382,6 @@ Private Function ChercherMaxNumeroVBN() As Long
     Loop
 
     ChercherMaxNumeroVBN = maxNum
-    Exit Function
-
-Sortie:
-    Debug.Print "ChercherMaxNumeroVBN erreur : " & Err.Description
-    ChercherMaxNumeroVBN = 0
 End Function
 
 ' =========================================================================
@@ -452,8 +427,6 @@ Private Function ChercherMaxNumeroImport(ByVal annee As Long) As Long
     prefixe = "IMP-" & annee & "-"
     maxNum = 0
 
-    On Error GoTo Sortie
-
     Set xhr = CreateObject("MSXML2.XMLHTTP.6.0")
     ' Recupere les 500 derniers tickets Import. Suffisant pour trouver le
     ' max de l annee en cours (au-dela les tickets sont vieux d au moins
@@ -493,11 +466,6 @@ Private Function ChercherMaxNumeroImport(ByVal annee As Long) As Long
     Loop
 
     ChercherMaxNumeroImport = maxNum
-    Exit Function
-
-Sortie:
-    Debug.Print "ChercherMaxNumeroImport erreur : " & Err.description
-    ChercherMaxNumeroImport = 0
 End Function
 
 ' =========================================================================
@@ -523,8 +491,6 @@ Public Function SIRUS_ConstruirePJ(ByRef feuillesNoms As Variant, ByVal sNomBase
     Application.DisplayAlerts = False
     Application.ScreenUpdating = False
 
-    On Error GoTo Sortie
-
     ' Nouveau classeur (par defaut 1 feuille a supprimer ensuite)
     Set wbPJ = Workbooks.Add
 
@@ -533,7 +499,7 @@ Public Function SIRUS_ConstruirePJ(ByRef feuillesNoms As Variant, ByVal sNomBase
         Set ws = Nothing
         On Error Resume Next
         Set ws = wbProjet.Worksheets(CStr(feuillesNoms(i)))
-        On Error GoTo Sortie
+        On Error GoTo 0
         If Not ws Is Nothing Then
             ws.Copy After:=wbPJ.Worksheets(wbPJ.Worksheets.count)
         End If
@@ -551,14 +517,6 @@ Public Function SIRUS_ConstruirePJ(ByRef feuillesNoms As Variant, ByVal sNomBase
     Application.ScreenUpdating = True
 
     SIRUS_ConstruirePJ = xlPath
-    Exit Function
-
-Sortie:
-    On Error Resume Next
-    If Not wbPJ Is Nothing Then wbPJ.Close False
-    Application.DisplayAlerts = True
-    Application.ScreenUpdating = True
-    SIRUS_ConstruirePJ = ""
 End Function
 
 ' =========================================================================
@@ -573,8 +531,6 @@ Public Function SIRUS_AttacherFichierAuTicket(ByVal ticketID As Long, ByVal dige
     Dim stream As Object
     Dim xlName As String
     Dim uploadStatus As Long
-
-    On Error GoTo Sortie
 
     xlName = Mid$(cheminFichier, InStrRev(cheminFichier, "\") + 1)
 
@@ -606,10 +562,6 @@ Public Function SIRUS_AttacherFichierAuTicket(ByVal ticketID As Long, ByVal dige
     Else
         SIRUS_AttacherFichierAuTicket = "PJ HTTP " & uploadStatus & vbCrLf & Left$(xhr.responseText, 300)
     End If
-    Exit Function
-
-Sortie:
-    SIRUS_AttacherFichierAuTicket = "Erreur SIRUS_AttacherFichierAuTicket : " & Err.Description
 End Function
 
 ' ============================================================
@@ -643,8 +595,6 @@ Private Function ReadFileBinary(filePath As String) As Variant
     Dim fileSize As Long
     Dim data()   As Byte
 
-    On Error GoTo ErrRead
-
     fileSize = FileLen(filePath)
     If fileSize = 0 Then Exit Function
 
@@ -655,11 +605,6 @@ Private Function ReadFileBinary(filePath As String) As Variant
     Close #fileNum
 
     ReadFileBinary = data
-    Exit Function
-
-ErrRead:
-    MsgBox "Erreur ReadFileBinary : " & Err.Number & " a " & Err.description, vbCritical, "ATMAP"
-    ReadFileBinary = Empty
 
 End Function
 
@@ -675,8 +620,6 @@ Private Function GetFormDigest() As String
     GetFormDigest = ""
     Set xhr = CreateObject("MSXML2.XMLHTTP.6.0")
 
-    On Error GoTo ErrDigest
-
     xhr.Open "POST", SITE_URL & "/_api/contextinfo", False
     xhr.setRequestHeader "Accept", "application/json;odata=verbose"
     xhr.setRequestHeader "Content-Length", "0"
@@ -684,10 +627,6 @@ Private Function GetFormDigest() As String
 
     resp = xhr.responseText
     GetFormDigest = ParseJsonString(resp, """FormDigestValue"":""")
-    Exit Function
-
-ErrDigest:
-    MsgBox "Erreur GetFormDigest : " & Err.Number & " a " & Err.description, vbCritical, "ATMAP"
 
 End Function
 
@@ -706,8 +645,6 @@ Private Function GetCurrentUserID(digest As String) As Long
 
     GetCurrentUserID = -1
     Set xhr = CreateObject("MSXML2.XMLHTTP.6.0")
-
-    On Error GoTo ErrUser
 
     xhr.Open "GET", SITE_URL & "/_api/web/currentuser?$select=Id", False
     xhr.setRequestHeader "Accept", "application/json;odata=verbose"
@@ -728,11 +665,6 @@ Private Function GetCurrentUserID(digest As String) As Long
     End If
 
     Debug.Print "Current user ID : " & GetCurrentUserID
-    Exit Function
-
-ErrUser:
-    MsgBox "Erreur GetCurrentUserID : " & Err.Number & " a " & Err.description, vbCritical, "ATMAP"
-    GetCurrentUserID = -1
 
 End Function
 
@@ -845,6 +777,3 @@ End Function
 Private Function EscSql(s As String) As String
     EscSql = Replace(s, "'", "''")
 End Function
-
-
-

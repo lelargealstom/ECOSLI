@@ -249,8 +249,6 @@ Private Function SIRUS_GetDTRFromBdD() As Collection
 
     Dim col As New Collection
 
-    On Error GoTo ErrBdD
-
     Set REQSEL = CreateObject("ADODB.Recordset")
 
     STRSEL = "SELECT [DTR Reference (issue de PBS)_PRODUIT] FROM [Produit$]"
@@ -265,17 +263,12 @@ Private Function SIRUS_GetDTRFromBdD() As Collection
         If val <> "" Then
             On Error Resume Next
             col.Add val, val
-            On Error GoTo ErrBdD
+            On Error GoTo 0
         End If
         REQSEL.MoveNext
     Loop
 
     Set SIRUS_GetDTRFromBdD = col
-    Exit Function
-
-ErrBdD:
-    ' En cas d'erreur BdD, on retourne une collection vide
-    Set SIRUS_GetDTRFromBdD = New Collection
 
 End Function
 
@@ -379,8 +372,6 @@ Public Function SIRUS_AnalyserFeuille(ByVal sTable As String, Optional ByVal sOp
     Dim totNum As Double, totDen As Double
     Dim ligneVide As Boolean
 
-    On Error GoTo Sortie
-
     ' -- 1. Localiser le classeur projet ---------------------
     Set wb = ActiveWorkbook
     If wb Is Nothing Then
@@ -393,7 +384,7 @@ Public Function SIRUS_AnalyserFeuille(ByVal sTable As String, Optional ByVal sOp
     If Len(nomFeuille) > 31 Then nomFeuille = Left$(nomFeuille, 31)
     On Error Resume Next
     Set ws = wb.Worksheets(nomFeuille)
-    On Error GoTo Sortie
+    On Error GoTo 0
     If ws Is Nothing Then
         MsgBox "Feuille '" & nomFeuille & "' introuvable dans '" & wb.Name & "'." & vbCrLf & "Generer d'abord la feuille via SIRUS_GenererFeuilleAnalyse.", vbExclamation, "SIRUS - Analyse"
         Exit Function
@@ -528,10 +519,6 @@ NextLigne:
     End If
 
     MsgBox "Analyse '" & nomFeuille & "' terminee." & vbCrLf & vbCrLf & "Taux de completude (MeQ) : " & Format(SIRUS_AnalyserFeuille * 100, "0.0") & "%" & vbCrLf & "Lignes analysees : " & (ligneMax - 2), vbInformation, "SIRUS - Analyse"
-    Exit Function
-
-Sortie:
-    MsgBox "Erreur SIRUS_AnalyserFeuille : " & Err.Description, vbCritical
 End Function
 
 ' =========================================================================
@@ -731,15 +718,13 @@ Private Sub AppliquerCommentairesEcarts(ByVal ws As Worksheet, ByVal sNomFeuille
     Dim sCourante As String, sInit As String
     Dim nbEcarts As Long
 
-    On Error GoTo Sortie
-
     Set wb = ws.Parent
     sNomSnap = sNomFeuille & "_Snap"
     If Len(sNomSnap) > 31 Then sNomSnap = Left$(sNomSnap, 31)
 
     On Error Resume Next
     Set wsSnap = wb.Worksheets(sNomSnap)
-    On Error GoTo Sortie
+    On Error GoTo 0
     ' Pas de snap = on ne fait rien (cas Creer ou snap supprime manuellement)
     If wsSnap Is Nothing Then Exit Sub
 
@@ -753,22 +738,18 @@ Private Sub AppliquerCommentairesEcarts(ByVal ws As Worksheet, ByVal sNomFeuille
             ' Retire le commentaire existant avant decision (idempotence)
             On Error Resume Next
             ws.Cells(ligne, c).ClearComments
-            On Error GoTo Sortie
+            On Error GoTo 0
 
             If sCourante <> sInit Then
                 ' Difference detectee -> commentaire avec valeur BdD initiale
                 On Error Resume Next
                 ws.Cells(ligne, c).AddComment "Valeur BdD initiale : " & sInit
                 ws.Cells(ligne, c).Comment.Shape.TextFrame.AutoSize = True
-                On Error GoTo Sortie
+                On Error GoTo 0
                 nbEcarts = nbEcarts + 1
             End If
         Next c
     Next ligne
 
     Debug.Print "[AppliquerCommentairesEcarts] " & nbEcarts & " ecart(s) tracé(s) sur '" & sNomFeuille & "'."
-    Exit Sub
-
-Sortie:
-    Debug.Print "[AppliquerCommentairesEcarts] erreur : " & Err.Description
 End Sub

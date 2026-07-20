@@ -304,8 +304,6 @@ Private Function ChargerProjetsSLI() As Object
     Dim sql As String
     Dim bOpened As Boolean
 
-    On Error GoTo Sortie
-
     Set dict = CreateObject("Scripting.Dictionary")
     dict.CompareMode = 1   ' TextCompare (case insensitive)
 
@@ -327,16 +325,6 @@ Private Function ChargerProjetsSLI() As Object
 
     Call Close_CONN(cnx)
     Set ChargerProjetsSLI = dict
-    Exit Function
-
-Sortie:
-    Debug.Print "ChargerProjetsSLI erreur : " & Err.description
-    If bOpened Then
-        On Error Resume Next
-        Call Close_CONN(cnx)
-        On Error GoTo 0
-    End If
-    Set ChargerProjetsSLI = Nothing
 End Function
 
 ' =========================================================================

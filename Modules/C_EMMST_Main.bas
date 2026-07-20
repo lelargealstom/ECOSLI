@@ -84,8 +84,6 @@ Private Function InitialiserContexteEMMST() As Boolean
 ' Recupere et valide les parametres du UserForm
 ' Retourne True si tout est OK, False sinon
 
-    On Error GoTo ErrHandler
-    
     ' Definir classeur generateur
     Set Generateur = ActiveWorkbook
     Set DS1 = Generateur.Worksheets("DATA_ASL")
@@ -133,11 +131,6 @@ Private Function InitialiserContexteEMMST() As Boolean
     End If
     
     InitialiserContexteEMMST = True
-    Exit Function
-    
-ErrHandler:
-    MsgBox "Erreur lors de l'initialisation EMMST : " & Err.description, vbCritical
-    InitialiserContexteEMMST = False
 End Function
 
 ' =========================================================================
@@ -184,9 +177,7 @@ Private Function CopierTemplateEMMST(ByVal chemin As String) As Workbook
 
     Dim nomFichier As String
     Dim templatePath As String
-    
-    On Error GoTo ErrHandler
-    
+
     ' Construire nom fichier et chemin template selon langue
     If langue = "FR" Then
         nomFichier = Projet_Abrev & "_EMMST_" & Revision & ".xlsx"
@@ -203,12 +194,7 @@ Private Function CopierTemplateEMMST(ByVal chemin As String) As Workbook
     
     ' Ouvrir fichier
     Set CopierTemplateEMMST = Workbooks.Open(chemin & "\" & nomFichier)
-    
-    Exit Function
-    
-ErrHandler:
-    MsgBox "Erreur lors de la copie du template EMMST : " & Err.description, vbCritical
-    Set CopierTemplateEMMST = Nothing
+
 End Function
 
 ' =========================================================================

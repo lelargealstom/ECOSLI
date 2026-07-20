@@ -20,9 +20,7 @@ Public Sub Extraction_Fiches_EMMST(ByRef wb As Workbook, ByVal langue As String,
     
     Dim ws As Worksheet
     Dim indexFiche As Integer
-    
-    On Error GoTo ErrorHandler
-    
+
     ' ======================================================================
     ' ETAPE 1 : Initialisation Recordset BDD
     ' ======================================================================
@@ -58,13 +56,8 @@ Public Sub Extraction_Fiches_EMMST(ByRef wb As Workbook, ByVal langue As String,
     ' Fermer recordset
     On Error Resume Next
     REQSEL_EMMST.Close
-    
-    Exit Sub
-    
-ErrorHandler:
-    MsgBox "Erreur extraction EMMST : " & Err.description, vbCritical
-    On Error Resume Next
-    REQSEL_EMMST.Close
+    On Error GoTo 0
+
 End Sub
 
 ' =========================================================================

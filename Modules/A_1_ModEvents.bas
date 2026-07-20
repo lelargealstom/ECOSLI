@@ -202,8 +202,7 @@ Public Sub VerifierVersionComplement()
     
     cheminTxt = Environ$("UserProfile") & "\Alstom\Svcs_DIS_Fr_VBN - Documents\01_Metiers\01_ISR\007 - Outils metier ISR\01. BDD SLI\11_Livraison de l'OUTIL excel BDD\VersionComplement.txt"
     cheminMacro = Environ$("UserProfile") & "\Alstom\Svcs_DIS_Fr_VBN - Documents\01_Metiers\01_ISR\007 - Outils metier ISR"
-    On Error GoTo ErreurLecture
-    
+
     Set fso = CreateObject("Scripting.FileSystemObject")
     Set fichier = fso.OpenTextFile(cheminTxt, 1)
     
@@ -221,10 +220,6 @@ Public Sub VerifierVersionComplement()
         MsgBox "Une nouvelle version du complement est disponible : " & versionDisponible & vbCrLf & "Veuillez telecharger le dernier complement sur le chemin suivant." & vbCrLf & cheminTxt, vbInformation, "Mise a jour disponible"
     End If
 
-    Exit Sub
-
-ErreurLecture:
-    MsgBox "Impossible de verifier la version du complement." & vbCrLf & "Verifiez que le fichier 'VersionComplement.txt' est bien synchronise via SharePoint.", vbExclamation
 End Sub
 
 

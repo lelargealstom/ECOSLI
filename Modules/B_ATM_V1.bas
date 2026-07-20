@@ -182,18 +182,12 @@ Private Function CopierTemplateV1(ByVal chemin As String) As Workbook
     End If
     
     ' Copier template
-    On Error GoTo ErrHandler
     Application.DisplayAlerts = False
     fso.CopyFile templatePath, chemin & "\" & nomFichier
     Application.DisplayAlerts = True
-    
+
     ' Ouvrir fichier
     Set CopierTemplateV1 = Workbooks.Open(chemin & "\" & nomFichier)
-    Exit Function
-    
-ErrHandler:
-    MsgBox "Erreur lors de la copie du template: " & Err.description, vbCritical
-    Set CopierTemplateV1 = Nothing
 End Function
 ' =========================================================================
 ' PROCEDURE: REMPLIR INDEX V1
@@ -303,7 +297,6 @@ Private Sub PrecalculerTypesDTR_BdD()
     Set dictTypeDTR = CreateObject("Scripting.Dictionary")
     dictTypeDTR.CompareMode = 1  ' BinaryCompare (DTR sensible casse)
 
-    On Error GoTo Sortie
     For j = LBound(Taches_tab, 1) To UBound(Taches_tab, 1)
         dtr = CStr(Taches_tab(j, Taches_type.dtr))
         hs = UCase$(Trim$(CStr(Taches_tab(j, Taches_type.HARD_SOFT))))
@@ -315,9 +308,6 @@ Private Sub PrecalculerTypesDTR_BdD()
             End If
         End If
     Next j
-    Exit Sub
-Sortie:
-    Debug.Print "PrecalculerTypesDTR_BdD : erreur " & Err.Description
 End Sub
 
 ' =========================================================================
@@ -442,14 +432,12 @@ End Sub
 ' du DTR doit etre marquee "A faire" (taches SOFT absentes en BdD).
 Private Function ATachesPourType(ByRef arrTaches As Variant, ByVal typeHS As String) As Boolean
     Dim j As Long
-    On Error GoTo Sortie
     For j = LBound(arrTaches, 2) To UBound(arrTaches, 2)
         If CStr(arrTaches(RC_TACHES_HARD_SOFT, j)) = typeHS Then
             ATachesPourType = True
             Exit Function
         End If
     Next j
-Sortie:
     ATachesPourType = False
 End Function
 

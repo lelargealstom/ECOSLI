@@ -96,8 +96,6 @@ Public Sub SIRUS_GenererFeuilleAnalyse(ByVal sTable As String, ByVal sOperation 
     Dim col As Collection
     Dim resp As VbMsgBoxResult
 
-    On Error GoTo Sortie
-
     ' -- 1. Validation arguments ----------------------------
     If LenB(sTable) = 0 Then
         MsgBox "SIRUS : nom de table manquant.", vbCritical
@@ -196,10 +194,6 @@ Public Sub SIRUS_GenererFeuilleAnalyse(ByVal sTable As String, ByVal sOperation 
     wsCible.Cells(SIRUS_LIGNE_DONNEES_DEBUT, 2).Select
 
     MsgBox "Feuille '" & nomFeuille & "' generee avec succes." & vbCrLf & "Statut (col 1) + " & col.Count & " champs + Commentaires (col " & (col.Count + 2) & ").", vbInformation, "SIRUS"
-    Exit Sub
-
-Sortie:
-    MsgBox "Erreur dans SIRUS_GenererFeuilleAnalyse : " & Err.Description, vbCritical
 End Sub
 
 ' =========================================================================
@@ -473,7 +467,6 @@ Private Sub PreRemplirDepuisBdD(ws As Worksheet, ByVal sTable As String, col As 
     End If
 
     ' -- Ouvrir la connexion -------------------------------
-    On Error GoTo SortieBdD
     Call Open_CONN(ChaineConnexionSIRUS)
 
     ' -- Boucle par cle ------------------------------------
@@ -554,7 +547,7 @@ Private Sub PreRemplirDepuisBdD(ws As Worksheet, ByVal sTable As String, col As 
                                     ws.Cells(ligne, i).Value = vVal
                                 End If
                             End If
-                            On Error GoTo SortieBdD
+                            On Error GoTo 0
                         End If
                     End If
                     i = i + 1
@@ -580,15 +573,6 @@ Private Sub PreRemplirDepuisBdD(ws As Worksheet, ByVal sTable As String, col As 
 
     Call Close_CONN(ChaineConnexionSIRUS)
     Debug.Print "PreRemplirDepuisBdD : " & nbOk & " trouve(s), " & nbKo & " absent(es), " & dictAbsentes.count & " colonne(s) BdD absente(s)."
-    Exit Sub
-
-SortieBdD:
-    Dim sErr As String
-    sErr = Err.description
-    On Error Resume Next
-    Call Close_CONN(ChaineConnexionSIRUS)
-    On Error GoTo 0
-    MsgBox "Erreur lors du pre-remplissage BdD :" & vbCrLf & vbCrLf & sErr & vbCrLf & vbCrLf & "SQL en cours :" & vbCrLf & sSQL, vbCritical, "SIRUS"
 End Sub
 
 ' =========================================================================
@@ -926,8 +910,6 @@ Public Sub Test_DiagnostiquerColonnesBdDFeuille()
     Dim ligne As Long
     Dim sNom As String
 
-    On Error GoTo Sortie
-
     ' -- 1. ActiveWorkbook (classeur projet ou dev ECOSLI.xlsm) ----
     ' Pas de blocage sur ThisWorkbook : la feuille de diag peut etre
     ' generee dans n'importe quel classeur visible (incluant ECOSLI.xlsm
@@ -943,7 +925,7 @@ Public Sub Test_DiagnostiquerColonnesBdDFeuille()
     Application.DisplayAlerts = False
     wb.Worksheets(FEUILLE).Delete
     Application.DisplayAlerts = True
-    On Error GoTo Sortie
+    On Error GoTo 0
 
     Set ws = wb.Worksheets.Add(After:=wb.Worksheets(wb.Worksheets.Count))
     ws.Name = FEUILLE
@@ -996,13 +978,6 @@ Public Sub Test_DiagnostiquerColonnesBdDFeuille()
     ActiveWindow.FreezePanes = True
 
     MsgBox "Feuille '" & FEUILLE & "' generee avec " & (ligne - 2) & " colonnes BdD au total." & vbCrLf & "Filtrer la colonne A pour isoler une table.", vbInformation, "SIRUS Diag"
-    Exit Sub
-
-Sortie:
-    On Error Resume Next
-    Call Close_CONN(ChaineConnexionSIRUS)
-    On Error GoTo 0
-    MsgBox "Erreur Test_DiagnostiquerColonnesBdDFeuille : " & Err.Description, vbCritical
 End Sub
 
 ' =========================================================================
@@ -1042,8 +1017,6 @@ Public Sub Test_DiagnostiquerEcartsAvecCandidats()
     Dim candidat As String
     Dim posDiff As Long
 
-    On Error GoTo Sortie
-
     Set wb = ActiveWorkbook
     If wb Is Nothing Then
         MsgBox "Aucun classeur actif.", vbExclamation
@@ -1055,7 +1028,7 @@ Public Sub Test_DiagnostiquerEcartsAvecCandidats()
     Application.DisplayAlerts = False
     wb.Worksheets(FEUILLE).Delete
     Application.DisplayAlerts = True
-    On Error GoTo Sortie
+    On Error GoTo 0
 
     Set ws = wb.Worksheets.Add(After:=wb.Worksheets(wb.Worksheets.Count))
     ws.Name = FEUILLE
@@ -1136,13 +1109,6 @@ Public Sub Test_DiagnostiquerEcartsAvecCandidats()
     ActiveWindow.FreezePanes = True
 
     MsgBox "Feuille '" & FEUILLE & "' generee. " & (ligne - 2) & " ecart(s) identifie(s)." & vbCrLf & vbCrLf & "Codes Unicode courants a surveiller :" & vbCrLf & "  39  = ' apostrophe ASCII" & vbCrLf & "  8217 = ' apostrophe typographique" & vbCrLf & "  32  = espace normal" & vbCrLf & "  160 = espace insecable (NBSP)" & vbCrLf & "  233 = e accent aigu", vbInformation, "SIRUS Diag Diff"
-    Exit Sub
-
-Sortie:
-    On Error Resume Next
-    Call Close_CONN(ChaineConnexionSIRUS)
-    On Error GoTo 0
-    MsgBox "Erreur Test_DiagnostiquerEcartsAvecCandidats : " & Err.Description, vbCritical
 End Sub
 
 ' Helpers (privates) pour la comparaison de chaines.
@@ -1212,8 +1178,6 @@ Public Sub Test_DiagnostiquerColonnesBdD()
 
     tables = Array("Produit$", "Info_ATM$", "Taches_ATM$", "EMMST$", "Projet_SLI$", "Projet_ASL$")
 
-    On Error GoTo Sortie
-
     Debug.Print "=== Test_DiagnostiquerColonnesBdD ==="
     Call Open_CONN(ChaineConnexionSIRUS)
 
@@ -1234,13 +1198,6 @@ Public Sub Test_DiagnostiquerColonnesBdD()
     Call Close_CONN(ChaineConnexionSIRUS)
     Debug.Print ""
     Debug.Print "=== Fin diagnostic ==="
-    Exit Sub
-
-Sortie:
-    On Error Resume Next
-    Call Close_CONN(ChaineConnexionSIRUS)
-    On Error GoTo 0
-    Debug.Print "Erreur Test_DiagnostiquerColonnesBdD : " & Err.Description
 End Sub
 
 ' =========================================================================
@@ -1270,8 +1227,6 @@ Private Sub DiagnostiquerEcartsTable(ByVal sTable As String, ByVal sTableSQL As 
     Dim sSQL As String
     Dim i As Long
     Dim nbTrouve As Long, nbAbsent As Long
-
-    On Error GoTo Sortie
 
     Set noms = CreateObject("Scripting.Dictionary")
     noms.CompareMode = 1  ' BinaryCompare (sensible a la casse)
@@ -1305,13 +1260,6 @@ Private Sub DiagnostiquerEcartsTable(ByVal sTable As String, ByVal sTableSQL As 
     Next def
 
     Debug.Print "  -> " & nbTrouve & " trouve(s), " & nbAbsent & " absent(s)."
-    Exit Sub
-
-Sortie:
-    On Error Resume Next
-    Call Close_CONN(ChaineConnexionSIRUS)
-    On Error GoTo 0
-    Debug.Print "Erreur DiagnostiquerEcartsTable(" & sTable & ") : " & Err.Description
 End Sub
 
 ' =========================================================================
@@ -1334,8 +1282,6 @@ Public Sub CreerSnapshotBdD(ByVal wsPrincipale As Worksheet, ByVal sNomFeuille A
     Dim wsSnap As Worksheet
     Dim sNomSnap As String
 
-    On Error GoTo Sortie
-
     Set wb = wsPrincipale.Parent
     sNomSnap = sNomFeuille & "_Snap"
     If Len(sNomSnap) > 31 Then sNomSnap = Left$(sNomSnap, 31)
@@ -1346,7 +1292,7 @@ Public Sub CreerSnapshotBdD(ByVal wsPrincipale As Worksheet, ByVal sNomFeuille A
     wb.Worksheets(sNomSnap).Visible = xlSheetVisible
     wb.Worksheets(sNomSnap).Delete
     Application.DisplayAlerts = True
-    On Error GoTo Sortie
+    On Error GoTo 0
 
     ' Copie de la feuille principale en mode "valeurs uniquement"
     wsPrincipale.Copy After:=wb.Worksheets(wb.Worksheets.count)
@@ -1361,12 +1307,8 @@ Public Sub CreerSnapshotBdD(ByVal wsPrincipale As Worksheet, ByVal sNomFeuille A
         .Value = .Value
         .ClearComments
     End With
-    On Error GoTo Sortie
+    On Error GoTo 0
 
     ' VeryHidden pour ne pas polluer la barre d onglets
     wsSnap.Visible = xlSheetVeryHidden
-    Exit Sub
-
-Sortie:
-    Debug.Print "CreerSnapshotBdD(" & sNomFeuille & ") : " & Err.Description
 End Sub

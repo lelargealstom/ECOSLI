@@ -37,9 +37,8 @@ End Function
 Public Function Test_feuille(FeuilleAVerifier As String) As Boolean
 'fonction qui verifie si la "FeuilleAVerifier" existe dans le Classeur actif
 
-    On Error GoTo SiErreur
     Dim feuille
-        
+
         Test_feuille = False
         For Each feuille In Sheets
             If UCase(feuille.Name) = UCase(FeuilleAVerifier) Then
@@ -47,10 +46,6 @@ Public Function Test_feuille(FeuilleAVerifier As String) As Boolean
                 Exit Function
             End If
         Next feuille
-    Exit Function
-    
-SiErreur:
-        Test_feuille = CVErr(xlErrNA)
 End Function
 Public Function Niv_Maintenance(tableau As Variant, projet As String) As String
 'Fonction qui permet de recuperer le niveau de maintenance d'un projet
@@ -418,14 +413,12 @@ Public Function Test_Connexion(chaineconnexion As String) As Variant
 
     Dim result(1) As Variant
     Dim conn As Object
-    
-    On Error GoTo ErrHandler
-    
+
     ' Creation de la connexion
     Set conn = CreateObject("ADODB.Connection")
     conn.ConnectionString = Replace(chaineconnexion, "UserProfile", Environ$("UserProfile"))
     conn.Open
-    
+
     ' Si la connexion est ouverte
     If conn.State = 1 Then
         result(0) = "Connexion reussie a la base de donnees."
@@ -434,17 +427,11 @@ Public Function Test_Connexion(chaineconnexion As String) As Variant
         result(0) = "Echec de la connexion a la base de donnees."
         result(1) = vbCritical
     End If
-    
+
     ' Fermer la connexion
     conn.Close
     Set conn = Nothing
-    
-    Test_Connexion = result
-    Exit Function
 
-ErrHandler:
-    result(0) = "Erreur lors de la connexion : " & Err.description
-    result(1) = vbCritical
     Test_Connexion = result
 End Function
 Public Sub SynchroBDD()
@@ -482,8 +469,6 @@ End Function
 Public Function RechercheValeurdansRS(rs As ADODB.Recordset, valeur As String, field As String) As Boolean
 ' Fonction qui verifie la presence d'une valeur dans un Recordset en utilisant Filter
 
-On Error GoTo ErrHandler
-
 ' Verifier si le recordset est valide et ouvert
 If rs Is Nothing Or rs.State <> adStateOpen Then
     RechercheValeurdansRS = False
@@ -509,10 +494,6 @@ End If
 ' Reinitialiser le filtre
 rs.Filter = ""
 
-Exit Function
-
-ErrHandler:
-    RechercheValeurdansRS = False
 End Function
 Public Function DictToArray2D(ByVal dict As Object) As Variant
 'Fonction qui permet de creer un tableau a partir d'un dictionnaire
@@ -609,17 +590,11 @@ Public Function ExecNonQuery(ByVal sqlText As String, Optional ByVal commandTime
     If Base Is Nothing Then
         Err.Raise vbObjectError + 513, "ExecNonQuery", "La connexion 'Base' n'est pas initialisee."
     End If
-    
-    On Error GoTo EH
+
     Base.commandTimeout = commandTimeout
     Base.Execute sqlText, rowsAffected, adCmdText
-    
+
     ExecNonQuery = rowsAffected
-    Exit Function
-    
-EH:
-    ' Remonte l'erreur avec le SQL pour diagnostic
-    Err.Raise Err.Number, "ExecNonQuery", "Erreur sur ExecNonQuery: " & Err.description & vbCrLf & "SQL: " & sqlText
 End Function
 
 Public Function open_REQSEL1(STRSEL_text As String, targetRecordset As String)

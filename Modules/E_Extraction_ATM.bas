@@ -21,9 +21,7 @@ Public Sub Extraction_Fiches_ATM(ByRef wb As Workbook, ByVal langue As String, B
     
     Dim ws As Worksheet
     Dim indexFiche As Integer
-    
-    On Error GoTo ErrorHandler
-    
+
     ' ======================================================================
     ' ETAPE 1 : Initialisation Recordsets BDD
     ' ======================================================================
@@ -63,14 +61,8 @@ Public Sub Extraction_Fiches_ATM(ByRef wb As Workbook, ByVal langue As String, B
     On Error Resume Next
     REQSEL_INFO.Close
     REQSEL_TACHES.Close
-    
-    Exit Sub
-    
-ErrorHandler:
-    MsgBox "Erreur extraction ATM : " & Err.description, vbCritical
-    On Error Resume Next
-    REQSEL_INFO.Close
-    REQSEL_TACHES.Close
+    On Error GoTo 0
+
 End Sub
 
 ' =========================================================================
@@ -354,9 +346,7 @@ Private Function RecupererTempsTotal(ByRef ws As Worksheet, ByVal langue As Stri
     
     Dim celluleTemps As Range
     Dim texteRecherche As String
-    
-    On Error GoTo ErrorHandler
-    
+
     ' Determiner texte a rechercher
     If langue = "FR" Then
         texteRecherche = "Temps total :"
@@ -372,12 +362,7 @@ Private Function RecupererTempsTotal(ByRef ws As Worksheet, ByVal langue As Stri
     Else
         RecupererTempsTotal = 0
     End If
-    
-    Exit Function
-    
-ErrorHandler:
-    RecupererTempsTotal = 0
-    
+
 End Function
 
 ' =========================================================================
