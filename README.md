@@ -1,15 +1,4 @@
-MTBF intrinseque Produit (h) issu de la datasheet _PRODUIT
-Duree de vie generique Produit HARDWARE (annee)_PRODUIT
-Duree de vie generique Produit (annee) SOFTWARE _PRODUIT
-OK FULL : MTBF + DVL HARD/SOFT obligatoire
-
-MTBF : MTBF obligatoire
-
-MTBF + DVL HARD : MTBF + DVL HARD obligatoire
-
-MTBF + DVL SOFT : DVL SOFT obligatoire
-
-NA : Aucun champ RAM obligatoire
+C:\Users\201057333\Alstom\DIS Service VBN Pole ISR - Outils Métier ISR\01. BDD SLI\11_Livraison de l'OUTIL excel BDD\ETL_BDD_data
 
 
 # ECOSLI.xlam
