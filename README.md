@@ -1,3 +1,7 @@
+MTBF intrinseque Produit (h) issu de la datasheet _PRODUIT
+Duree de vie generique Produit HARDWARE (annee)_PRODUIT
+Duree de vie generique Produit (annee) SOFTWARE _PRODUIT
+
 # ECOSLI.xlam
 
 Complément Excel VBA (add-in) développé pour **Alstom Services Villeurbanne**, équipe **LGM / ISR**. Il automatise la production des livrables SLI (Support Logistique Intégré) à partir d'une PBS projet (`DATA_ASL`) et propose un pipeline (**SIRUS**) de demande d'import / modification / suppression de DTR dans la BdD SLI Alstom.
