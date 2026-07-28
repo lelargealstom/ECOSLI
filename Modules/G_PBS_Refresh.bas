@@ -686,7 +686,7 @@ End Function
 ' on retient le projet alphabetiquement premier (StrComp asc) pour chaque
 ' DTR. Pas d AVG. Le prix retenu = celui du projet retenu, source
 ' tracable par la ListView Generation via dictProjetASL_Rows.
-'   [ISP TIS HORS FRANCE (archive)]                  -> col AN
+'   [Prix spare (DEVISE du projet (SLI))_PROJETASL]  -> col AN
 '   [Prix repair (DEVISE du projet (SLI))_PROJETASL] -> col AO
 Private Sub RafraichirPrixArchive(ByVal lo As ListObject, ByVal dictDtrs As Object, ByVal sProjetCourant As String)
     Dim cnx As String
@@ -702,7 +702,7 @@ Private Sub RafraichirPrixArchive(ByVal lo As ListObject, ByVal dictDtrs As Obje
     cnx = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
     Call Open_CONN(cnx)
     ' Cast DTR en String (cf. note dans RafraichirDepuisProduit)
-    Call open_REQSEL("SELECT [DTR_PROJETASL] & '' AS DTR_str, [PROJET_PROJETASL], [ISP TIS HORS FRANCE (archive)], [Prix repair (DEVISE du projet (SLI))_PROJETASL] FROM [Projet_ASL$]")
+    Call open_REQSEL("SELECT [DTR_PROJETASL] & '' AS DTR_str, [PROJET_PROJETASL], [Prix spare (DEVISE du projet (SLI))_PROJETASL], [Prix repair (DEVISE du projet (SLI))_PROJETASL] FROM [Projet_ASL$]")
 
     If REQSEL Is Nothing Then GoTo Sortie
     If REQSEL.EOF And REQSEL.BOF Then GoTo Sortie
@@ -718,7 +718,7 @@ Private Sub RafraichirPrixArchive(ByVal lo As ListObject, ByVal dictDtrs As Obje
         If LenB(sDTR) > 0 And LenB(sProjet) > 0 And UCase$(sProjet) <> UCase$(sProjetCourant) Then
             sUC = UCase$(sDTR)
             If dictDtrs.Exists(sUC) Then
-                vSpare = REQSEL.Fields("ISP TIS HORS FRANCE (archive)").Value
+                vSpare = REQSEL.Fields("Prix spare (DEVISE du projet (SLI))_PROJETASL").Value
                 vRepair = REQSEL.Fields("Prix repair (DEVISE du projet (SLI))_PROJETASL").Value
 
                 ' Spare : on retient le projet alpha 1er (StrComp ascendant)

@@ -10,6 +10,17 @@ Format : `[Date] — Auteur — Périmètre`, puis liste des changements par mod
 
 Session focus : produire un livrable HTML autonome présentant l'algorithme de calcul MeQ de la table Produit à un public d'ingénieurs métier (non-gouvernance BdD). Puis corriger un bug d'affichage des prix dans le Refresh DATA_ASL.
 
+### Fix — Nom colonne BdD Prix Spare archive (renommage v0.2)
+
+**Symptôme** : après le fix ellipsis Unicode ci-dessous, `Btn_Rafraichir_DataPBS` levait une nouvelle erreur ADODB `Aucune valeur donnée pour un ou plusieurs des paramètres requis` sur le SELECT `Projet_ASL$`.
+
+**Cause** : la colonne `[ISP TIS HORS FRANCE (archive)]` référencée dans `RafraichirPrixArchive` est un ancien nom BdD. Depuis la refonte v0.2, la colonne Prix Spare archive de `Projet_ASL$` est nommée uniformément `Prix spare (DEVISE du projet (SLI))_PROJETASL` (cf. config `G_SIRUS_Config.bas:563` + doc `SIRUS_REGLES.md` l. 59). ACE ne trouvant pas la colonne l'interprétait comme paramètre `?` → erreur.
+
+**Fix** : `G_PBS_Refresh.bas` sub `RafraichirPrixArchive` (l. 691-778) — 3 occurrences alignées sur le nouveau nom BdD :
+- Commentaire d'header l. 689
+- SELECT l. 705
+- `REQSEL.Fields(...)` l. 721
+
 ### Fix — Nom colonne BdD Node Type Produit (ellipsis Unicode)
 
 **Symptôme** : le bouton `Btn_Rafraichir_DataPBS` levait l'erreur ADODB `'  ' n'est pas un nom valide. Assurez-vous qu'il ne comprend pas de caractères ou de ponctuation incorrects et qu'il n'est pas trop long.`
