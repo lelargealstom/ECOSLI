@@ -1,4 +1,15 @@
-ISP TIS HORS FRANCE (archive)
+1. ISP TIS HORS FRANCE (archive)_PROJETASL je l'ai renommé dans la base 
+  2. Projet ASL                                                                                                           
+  a) Colonne Gate : 'GATE_PROJETASL'                                                                                      
+  Valeurs possible : "Offre" / "PGR" / "CGR" / "FEI"                                                                      
+  La gate représente l'avancement du projet en fonction des livraisons intermédiaire du matériel oui. Plusieurs données   
+  doivent être obligatoire et d'autres non renseignés à chaque gate.                                                      
+                                                                                                                          
+  b) Gate = Offre; Champs obligatoires :                                                                                  
+  - 'PROJET_PROJETASL'                                                                                                    
+  - 'Sous Systeme_PROJETASL'                                                                                              
+  - 'Q PBS_PROJETASL'                                                                                                     
+  - 'ISP TIS HORS FRANCE (archive)_PROJETASL' si 'Node typed PROJET_PROJETASL' 
 
 # ECOSLI.xlam
 
