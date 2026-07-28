@@ -83,8 +83,13 @@ Public Function SIRUS_RegleObligatoire(ByVal sTable As String, ByVal sColonneBdD
             ' prerequis Pose) sur les composants >= SRU (LRU exclus :
             ' demontage complet du LRU, pas d'outillage detaille).
             Dim rangO As String, ntO As String
+            ' Nom BdD reel : ellipsis Unicode U+2026 (pas 3 points ASCII).
+            ' Construit via ChrW pour survivre a tout export/re-import du
+            ' .bas (fichier ASCII pur). Le litteral "..." avait ete perdu
+            ' -> GetVal renvoyait Empty -> la regle Outillage 2.1/5.1
+            ' etait systematiquement False (bug silencieux).
             rangO = CStr(GetVal(ligne, "Rang_TACHEATM"))
-            ntO = UCase$(Trim$(CStr(GetVal(ligne, "Node type Produit (LRU/SRU...)_PRODUIT"))))
+            ntO = UCase$(Trim$(CStr(GetVal(ligne, "Node type Produit (LRU/SRU" & ChrW(&H2026) & ")_PRODUIT"))))
             SIRUS_RegleObligatoire = ((rangO = "2.1" Or rangO = "5.1") And (ntO = "SRU" Or ntO = "SRUNR" Or ntO = "ASSEMBLY"))
 
         ' ----------------- InfoATM -----------------

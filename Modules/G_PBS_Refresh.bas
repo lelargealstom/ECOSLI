@@ -215,13 +215,21 @@ Private Sub RafraichirDepuisProduit(ByVal lo As ListObject, ByVal dictDtrs As Ob
     Dim ligne As Long
     Dim colDesi As Range, colNode As Range, colPlan As Range
     Dim colMTBFGen As Range, colDVLHardGen As Range, colDVLSoftGen As Range
+    Dim sColNodeProd As String
+
+    ' Nom BdD reel : contient un ellipsis Unicode U+2026 ("...") pas 3 points
+    ' ASCII. Construit via ChrW pour survivre a tout export/re-import du .bas
+    ' quel que soit l encoding (le fichier .bas est ASCII pur : ecrire le
+    ' caractere en dur a deja ete perdu -> ACE ne trouvait plus la colonne
+    ' et levait "'  ' n est pas un nom valide").
+    sColNodeProd = "Node type Produit (LRU/SRU" & ChrW(&H2026) & ")_PRODUIT"
 
     cnx = Replace(CONNEXION_EXCEL_BDD_TRAVAIL, "UserProfile", Environ$("UserProfile"))
     Call Open_CONN(cnx)
     ' SELECT explicit + cast DTR en String via "& ''" (force ACE OLE DB
     ' a retourner les DTRs alphanumeriques meme si les 8 premieres lignes
     ' sont numeriques).
-    Call open_REQSEL("SELECT [DTR] & '' AS DTR_str, [Designation_PRODUIT], [Node type Produit (LRU/SRU...)_PRODUIT], [Drawing number], [MTBF intrinseque Produit (h) issu de la datasheet _PRODUIT], [Duree de vie generique Produit HARDWARE (annee)_PRODUIT], [Duree de vie generique Produit (annee) SOFTWARE _PRODUIT] FROM [Produit$]")
+    Call open_REQSEL("SELECT [DTR] & '' AS DTR_str, [Designation_PRODUIT], [" & sColNodeProd & "], [Drawing number], [MTBF intrinseque Produit (h) issu de la datasheet _PRODUIT], [Duree de vie generique Produit HARDWARE (annee)_PRODUIT], [Duree de vie generique Produit (annee) SOFTWARE _PRODUIT] FROM [Produit$]")
 
     If REQSEL Is Nothing Then GoTo Sortie
     If REQSEL.EOF And REQSEL.BOF Then GoTo Sortie
@@ -240,7 +248,7 @@ Private Sub RafraichirDepuisProduit(ByVal lo As ListObject, ByVal dictDtrs As Ob
             If dictDtrs.Exists(sUC) Then
                 ligne = CLng(dictDtrs(sUC))
                 colDesi.Cells(ligne, 1).Value = NzS(GetFieldSafe(REQSEL, "Designation_PRODUIT"))
-                colNode.Cells(ligne, 1).Value = NzS(GetFieldSafe(REQSEL, "Node type Produit (LRU/SRU...)_PRODUIT"))
+                colNode.Cells(ligne, 1).Value = NzS(GetFieldSafe(REQSEL, sColNodeProd))
                 colPlan.Cells(ligne, 1).Value = NzS(GetFieldSafe(REQSEL, "Drawing number"))
                 colMTBFGen.Cells(ligne, 1).Value = GetFieldSafe(REQSEL, "MTBF intrinseque Produit (h) issu de la datasheet _PRODUIT")
                 colDVLHardGen.Cells(ligne, 1).Value = GetFieldSafe(REQSEL, "Duree de vie generique Produit HARDWARE (annee)_PRODUIT")

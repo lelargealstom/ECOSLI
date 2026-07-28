@@ -10,6 +10,18 @@ Format : `[Date] — Auteur — Périmètre`, puis liste des changements par mod
 
 Session focus : produire un livrable HTML autonome présentant l'algorithme de calcul MeQ de la table Produit à un public d'ingénieurs métier (non-gouvernance BdD). Puis corriger un bug d'affichage des prix dans le Refresh DATA_ASL.
 
+### Fix — Nom colonne BdD Node Type Produit (ellipsis Unicode)
+
+**Symptôme** : le bouton `Btn_Rafraichir_DataPBS` levait l'erreur ADODB `'  ' n'est pas un nom valide. Assurez-vous qu'il ne comprend pas de caractères ou de ponctuation incorrects et qu'il n'est pas trop long.`
+
+**Cause** : même racine que le fix EUR ci-dessous. Le nom réel de la colonne BdD est `Node type Produit (LRU/SRU…)_PRODUIT` avec un ellipsis Unicode `…` (U+2026), pas trois points ASCII `...`. Le fichier `.bas` étant ASCII pur, le caractère avait été perdu et remplacé par `...`. ACE OLE DB ne trouvait donc pas la colonne dans le SELECT.
+
+**Fix** :
+- `G_PBS_Refresh.bas` sub `RafraichirDepuisProduit` (l. 212-265) : local `sColNodeProd = "Node type Produit (LRU/SRU" & ChrW(&H2026) & ")_PRODUIT"`, utilisé dans le SELECT et le `GetFieldSafe`.
+- `G_SIRUS_Regles.bas` `SIRUS_RegleObligatoire` case Outillage Standard/Spécifique (l. 80-88) : idem pour le `GetVal`. Bug silencieux corrigé — la règle renvoyait systématiquement `False` parce que la clé du dict ne matchait pas, donc les champs `OutillageStandard_TACHEATM`/`OutillageSpecifique_TACHEATM` n'étaient jamais marqués obligatoires sur les tâches rang 2.1/5.1.
+
+**Note** : `G_SIRUS_Config.bas` l. 551 contient aussi `LRU/SRU...` dans le champ `SourceHeritage` de ProjetASL.NodeType. Ce champ est stocké mais jamais lu ailleurs (métadonnée décorative pour l'instant) — pas de fix nécessaire. À harmoniser lors du chantier futur d'héritage cross-table.
+
 ### Fix — Format prix DATA_ASL Refresh (symbole EUR)
 
 **Symptôme** : après un Refresh, les 10 colonnes de prix de DATA_ASL (Z, AA, AB, AE, AH, AJ, AL, AM, AN, AO) affichaient `1 234,56 ?` au lieu de `1 234,56 €`.
