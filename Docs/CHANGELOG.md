@@ -6,6 +6,54 @@ Format : `[Date] — Auteur — Périmètre`, puis liste des changements par mod
 
 ---
 
+## 2026-07-28 — Livrable client MeQ Produit + fix format prix Refresh DATA_ASL
+
+Session focus : produire un livrable HTML autonome présentant l'algorithme de calcul MeQ de la table Produit à un public d'ingénieurs métier (non-gouvernance BdD). Puis corriger un bug d'affichage des prix dans le Refresh DATA_ASL.
+
+### Fix — Format prix DATA_ASL Refresh (symbole EUR)
+
+**Symptôme** : après un Refresh, les 10 colonnes de prix de DATA_ASL (Z, AA, AB, AE, AH, AJ, AL, AM, AN, AO) affichaient `1 234,56 ?` au lieu de `1 234,56 €`.
+
+**Cause** : le fichier `Modules/G_PBS_Refresh.bas` est en ASCII pur. Le symbole `€` (0x80 en Windows-1252 / U+20AC en Unicode) présent dans la chaîne de format `fmt` de `AppliquerFormatPrix` avait été perdu à un moment (probable export/import avec encoding incompatible) et remplacé littéralement par `?` (0x3F). `AppliquerFormatPrix` étant appelée à la fin de `RafraichirCalculs`, elle **écrase** systématiquement le format des colonnes prix à chaque Refresh — donc corriger le template Excel n'aurait rien changé.
+
+**Fix** : dans `G_PBS_Refresh.bas` sub `AppliquerFormatPrix` (l. 942-970), introduction d'un local `sEuro = ChrW(&H20AC)` et recomposition de `fmt` par concaténation. Le fichier `.bas` reste 100 % ASCII, insensible à toute conversion d'encoding future. Même convention que `ChrW(&H2026)` utilisé pour l'ellipsis du NodeType Produit dans `G_SIRUS_Regles.EstObligatoire_Produit`.
+
+### Livrable client HTML
+
+Session focus : produire un livrable HTML autonome présentant l'algorithme de calcul MeQ de la table Produit à un public d'ingénieurs métier (non-gouvernance BdD).
+
+### Livrable créé
+
+- **`Docs/SIRUS_MeQ_Produit.html`** : document standalone (aucune dépendance JS/CDN, ouvrable double-clic hors ligne, imprimable A4 via `@media print`).
+
+### Contenu du livrable
+
+- **Formule MeQ** : `MeQ = champs remplis / champs attendus × 100`, poids uniforme (1 champ = 1 point).
+- **Pilotes du contexte** : `Motif NA`, `Motif Préventif`, `Node Type` — les 3 variables qui font varier le dénominateur.
+- **Arbre de décision SVG inline** — cœur du document :
+  - Racine "Fiche Produit" en haut.
+  - 3 niveaux de questions : `Motif NA ?` (2 branches) → `Motif Préventif ?` (4 branches) → `Réparable ?` (2 branches ×4).
+  - **9 feuilles terminales** en base de l'arbre avec le nombre de champs attendus en gros + contexte lisible sous le nombre.
+  - Feuille min (3, orange) et feuille max (19, vert) mises en évidence ; 7 feuilles neutres.
+- **Tableau récap des champs** : 19 champs comptés répartis en 5 blocs (Base, Identification, Cycle préventif, Prix Spare, Prix Repair) + ligne grise des 6 champs libres exclus du MeQ.
+
+### Cible / ton
+
+- Public : ingénieurs métier qui ne connaissent pas la gouvernance BdD.
+- Ton pédagogique, vocabulaire explicité (DTR, LRU, SRU, LRUNR, MTBF, DVL, MoQ) dans la 1re itération puis réduit à l'essentiel dans la version finale simplifiée.
+- Zéro jargon SIRUS/ATMAP dans le corps du document (mention uniquement en footer comme source de vérité).
+
+### Itérations
+
+- **v1** : version détaillée (5 blocs colorés, encart vocabulaire, encart SnapShotPrix, exemple explicite, résumé — ~500 lignes).
+- **v2 (retenue)** : simplification demandée par Thomas — focus sur l'algorithme, arbre SVG au centre avec les 9 cas terminaux en base, reste réduit au minimum (~250 lignes).
+
+### Alignement avec la source de vérité
+
+Livrable construit à partir de `Docs/SIRUS_REGLES.md` (section Table Produit) et vérifié contre `G_SIRUS_Regles.EstObligatoire_Produit` (7 étages de décision). Aucune modification de code VBA cette session.
+
+---
+
 ## 2026-07-08 — Sprint 2 bis : Consolidation MeQ + ADODB pur SnapShotPrix
 
 Session focus : rendre la formule MeQ identique entre la ListView Generation et l'analyse SIRUS feuille pour un même DTR + basculer la lecture SnapShotPrix sur ADODB pur (BdD fermée) après ajustements côté BdD.

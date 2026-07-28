@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>MeQ Produit — algorithme</title>
+<style>
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 28px 32px 60px 32px;
+    color: #222;
+    line-height: 1.5;
+  }
+  h1 {
+    color: #1f4e79;
+    border-bottom: 3px solid #1f4e79;
+    padding-bottom: 8px;
+    margin: 0 0 12px 0;
+  }
+  h2 {
+    color: #1f4e79;
+    margin-top: 32px;
+    font-size: 18px;
+    border-left: 4px solid #1f4e79;
+    padding-left: 10px;
+  }
+  .lead {
+    background: #f6f8fb;
+    border-left: 4px solid #1f4e79;
+    padding: 12px 16px;
+    margin: 12px 0;
+    font-size: 15px;
+  }
+  .formula {
+    text-align: center;
+    padding: 12px 16px;
+    background: #eef3f9;
+    border-radius: 6px;
+    margin: 16px 0;
+    font-size: 17px;
+    font-weight: 600;
+    color: #1f4e79;
+    letter-spacing: 0.3px;
+  }
+  .pilotes {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin: 12px 0;
+    font-size: 13px;
+    flex-wrap: wrap;
+  }
+  .pilote {
+    padding: 6px 12px;
+    background: #fff;
+    border: 1px solid #1f4e79;
+    border-radius: 20px;
+    color: #1f4e79;
+    font-weight: 600;
+  }
+  .tree-wrap {
+    background: #fafbfd;
+    border: 1px solid #cfd6dd;
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 12px;
+    overflow-x: auto;
+  }
+  table.champs {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 8px;
+  }
+  table.champs td {
+    padding: 6px 10px;
+    border: 1px solid #cfd6dd;
+    vertical-align: top;
+  }
+  table.champs .grp {
+    font-weight: 600;
+    color: #1f4e79;
+    background: #eef3f9;
+    width: 190px;
+  }
+  footer {
+    margin-top: 40px;
+    font-size: 11px;
+    color: #666;
+    text-align: center;
+    border-top: 1px solid #cfd6dd;
+    padding-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+<h1>MeQ Produit — algorithme de décision</h1>
+
+<p class="lead">
+  Le <strong>MeQ</strong> mesure la complétude d'une fiche produit dans le référentiel SLI.
+  Le dénominateur — le nombre de champs attendus — <strong>varie selon le contexte</strong> de la fiche : consommable ou réparable, avec ou sans cycle préventif.
+  L'arbre ci-dessous montre les <strong>9 cas terminaux possibles</strong>, du minimum (3 champs) au maximum (19 champs).
+</p>
+
+<div class="formula">
+  MeQ = champs remplis / champs attendus &times; 100
+</div>
+
+<div class="pilotes">
+  <span class="pilote">Motif NA</span>
+  <span class="pilote">Motif Préventif</span>
+  <span class="pilote">Node Type</span>
+</div>
+
+<h2>Arbre de décision — 3 questions, 9 issues</h2>
+
+<div class="tree-wrap">
+<svg viewBox="0 0 1000 560" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+
+<defs>
+  <style>
+    .n-root { fill: #1f4e79; }
+    .n-root text { fill: #fff; font-weight: 700; font-size: 14px; }
+    .n-q { fill: #fff; stroke: #1f4e79; stroke-width: 2; }
+    .n-q text { fill: #1f4e79; font-weight: 600; font-size: 13px; }
+    .n-leaf { fill: #fff; stroke: #1f4e79; stroke-width: 1.5; }
+    .n-leaf-max { fill: #e6f2e6; stroke: #2e7d32; stroke-width: 2; }
+    .n-leaf-min { fill: #fbeadb; stroke: #b45f06; stroke-width: 2; }
+    .leaf-nb { font-size: 24px; font-weight: 700; fill: #1f4e79; }
+    .leaf-nb-max { fill: #1b5e20; }
+    .leaf-nb-min { fill: #7a3e00; }
+    .leaf-lbl { font-size: 10.5px; fill: #444; }
+    .edge { stroke: #6b7684; stroke-width: 1.5; fill: none; }
+    .edge-lbl { font-size: 11px; fill: #333; font-weight: 600; }
+    .edge-lbl-bg { fill: #fafbfd; }
+    text { font-family: "Segoe UI", Arial, sans-serif; text-anchor: middle; }
+  </style>
+</defs>
+
+<!-- ============ LEVEL 0 : RACINE ============ -->
+<rect class="n-root" x="430" y="20" width="140" height="36" rx="6"/>
+<text x="500" y="43">Fiche Produit</text>
+
+<!-- ============ LEVEL 1 : Motif NA ? ============ -->
+<line class="edge" x1="500" y1="56" x2="500" y2="90"/>
+<rect class="n-q" x="425" y="90" width="150" height="36" rx="6"/>
+<text x="500" y="112">Motif NA ?</text>
+
+<!-- ============ Branche NA vers feuille "3" ============ -->
+<path class="edge" d="M 500,126 L 500,160 L 130,160 L 130,190"/>
+<rect class="edge-lbl-bg" x="290" y="150" width="60" height="18"/>
+<text class="edge-lbl" x="320" y="163">= NA</text>
+
+<!-- Feuille "3" -->
+<rect class="n-leaf-min" x="30" y="190" width="200" height="66" rx="8"/>
+<text class="leaf-nb leaf-nb-min" x="70" y="230">3</text>
+<text class="leaf-lbl" x="160" y="220">Base seule</text>
+<text class="leaf-lbl" x="160" y="235">Fiche non-applicable</text>
+<text class="leaf-lbl" x="160" y="250">(min)</text>
+
+<!-- ============ Branche != NA vers Q2 ============ -->
+<path class="edge" d="M 500,126 L 500,190"/>
+<rect class="edge-lbl-bg" x="510" y="145" width="60" height="18"/>
+<text class="edge-lbl" x="540" y="158">≠ NA</text>
+
+<!-- ============ LEVEL 2 : Motif Préventif ? ============ -->
+<rect class="n-q" x="380" y="190" width="240" height="36" rx="6"/>
+<text x="500" y="212">Motif Préventif ?</text>
+
+<!-- ============ 4 branches vers 4 Réparable ? ============ -->
+<!-- Vers Rép?#1 (NA) center x=170 -->
+<path class="edge" d="M 500,226 L 500,260 L 170,260 L 170,300"/>
+<rect class="edge-lbl-bg" x="315" y="250" width="40" height="18"/>
+<text class="edge-lbl" x="335" y="263">NA</text>
+
+<!-- Vers Rép?#2 (HARD) center x=390 -->
+<path class="edge" d="M 500,226 L 500,260 L 390,260 L 390,300"/>
+<rect class="edge-lbl-bg" x="415" y="250" width="50" height="18"/>
+<text class="edge-lbl" x="440" y="263">HARD</text>
+
+<!-- Vers Rép?#3 (SOFT) center x=610 -->
+<path class="edge" d="M 500,226 L 500,260 L 610,260 L 610,300"/>
+<rect class="edge-lbl-bg" x="540" y="250" width="50" height="18"/>
+<text class="edge-lbl" x="565" y="263">SOFT</text>
+
+<!-- Vers Rép?#4 (BOTH) center x=830 -->
+<path class="edge" d="M 500,226 L 500,260 L 830,260 L 830,300"/>
+<rect class="edge-lbl-bg" x="660" y="250" width="55" height="18"/>
+<text class="edge-lbl" x="687" y="263">BOTH</text>
+
+<!-- ============ LEVEL 3 : 4 x Réparable ? ============ -->
+<rect class="n-q" x="110" y="300" width="120" height="36" rx="6"/>
+<text x="170" y="322">Réparable ?</text>
+
+<rect class="n-q" x="330" y="300" width="120" height="36" rx="6"/>
+<text x="390" y="322">Réparable ?</text>
+
+<rect class="n-q" x="550" y="300" width="120" height="36" rx="6"/>
+<text x="610" y="322">Réparable ?</text>
+
+<rect class="n-q" x="770" y="300" width="120" height="36" rx="6"/>
+<text x="830" y="322">Réparable ?</text>
+
+<!-- ============ 8 branches vers 8 feuilles OK ============ -->
+<!-- centres feuilles : 80, 200, 320, 440, 560, 680, 800, 920 -->
+<!-- Rép?#1 (170) → feuilles 1 (80) et 2 (200) -->
+<path class="edge" d="M 170,336 L 170,370 L 80,370 L 80,410"/>
+<rect class="edge-lbl-bg" x="90" y="360" width="30" height="18"/>
+<text class="edge-lbl" x="105" y="373">Oui</text>
+
+<path class="edge" d="M 170,336 L 170,370 L 200,370 L 200,410"/>
+<rect class="edge-lbl-bg" x="205" y="360" width="30" height="18"/>
+<text class="edge-lbl" x="220" y="373">Non</text>
+
+<!-- Rép?#2 (390) → feuilles 3 (320) et 4 (440) -->
+<path class="edge" d="M 390,336 L 390,370 L 320,370 L 320,410"/>
+<rect class="edge-lbl-bg" x="330" y="360" width="30" height="18"/>
+<text class="edge-lbl" x="345" y="373">Oui</text>
+
+<path class="edge" d="M 390,336 L 390,370 L 440,370 L 440,410"/>
+<rect class="edge-lbl-bg" x="445" y="360" width="30" height="18"/>
+<text class="edge-lbl" x="460" y="373">Non</text>
+
+<!-- Rép?#3 (610) → feuilles 5 (560) et 6 (680) -->
+<path class="edge" d="M 610,336 L 610,370 L 560,370 L 560,410"/>
+<rect class="edge-lbl-bg" x="570" y="360" width="30" height="18"/>
+<text class="edge-lbl" x="585" y="373">Oui</text>
+
+<path class="edge" d="M 610,336 L 610,370 L 680,370 L 680,410"/>
+<rect class="edge-lbl-bg" x="685" y="360" width="30" height="18"/>
+<text class="edge-lbl" x="700" y="373">Non</text>
+
+<!-- Rép?#4 (830) → feuilles 7 (800) et 8 (920) -->
+<path class="edge" d="M 830,336 L 830,370 L 800,370 L 800,410"/>
+<rect class="edge-lbl-bg" x="810" y="360" width="30" height="18"/>
+<text class="edge-lbl" x="825" y="373">Oui</text>
+
+<path class="edge" d="M 830,336 L 830,370 L 920,370 L 920,410"/>
+<rect class="edge-lbl-bg" x="925" y="360" width="30" height="18"/>
+<text class="edge-lbl" x="940" y="373">Non</text>
+
+<!-- ============ LEVEL 4 : 8 feuilles OK ============ -->
+<!-- Feuille 1 : center 80, Prev NA, Rép -->
+<rect class="n-leaf" x="30" y="410" width="100" height="80" rx="6"/>
+<text class="leaf-nb" x="80" y="450">17</text>
+<text class="leaf-lbl" x="80" y="468">Sans préventif</text>
+<text class="leaf-lbl" x="80" y="482">Réparable</text>
+
+<!-- Feuille 2 : center 200, Prev NA, Non-rép -->
+<rect class="n-leaf" x="150" y="410" width="100" height="80" rx="6"/>
+<text class="leaf-nb" x="200" y="450">14</text>
+<text class="leaf-lbl" x="200" y="468">Sans préventif</text>
+<text class="leaf-lbl" x="200" y="482">Non-réparable</text>
+
+<!-- Feuille 3 : center 320, HARD, Rép -->
+<rect class="n-leaf" x="270" y="410" width="100" height="80" rx="6"/>
+<text class="leaf-nb" x="320" y="450">18</text>
+<text class="leaf-lbl" x="320" y="468">Préventif HW</text>
+<text class="leaf-lbl" x="320" y="482">Réparable</text>
+
+<!-- Feuille 4 : center 440, HARD, Non-rép -->
+<rect class="n-leaf" x="390" y="410" width="100" height="80" rx="6"/>
+<text class="leaf-nb" x="440" y="450">15</text>
+<text class="leaf-lbl" x="440" y="468">Préventif HW</text>
+<text class="leaf-lbl" x="440" y="482">Non-réparable</text>
+
+<!-- Feuille 5 : center 560, SOFT, Rép -->
+<rect class="n-leaf" x="510" y="410" width="100" height="80" rx="6"/>
+<text class="leaf-nb" x="560" y="450">18</text>
+<text class="leaf-lbl" x="560" y="468">Préventif SW</text>
+<text class="leaf-lbl" x="560" y="482">Réparable</text>
+
+<!-- Feuille 6 : center 680, SOFT, Non-rép -->
+<rect class="n-leaf" x="630" y="410" width="100" height="80" rx="6"/>
+<text class="leaf-nb" x="680" y="450">15</text>
+<text class="leaf-lbl" x="680" y="468">Préventif SW</text>
+<text class="leaf-lbl" x="680" y="482">Non-réparable</text>
+
+<!-- Feuille 7 : center 800, BOTH, Rép — MAX -->
+<rect class="n-leaf-max" x="750" y="410" width="100" height="80" rx="6"/>
+<text class="leaf-nb leaf-nb-max" x="800" y="450">19</text>
+<text class="leaf-lbl" x="800" y="468">Préventif HW+SW</text>
+<text class="leaf-lbl" x="800" y="482">Réparable (max)</text>
+
+<!-- Feuille 8 : center 920, BOTH, Non-rép -->
+<rect class="n-leaf" x="870" y="410" width="100" height="80" rx="6"/>
+<text class="leaf-nb" x="920" y="450">16</text>
+<text class="leaf-lbl" x="920" y="468">Préventif HW+SW</text>
+<text class="leaf-lbl" x="920" y="482">Non-réparable</text>
+
+<!-- Légende bas -->
+<text x="500" y="530" style="font-size:11px;fill:#666;">
+  Chaque feuille = nombre de champs attendus dans ce contexte (dénominateur du MeQ).
+</text>
+<text x="500" y="546" style="font-size:11px;fill:#666;">
+  Non-réparable = Node Type LRUNR ou SRUNR. Les 3 champs Repair sont alors retirés.
+</text>
+
+</svg>
+</div>
+
+<h2>Les champs comptés dans le MeQ (rappel)</h2>
+
+<table class="champs">
+  <tr>
+    <td class="grp">Base — toujours attendue</td>
+    <td>DTR · Désignation · Node Type <em>(3 champs)</em></td>
+  </tr>
+  <tr>
+    <td class="grp">Identification produit</td>
+    <td>Fournisseur · Ref fournisseur · Drawing Number · MTBF intrinsèque · Ref MUL maintenance · Motif NA · Motif NA Préventif <em>(7 champs)</em></td>
+  </tr>
+  <tr>
+    <td class="grp">Cycle préventif</td>
+    <td>Durée de vie HW · Durée de vie SW <em>(0, 1 ou 2 champs selon Motif Préventif)</em></td>
+  </tr>
+  <tr>
+    <td class="grp">Prix Spare (rechanges)</td>
+    <td>Prix Spare · Dates validité Spare · MoQ Spare · Lead time Spare <em>(4 champs)</em></td>
+  </tr>
+  <tr>
+    <td class="grp">Prix Repair (réparation)</td>
+    <td>Prix Repair · Dates validité Repair · Lead time Repair <em>(3 champs — retirés si Non-réparable)</em></td>
+  </tr>
+  <tr>
+    <td class="grp" style="color:#666;background:#f0f0f0;">Champs libres — hors MeQ</td>
+    <td style="color:#666;">Famille générique · Ref RAM Report · Ref datasheet · Ref MUL install/software/HW Interface <em>(6 champs, non comptés)</em></td>
+  </tr>
+</table>
+
+<footer>
+  Source de vérité : moteur SIRUS v0.2 — <code>G_SIRUS_Regles.EstObligatoire_Produit</code>.
+</footer>
+
+</body>
+</html>

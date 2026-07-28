@@ -930,24 +930,32 @@ Private Function ArrondiPrix(ByVal v As Double) As Double
     ArrondiPrix = Application.WorksheetFunction.Round(v, 2)
 End Function
 
-' Helper : applique le format Comptabilite ? (style "350,00 ?") aux
+' Helper : applique le format Comptabilite EUR (style "350,00 EUR") aux
 ' colonnes de prix de DATA_ASL. Format VBA US-style (decimal=point,
 ' thousand=comma) ; Excel le traduit en local (FR : decimal=virgule,
-' thousand=espace, donc "1 234,56 ?").
+' thousand=espace, donc "1 234,56 EUR").
 '
 ' Pour les cellules vides, ce format affiche rien (Empty -> blank).
 ' Pour les zeros (qu on ne devrait pas avoir vu la regle EstNumerique
-' NonNul mais defensive), il affiche "-   ?" qui est l indicateur
+' NonNul mais defensive), il affiche "-   EUR" qui est l indicateur
 ' standard de "valeur zero" en comptabilite.
 Private Sub AppliquerFormatPrix(ByVal lo As ListObject)
     Dim fmt As String
+    Dim sEuro As String
     Dim cols As Variant
     Dim i As Long
     Dim colIdx As Variant
 
-    ' Format Comptabilite ? standard. Le \  represente un espace insecable
+    ' Symbole EUR construit via ChrW(&H20AC) pour survivre a tout export
+    ' / re-import du .bas quel que soit l encoding (ANSI, UTF-8, Latin1).
+    ' Le fichier .bas est ASCII pur : ecrire le symbole directement dans
+    ' une chaine litterale a deja ete perdu (remplace par '?' -> format
+    ' Comptabilite affichait "1 234,56 ?" au lieu de "1 234,56 EUR").
+    sEuro = ChrW(&H20AC)
+
+    ' Format Comptabilite standard. Le \  represente un espace insecable
     ' avant le symbole. Les ?? alignent les "-" sur les decimales.
-    fmt = "_-* #,##0.00\ ""?""_-;-* #,##0.00\ ""?""_-;_-* ""-""??\ ""?""_-;_-@_-"
+    fmt = "_-* #,##0.00\ """ & sEuro & """_-;-* #,##0.00\ """ & sEuro & """_-;_-* ""-""??\ """ & sEuro & """_-;_-@_-"
 
     cols = Array(COL_PRIX_FCS, COL_PRIX_SPARE_CAT, COL_PRIX_SPARE_CALC, COL_PRIX_REPAIR_CAT, COL_COUT_SPARE_FRS, COL_COUT_REPAIR_FRS, COL_COUT_SPARE_ALSTOM, COL_PRIX_REPAIR_ALSTOM, COL_PRIX_SPARE_ARCHIVE, COL_PRIX_REPAIR_ARCHIVE)
 
