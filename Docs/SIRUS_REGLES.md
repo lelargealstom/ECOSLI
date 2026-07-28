@@ -56,7 +56,7 @@ Couvre les opérations Création et Modification d'une entrée de la table BdD `
 | 9 | MTBF fonctionnel | `MTBF fonctionnel (h) ..._PROJETASL` | 80 |
 | 10 | DVL fonctionnel HARD | `DUREE DE VIE LIMITEE ... HARDWARE_PROJET ASL` | 90 |
 | 11 | DVL fonctionnel SOFT | `DUREE DE VIE LIMITEE ... SOFTWARE_PROJET ASL` | 100 |
-| 12 | Prix Spare archive | `Prix spare (DEVISE du projet (SLI))_PROJETASL` | 110 |
+| 12 | Prix Spare archive | `ISP TIS HORS FRANCE (archive)_PROJETASL` | 110 |
 | 13 | Lead Time Spare archive | `Lead time SPARE (jours)_PROJETASL` | 120 |
 | 14 | Prix Repair archive | `Prix repair (DEVISE du projet (SLI))_PROJETASL` | 130 |
 | 15 | Lead Time Repair archive | `Lead time REPAIR (jours)_PROJETASL` | 140 |

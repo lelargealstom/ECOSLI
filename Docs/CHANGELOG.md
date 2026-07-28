@@ -10,16 +10,17 @@ Format : `[Date] — Auteur — Périmètre`, puis liste des changements par mod
 
 Session focus : produire un livrable HTML autonome présentant l'algorithme de calcul MeQ de la table Produit à un public d'ingénieurs métier (non-gouvernance BdD). Puis corriger un bug d'affichage des prix dans le Refresh DATA_ASL.
 
-### Fix — Nom colonne BdD Prix Spare archive (renommage v0.2)
+### Fix — Renommage BdD Prix Spare archive (ISP TIS HORS FRANCE)
 
-**Symptôme** : après le fix ellipsis Unicode ci-dessous, `Btn_Rafraichir_DataPBS` levait une nouvelle erreur ADODB `Aucune valeur donnée pour un ou plusieurs des paramètres requis` sur le SELECT `Projet_ASL$`.
+**Contexte** : Thomas a renommé côté BdD la colonne "Prix Spare archive" de `Projet_ASL$`. Nouveau nom réel : **`ISP TIS HORS FRANCE (archive)_PROJETASL`** (avec suffixe `_PROJETASL` conforme à la convention de la table).
 
-**Cause** : la colonne `[ISP TIS HORS FRANCE (archive)]` référencée dans `RafraichirPrixArchive` est un ancien nom BdD. Depuis la refonte v0.2, la colonne Prix Spare archive de `Projet_ASL$` est nommée uniformément `Prix spare (DEVISE du projet (SLI))_PROJETASL` (cf. config `G_SIRUS_Config.bas:563` + doc `SIRUS_REGLES.md` l. 59). ACE ne trouvant pas la colonne l'interprétait comme paramètre `?` → erreur.
+**Correctif appliqué à tout le codebase** :
+- `G_PBS_Refresh.bas` sub `RafraichirPrixArchive` (l. 689, 705, 721) — commentaire header + SELECT + `REQSEL.Fields`.
+- `G_SIRUS_Config.bas` l. 563 — `AjouterChamp("ProjetASL", "Prix Spare archive", ...)` : `ColonneBdD` alignée. Le libellé humain "Prix Spare archive" est conservé (côté MeQ / config, décision à confirmer plus tard si Thomas veut un renommage sémantique aligné sur "ISP TIS").
+- `G_SIRUS_Generation.bas` l. 651 — `TrouverColParColonneBdD` de `SIRUS_EnrichirProjetASL_DepuisDATA_ASL`.
+- `Docs/SIRUS_REGLES.md` l. 59 — tableau ProjetASL.
 
-**Fix** : `G_PBS_Refresh.bas` sub `RafraichirPrixArchive` (l. 691-778) — 3 occurrences alignées sur le nouveau nom BdD :
-- Commentaire d'header l. 689
-- SELECT l. 705
-- `REQSEL.Fields(...)` l. 721
+**Bonus** — retrait du `On Error Resume Next` défensif dans `AppliquerFormatPrix` (règle 3 conventions VBA — permet à Thomas de voir remonter l'origine exacte si une colonne prix disparaît du template).
 
 ### Fix — Nom colonne BdD Node Type Produit (ellipsis Unicode)
 

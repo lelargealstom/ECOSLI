@@ -648,7 +648,7 @@ Public Sub SIRUS_EnrichirProjetASL_DepuisDATA_ASL(ByVal sOperation As String, By
     colMTBFFonct = TrouverColParColonneBdD(wsCible, "MTBF fonctionnel (h) issu du RAM report projet_PROJETASL")
     colDVL_HARD = TrouverColParColonneBdD(wsCible, "DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) HARDWARE_PROJET ASL")
     colDVL_SOFT = TrouverColParColonneBdD(wsCible, "DUREE DE VIE LIMITEE (RAM report specifique projet (CGR)) SOFTWARE_PROJET ASL")
-    colPrixSpareArch = TrouverColParColonneBdD(wsCible, "Prix spare (DEVISE du projet (SLI))_PROJETASL")
+    colPrixSpareArch = TrouverColParColonneBdD(wsCible, "ISP TIS HORS FRANCE (archive)_PROJETASL")
     colLeadSpareArch = TrouverColParColonneBdD(wsCible, "Lead time SPARE (jours)_PROJETASL")
     colPrixRepairArch = TrouverColParColonneBdD(wsCible, "Prix repair (DEVISE du projet (SLI))_PROJETASL")
     colLeadRepairArch = TrouverColParColonneBdD(wsCible, "Lead time REPAIR (jours)_PROJETASL")

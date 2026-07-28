@@ -560,7 +560,7 @@ Private Sub PeuplerProjetASL(lo As ListObject)
     '   Prix Spare archive + Lead Time Spare archive : obligatoires (toujours).
     '   Prix Repair archive + Lead Time Repair archive : conditionnels
     '   (obligatoires uniquement si NodeType = LRU ou SRU). Voir G_SIRUS_Regles.
-    Call AjouterChamp(lo, "ProjetASL", "Prix Spare archive", "Prix spare (DEVISE du projet (SLI))_PROJETASL", 110, "Nombre", "", "Oui", "", "Saisie", "", 2, "", "Prix SPARE archive dans la devise du projet SLI.")
+    Call AjouterChamp(lo, "ProjetASL", "Prix Spare archive", "ISP TIS HORS FRANCE (archive)_PROJETASL", 110, "Nombre", "", "Oui", "", "Saisie", "", 2, "", "Prix SPARE archive dans la devise du projet SLI (colonne renommee 2026-07-28 pour matcher la BdD reelle : ISP TIS HORS FRANCE archive).")
     Call AjouterChamp(lo, "ProjetASL", "Lead Time Spare archive", "Lead time SPARE (jours)_PROJETASL", 120, "Nombre", "", "Oui", "", "Saisie", "", 1, "", "Lead time SPARE archive en jours.")
     Call AjouterChamp(lo, "ProjetASL", "Prix Repair archive", "Prix repair (DEVISE du projet (SLI))_PROJETASL", 130, "Nombre", "", "Conditionnel", "Obligatoire si NodeType LRU/SRU", "Saisie", "", 1, "", "Prix REPAIR archive dans la devise du projet SLI.")
     Call AjouterChamp(lo, "ProjetASL", "Lead Time Repair archive", "Lead time REPAIR (jours)_PROJETASL", 140, "Nombre", "", "Conditionnel", "Obligatoire si NodeType LRU/SRU", "Saisie", "", 1, "", "Lead time REPAIR archive en jours.")
