@@ -1,3 +1,58 @@
+OK deux choses à traiter. Je réponds aux 2 mais j'ai besoin de précisions avant de commit.                              
+                                                                                                                          
+  1) Fix immédiat — colonne Prix spare renommée                                                                           
+                                                                                                                          
+  La règle actuelle dans rules.csv pointe sur Prix spare (DEVISE du projet (SLI))_PROJETASL, à corriger vers le nouveau   
+  nom ISP TIS HORS FRANCE (archive).                                                                                      
+                                                            
+  Question rapide : le libellé exact dans l'entête de la feuille Projet_ASL c'est bien ISP TIS HORS FRANCE (archive) sans
+  suffixe ? Ou avec le suffixe _PROJETASL comme les autres colonnes de la table (ISP TIS HORS FRANCE (archive)_PROJETASL)
+  ?
+
+  La convention actuelle pour Projet_ASL a le suffixe systématique (cf. Sous Systeme_PROJETASL, Lead time SPARE
+  (jours)_PROJETASL, etc.) — donc je parie sur avec suffixe, mais confirme avant que je pousse.
+
+  Aussi, autre chose à valider tant qu'on y est :
+  - Le champ MeQ actuel s'appelle Prix spare (famille Prix & délais). Je garde ce libellé côté MeQ (l'utilisateur PBI
+  verra toujours "Prix spare"), ou tu préfères le renommer pour refléter la nouvelle sémantique (Prix spare ISP hors
+  France archive ou autre) ?
+
+  2) Règles MeQ Projet_ASL v0.2 avec pilote Gate du projet
+
+  Pour attaquer proprement, il me faut la même liste d'infos que pour Produit. Formule qui marche bien :
+
+  a) La colonne pilote Gate du projet :
+  - Nom exact dans la BdD (avec/sans suffixe _PROJETASL) ?
+  - Valeurs possibles (enum) — genre Gate 0, Gate 1, Gate 2, Gate 3, Gate 4 ? Ou autre nomenclature ?
+  - Interprétation métier : la Gate représente l'avancement du projet dans les phases Alstom c'est ça ? Plus la Gate
+  monte, plus on attend de champs remplis ?
+
+  b) Pour chaque champ Projet_ASL dont l'obligation dépend de la Gate, la matrice — un tableau simple :
+
+  ┌──────────────────┬───────────────────┬────────┬────────┬────────┬────────┬─────┐
+  │      Champ       │ ColonneBdD exacte │ Gate 0 │ Gate 1 │ Gate 2 │ Gate 3 │ ... │
+  ├──────────────────┼───────────────────┼────────┼────────┼────────┼────────┼─────┤
+  │ MTBF fonctionnel │ ...               │   ✓    │   ✓    │   ✓    │   ✓    │ ... │
+  ├──────────────────┼───────────────────┼────────┼────────┼────────┼────────┼─────┤
+  │ Prix repair      │ ...               │   ✗    │   ✗    │   ✓    │   ✓    │ ... │
+  ├──────────────────┼───────────────────┼────────┼────────┼────────┼────────┼─────┤
+  │ ...              │                   │        │        │        │        │     │
+  └──────────────────┴───────────────────┴────────┴────────┴────────┴────────┴─────┘
+
+  Ou si c'est plus simple pour toi : liste "à partir de Gate X, tel champ devient obligatoire".
+
+  c) Champs qui restent ALWAYS (indépendants de la Gate) : lesquels ?
+
+  d) Champs conditionnels sur autre chose que la Gate (ex. NodeType, MotifNA, etc.) : à préciser aussi.
+
+  e) Champs actuels du CSV à virer (comme on avait fait pour Produit — l'ancienne règle Prix spare va tomber en même temps
+   ?) : si oui, lesquels retirer, lesquels garder.
+
+  Une fois que j'ai tout ça, je peux faire une seule refonte propre du bloc Projet_ASL (rebaptisée 0.3.0 — vu que c'est
+  une nouvelle table refactorée), commiter, pusher. Le fix Prix spare peut soit rentrer dans ce même commit, soit en 0.2.3
+   avant si tu veux la BdD Alstom saine tout de suite.
+
+
 1. ISP TIS HORS FRANCE (archive)_PROJETASL je l'ai renommé dans la base 
   2. Projet ASL                                                                                                           
   a) Colonne Gate : 'GATE_PROJETASL'                                                                                      
