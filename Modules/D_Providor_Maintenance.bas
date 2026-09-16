@@ -55,30 +55,30 @@ Public Sub remplissage_corr()
     dlCM = LastRowInCol(CM, cm_col.NodeName)
     
     ' Supprimer colonnes tampons
-    CM.Range(Cells(4, cm_col.TamponNodeLevel), Cells(dlCM, cm_col.TamponNodeName)).ClearContents
-    
+    CM.Range(CM.Cells(4, cm_col.TamponNodeLevel), CM.Cells(dlCM, cm_col.TamponNodeType)).ClearContents
+
     ' Supprimer supports
     For i = dlCM To 4 Step -1
         If InStr(1, CM.Cells(i, cm_col.NodeName), "support") <> 0 Then
             CM.rows(i).Delete
         End If
     Next i
-    
+
     ' Modifier List Node BS
-    BS.Range(Cells(4, bs_col.ListNode), Cells(dlBS, bs_col.ListNode)).ClearContents
+    BS.Range(BS.Cells(4, bs_col.ListNode), BS.Cells(dlBS, bs_col.ListNode)).ClearContents
     BS.Cells(4, bs_col.ListNode).FormulaLocal = "=B4&"" ""&@Implement_ListNode(A4)&C4"
-    BS.Range(Cells(4, bs_col.ListNode), Cells(dlBS, bs_col.ListNode)).FillDown
-    
+    BS.Range(BS.Cells(4, bs_col.ListNode), BS.Cells(dlBS, bs_col.ListNode)).FillDown
+
     ' Modifier Node Index CM
-    CM.Range(Cells(4, cm_col.NodeIndex), Cells(dlCM, cm_col.NodeIndex)).ClearContents
+    CM.Range(CM.Cells(4, cm_col.NodeIndex), CM.Cells(dlCM, cm_col.NodeIndex)).ClearContents
     CM.Cells(4, cm_col.NodeIndex).FormulaLocal = "=@REL_Parent(A4)"
-    CM.Range(Cells(4, cm_col.NodeIndex), Cells(dlCM, cm_col.NodeIndex)).FillDown
-    CM.Range(Cells(4, cm_col.NodeIndex), Cells(dlCM, cm_col.NodeIndex)).Interior.ColorIndex = 3
-    
+    CM.Range(CM.Cells(4, cm_col.NodeIndex), CM.Cells(dlCM, cm_col.NodeIndex)).FillDown
+    CM.Range(CM.Cells(4, cm_col.NodeIndex), CM.Cells(dlCM, cm_col.NodeIndex)).Interior.ColorIndex = 3
+
     'On nettoie les colonnes tampons de la CM
-    CM.Range(Cells(4, cm_col.TamponNodeLevel), Cells(dlCM, cm_col.TamponNodeName)).ClearContents
+    CM.Range(CM.Cells(4, cm_col.TamponNodeLevel), CM.Cells(dlCM, cm_col.TamponNodeType)).ClearContents
     CM.Cells(1, cm_col.NodeName).Select
-    
+
 End Sub
 Private Sub CopierDonneesBS_vers_CM()
 ' Copie donnees de Breakdown Structure vers Corrective Maintenance
@@ -101,7 +101,9 @@ Private Sub CopierDonneesBS_vers_CM()
         CM.Cells(ligneDst, cm_col.TamponDTR).Value = BS.Cells(ligneSrc, bs_col.PartNumber).Value
         'List Node
         CM.Cells(ligneDst, cm_col.TamponNodeName).Value = BS.Cells(ligneSrc, bs_col.NodeName).Value
-        
+        'Node Type (LRU/SRU/LRUNR/SRUNR/KIT/VISSERIE/ASSEMBLY) - pilote regle non-reparable dans RemplirMaterialName
+        CM.Cells(ligneDst, cm_col.TamponNodeType).Value = BS.Cells(ligneSrc, bs_col.NodeType).Value
+
     Next i
     
     ' Restaurer header "Node's name" en CM col A ligne 3
@@ -384,17 +386,23 @@ End Sub
 ' PROCEDURE: REMPLIR MATERIAL NAME
 ' =========================================================================
 Private Sub RemplirMaterialName(ByVal i As Integer)
-' Remplit Material Name selon type (Stdex ? _REPAIR)
-    
-    If CM.Cells(i, cm_col.FailureName) <> "-" Then
-        If CM.Cells(i, cm_col.TamponNodeLevel) = 3 Then
-            CM.Cells(i, cm_col.MaterialName) = CM.Cells(i, cm_col.TamponNodeName) & "_REPAIR"
-        Else
-            CM.Cells(i, cm_col.MaterialName) = CM.Cells(i, cm_col.TamponNodeName)
-        End If
-        CM.Cells(i, cm_col.MaterialQty) = 1
+' Remplit Material Name selon type (Stdex ? _REPAIR).
+' Regle metier : pas de materiel si NodeType = LRUNR ou SRUNR (non-reparable).
+
+    Dim sType As String
+
+    If CM.Cells(i, cm_col.FailureName) = "-" Then Exit Sub
+
+    sType = UCase$(Trim$(CM.Cells(i, cm_col.TamponNodeType).Value))
+    If sType = "LRUNR" Or sType = "SRUNR" Then Exit Sub
+
+    If CM.Cells(i, cm_col.TamponNodeLevel) = 3 Then
+        CM.Cells(i, cm_col.MaterialName) = CM.Cells(i, cm_col.TamponNodeName) & "_REPAIR"
+    Else
+        CM.Cells(i, cm_col.MaterialName) = CM.Cells(i, cm_col.TamponNodeName)
     End If
-    
+    CM.Cells(i, cm_col.MaterialQty) = 1
+
 End Sub
 
 ' =========================================================================

@@ -6,6 +6,49 @@ Format : `[Date] — Auteur — Périmètre`, puis liste des changements par mod
 
 ---
 
+## 2026-09-16 — Fix Providor Maintenance Corrective : Material Name LRUNR/SRUNR + tampons non nettoyés
+
+Session focus : deux bugs consécutifs dans `D_Providor_Maintenance.remplissage_corr`, remontés par Thomas depuis la prod ASL.
+
+### Bug 1 — Material Name `_REPAIR` collé sur des non-réparables
+
+**Symptôme** : dans la feuille Corrective Maintenance générée, la colonne `Material Name` reçoit le suffixe `_REPAIR` pour des DTR marqués `SRUNR` (non-réparables). Métier veut : **aucun** matériel (ni Name ni Qty) sur les lignes `LRUNR` / `SRUNR`.
+
+**Cause** : `RemplirMaterialName` teste `TamponNodeLevel = 3` pour appliquer `_REPAIR`. Or `NodeLevel = 3` regroupe `SRU` (réparable) ET `SRUNR` (non-réparable) — cf. `F_FonctionsGlobales.NodeTypeToLevel`. Le niveau numérique n'est pas discriminant.
+
+**Fix** — ajout d'un 4ème tampon `TamponNodeType` porté depuis BS :
+
+- **`Z_Variables.bas` `Type cm_col`** : ajout du champ `TamponNodeType As Integer` (après `TamponNodeName`).
+- **`D_Providor_Utilitaires.bas` `InitialiserCadrageColonnes`** (bloc `With CM`) : `cm_col.TamponNodeType = cm_col.FailureName + 4`. Consomme la colonne CM à `FailureName + 4` (vérifiée vide dans le template Providor v5.021).
+- **`D_Providor_Maintenance.bas` `CopierDonneesBS_vers_CM`** : recopie `BS.Cells(ligneSrc, bs_col.NodeType)` vers `CM.Cells(ligneDst, cm_col.TamponNodeType)`.
+- **`D_Providor_Maintenance.bas` `RemplirMaterialName`** : early-exit `If sType = "LRUNR" Or sType = "SRUNR" Then Exit Sub` avant la logique `_REPAIR`. `sType = UCase$(Trim$(...))` pour robustesse. Aucun ChrW nécessaire (tags ASCII pur).
+
+Décision **pas de refactor** du numérique vers le tag partout : `TamponNodeLevel` reste utilisé aux l. 43, 139, 248, 253, 273 (`> 2`, `<> 2`, recopie `MaintenanceLevel`) où la sémantique numérique est correcte. Ajout ciblé du 4ème tampon = patch minimal, pas de régression sur le reste.
+
+### Bug 2 — Colonnes tampons non nettoyées quand on génère "d'un coup"
+
+**Symptôme** : après le fix du bug 1, quand Thomas lance la génération complète du Providor (pipeline BS + CM + PM + ...), les colonnes tampons `TamponNodeLevel..TamponNodeType` restent visibles dans la feuille CM. Quand on lance `remplissage_corr` isolément, elles sont nettoyées normalement.
+
+**Cause racine** : les 2 `ClearContents` finaux utilisent le pattern `CM.Range(Cells(a, b), Cells(c, d))` où les `Cells(...)` internes ne sont **pas qualifiés** avec la feuille. En VBA, `Cells(...)` non qualifié réfère à `ActiveSheet`. Quand `remplissage_corr` s'exécute isolément, ActiveSheet == CM par accident et ça marche. Dans le pipeline complet, ActiveSheet a bougé (feuille précédente du pipeline), donc `CM.Range(...)` reçoit deux adresses issues d'une autre feuille — erreur silencieuse masquée par le `On Error Resume Next` défensif en tête de sub.
+
+**Fix** — qualifier les `Cells(...)` internes avec la feuille correspondante :
+- **`remplissage_corr` l. 58, 79** (2 `ClearContents` tampons) : `CM.Range(CM.Cells(...), CM.Cells(...))`.
+- **l. 68-70** (List Node BS — 3 lignes) : `BS.Range(BS.Cells(...), BS.Cells(...))`.
+- **l. 73-76** (Node Index CM — 4 lignes) : `CM.Range(CM.Cells(...), CM.Cells(...))`.
+
+Bugs latents identiques sur les 3 autres blocs, corrigés dans la foulée (même pattern, mêmes conditions de déclenchement).
+
+**Note convention** : le `On Error Resume Next` en tête de `remplissage_corr` (l. 21) est un handler défensif qui a masqué ces bugs pendant plusieurs générations. À retirer une fois la stabilisation confirmée en prod ASL (cf. règle projet — pas de handler défensif, sauf `On Error Resume Next` fonctionnels ponctuels). Idem `remplissage_prev` en dessous.
+
+### Recette
+
+Ouvrir un projet avec au moins 1 `SRU` + 1 `SRUNR` de rang 3 → lancer la génération Providor complète → dans la feuille CM :
+- ligne SRU → `MaterialName = <NodeName>_REPAIR`, `MaterialQty = 1`
+- ligne SRUNR → `MaterialName` vide, `MaterialQty` vide
+- colonnes tampons (5 cols après `FailureName`) → toutes vides en fin d'exécution
+
+---
+
 ## 2026-07-28 — Livrable client MeQ Produit + fix format prix Refresh DATA_ASL
 
 Session focus : produire un livrable HTML autonome présentant l'algorithme de calcul MeQ de la table Produit à un public d'ingénieurs métier (non-gouvernance BdD). Puis corriger un bug d'affichage des prix dans le Refresh DATA_ASL.

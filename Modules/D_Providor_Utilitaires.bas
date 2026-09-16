@@ -86,6 +86,7 @@ Public Sub InitialiserCadrageColonnes()
         cm_col.TamponNodeLevel = cm_col.FailureName + 1
         cm_col.TamponDTR = cm_col.FailureName + 2
         cm_col.TamponNodeName = cm_col.FailureName + 3
+        cm_col.TamponNodeType = cm_col.FailureName + 4
         cm_col.FailureRate = .rows(ligneteteCM).Find(What:="Failure rate", LookIn:=xlValues, lookat:=xlWhole).Column
         cm_col.FailureMultiplier = .rows(ligneteteCM).Find(What:="Multiplier", LookIn:=xlValues, lookat:=xlWhole).Column
         cm_col.FailureRateUnit = .rows(ligneteteCM).Find(What:="Failure rate unit", LookIn:=xlValues, lookat:=xlWhole).Column

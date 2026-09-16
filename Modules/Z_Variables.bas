@@ -616,6 +616,7 @@ Public Type cm_col
     TamponNodeLevel As Integer
     TamponDTR As Integer
     TamponNodeName As Integer
+    TamponNodeType As Integer
     FailureRate As Integer
     FailureMultiplier As Integer
     FailureRateUnit As Integer
