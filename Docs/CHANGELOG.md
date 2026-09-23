@@ -6,6 +6,61 @@ Format : `[Date] — Auteur — Périmètre`, puis liste des changements par mod
 
 ---
 
+## 2026-09-21 / 2026-09-23 — Split du dépôt PROD / PREPROD
+
+Session focus : séparer proprement le complément **actif en prod** (ASL, template ECOSLI.xlsm avec formules intégrées) du complément **en préprod** (SIRUS intégré, template `ECOSLI_DATA_ASL.xlsx` sans formules). Objectif : itérer sur PREPROD sans casser la version utilisée en prod, et pouvoir déposer les deux codes distinctement depuis les deux PC de dev (perso + Alstom).
+
+### Nouvelle structure du dépôt
+
+```
+ECOSLI/
+├── Champs_BDD.xlsx        (partagé, gitignored)
+├── README.md, GITHUB.md   (partagés)
+├── Docs/                  (partagé)
+├── Templates/             (livrables partagés)
+│   ├── ATM_FR-Template VBN v2.xlsx
+│   ├── ATMC2.0_{EN,FR}-Template.xlsx
+│   ├── MTA_EN-Template VBN v2.xlsx
+│   ├── Template EMMST-FR_V02.xlsx
+│   ├── Template PHLST-ENG_V02.xlsx
+│   ├── Providor v5.021.xlsb
+│   └── logo_alstom.png
+├── PROD/
+│   ├── Classes/ Forms/ Modules/   (code deposé depuis PC Alstom le 2026-09-23)
+│   └── Templates/ECOSLI.xlsm       (gitignored, non tracké)
+└── PREPROD/
+    ├── Classes/ Forms/ Modules/    (code SIRUS + Template ex-racine)
+    └── Templates/
+        ├── ECOSLI_DATA_ASL.xlsx
+        ├── _build_template.ps1
+        └── _patch_template_v2.ps1
+```
+
+### Décisions structurantes
+
+- **Livrables métier partagés** (ATM/ATMC/MTA/EMMST/PHLST/Providor + logo) : une seule copie à la racine `Templates/`, pas de duplication.
+- **Templates ECOSLI dispatchés** : `ECOSLI.xlsm` (avec formules) côté PROD, `ECOSLI_DATA_ASL.xlsx` (sans formules) côté PREPROD.
+- **`ECOSLI_newtemplate.xlsx` supprimé** : ancienne itération de la nouvelle version, remplacée par `ECOSLI_DATA_ASL.xlsx`.
+- **`ECOSLI.xlsm` racine supprimé** : copie de travail obsolète.
+- **`.gitignore`** : la règle existante `ECOSLI.xlsm` (sans path) s'applique donc à `PROD/Templates/ECOSLI.xlsm` — non tracké, vit uniquement en local sur chaque PC.
+- **`Docs/`** : reste partagé (référentiel documentaire commun aux deux versions).
+- **`Docs/MIGRATION_PATHS_SHAREPOINT.md`** : ajouté (inventaire pour migration BdD SharePoint, en attente, non exécutée).
+
+### Commits
+
+- `35f8a9f` — Split repo PROD / PREPROD : déplacement code SIRUS + dispatch templates (53 fichiers, renames 100% détectés).
+- `12c5268` — Ajout dossiers vides PROD/{Classes,Forms,Modules} via `.gitkeep` pour visibilité GitHub avant dépôt Alstom.
+- Dépôt du code PROD depuis PC Alstom le 2026-09-23 (commit séparé depuis ce PC).
+
+### Impact sur les sessions futures
+
+- Tout nouveau dev SIRUS ou template sans formules → `PREPROD/`.
+- Fix urgent sur la version en prod → `PROD/`.
+- Les chemins cités dans les mémoires / docs pointent désormais vers `PREPROD/Modules/...` (pas racine).
+- `Docs/MIGRATION_PATHS_SHAREPOINT.md` reste valide mais ses paths sont préfixés `PREPROD/` — à mettre à jour le jour où la migration SharePoint sera lancée.
+
+---
+
 ## 2026-09-16 — Fix Providor Maintenance Corrective : Material Name LRUNR/SRUNR + tampons non nettoyés
 
 Session focus : deux bugs consécutifs dans `D_Providor_Maintenance.remplissage_corr`, remontés par Thomas depuis la prod ASL.
