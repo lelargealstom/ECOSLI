@@ -24,7 +24,7 @@ Public Const SIRUS_CONFIG_LISTOBJ  As String = "tblSIRUSConfig"
 ' O1 de SIRUS_Config par SIRUS_VerifierConfigAJour : si different,
 ' force le rebuild automatique (au prochain Ctrl+W). Permet d eviter
 ' que les ingenieurs ASL aient un config obsolete apres une maj du .xlam.
-Public Const SIRUS_CONFIG_VERSION  As String = "2026-10-23-v5"
+Public Const SIRUS_CONFIG_VERSION  As String = "2026-10-23-v6"
 
 ' Noms de table (valeurs de la colonne "Table" du config)
 Public Const SIRUS_TBL_PRODUIT     As String = "Produit"
@@ -252,7 +252,7 @@ Private Sub PeuplerProduit(lo As ListObject)
     Call AjouterChamp(lo, "Produit", "Node Type", "Node type Produit (LRU/SRU" & ChrW(&H2026) & ")_PRODUIT", 40, "Liste", "NodeType", "Oui", "", "Saisie", "", 2, "", "Determine la regle non-reparable (LRUNR/SRUNR). Nom BdD avec ellipse Unicode U+2026.")
 
     ' --- Hors 19 ---
-    Call AjouterChamp(lo, "Produit", "Ref RAM Report", "Ref RAM Report_PRODUIT", 50, "Texte", "", "Non", "", "Saisie", "", 1, "", "Hors 19 champs MeQ. Saisie libre.")
+    Call AjouterChamp(lo, "Produit", "Ref RAM Report", "Reference RAM report produit dans AEC_PRODUIT", 50, "Texte", "", "Non", "", "Saisie", "", 1, "", "Hors 19 champs MeQ. Saisie libre.")
 
     ' --- Champs metier oblig si MotifNA != NA (13 champs) ---
     Call AjouterChamp(lo, "Produit", "Fournisseur", "Fournisseur_PRODUIT", 60, "Texte", "", "Conditionnel", "Obligatoire si MotifNA != NA", "Saisie", "", 1, "", "")
@@ -616,7 +616,7 @@ Private Sub PeuplerProjetSLI(lo As ListObject)
                       "Niv de maintenance_PROJET SLI", 100, _
                       "Liste", "NiveauMaintenance", "Oui", "", "Saisie", "", 1, "", "")
     Call AjouterChamp(lo, "ProjetSLI", "Nombre DTR EAP/PBS", _
-                      "Nombre de DTR dans l'EAP ou la PBS_PROJET SLI", 110, _
+                      "Nombre de DTR dans l EAP ou la PBS_PROJET SLI", 110, _
                       "Nombre", "", "Non", "", "Saisie", "", 1, "", "")
     Call AjouterChamp(lo, "ProjetSLI", "Nombre fournisseurs CDRL", _
                       "Nombre de fournisseur soumis a CDRL_PROJET SLI", 120, _
@@ -705,9 +705,6 @@ Private Sub PeuplerProjetSLI(lo As ListObject)
                       "Responsable ASL projet.")
     Call AjouterChamp(lo, "ProjetSLI", "LU", _
                       "LU_PROJET SLI", 420, _
-                      "Texte", "", "Non", "", "Saisie", "", 0, "", "")
-    Call AjouterChamp(lo, "ProjetSLI", "Interlocuteur LU", _
-                      "InterlocuteurLU_PROJET SLI", 430, _
                       "Texte", "", "Non", "", "Saisie", "", 0, "", "")
     Call AjouterChamp(lo, "ProjetSLI", "ISR Manager LU", _
                       "ISR Manager LU_PROJET SLI", 440, _
@@ -860,7 +857,7 @@ Private Sub PeuplerProjetASL(lo As ListObject)
     '   Prix Repair archive + Lead Time Repair archive : conditionnels
     '   (obligatoires uniquement si NodeType = LRU ou SRU). Voir G_SIRUS_Regles.
     Call AjouterChamp(lo, "ProjetASL", "Prix Spare archive", _
-                      "Prix spare (DEVISE du projet (SLI))_PROJETASL", 110, _
+                      "ISP TIS HORS FRANCE (archive)_PROJETASL", 110, _
                       "Nombre", "", "Oui", "", "Saisie", "", 2, "", _
                       "Prix SPARE archive dans la devise du projet SLI.")
     Call AjouterChamp(lo, "ProjetASL", "Lead Time Spare archive", _
@@ -880,7 +877,7 @@ Private Sub PeuplerProjetASL(lo As ListObject)
 
     ' --- Testabilite + autres prix (Ordre 150-180) -----------
     Call AjouterChamp(lo, "ProjetASL", "Testabilite", _
-                      "Testabilite (DTR du BTE relatif a l'equipement sur le projet concerne)_PROJETASL", 150, _
+                      "Testabilite (DTR du BTE relatif a l equipement sur le projet concerne)_PROJETASL", 150, _
                       "Liste", "Booleen", "Non", "", "Saisie", "", 0, "", _
                       "Liste Oui/Non : indique si le DTR est testable sur le projet. " & _
                       "Non obligatoire (decision 2026-06-15) : la testabilite " & _

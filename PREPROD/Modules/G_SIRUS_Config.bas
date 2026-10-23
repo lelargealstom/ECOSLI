@@ -23,7 +23,7 @@ Public Const SIRUS_CONFIG_LISTOBJ  As String = "tblSIRUSConfig"
 ' O1 de SIRUS_Config par SIRUS_VerifierConfigAJour : si different,
 ' force le rebuild automatique (au prochain Ctrl+W). Permet d eviter
 ' que les ingenieurs ASL aient un config obsolete apres une maj du .xlam.
-Public Const SIRUS_CONFIG_VERSION  As String = "2026-10-23-v5"
+Public Const SIRUS_CONFIG_VERSION  As String = "2026-10-23-v6"
 
 ' Noms de table (valeurs de la colonne "Table" du config)
 Public Const SIRUS_TBL_PRODUIT     As String = "Produit"
@@ -239,7 +239,7 @@ Private Sub PeuplerProduit(lo As ListObject)
     Call AjouterChamp(lo, "Produit", "Node Type", "Node type Produit (LRU/SRU" & ChrW(&H2026) & ")_PRODUIT", 40, "Liste", "NodeType", "Oui", "", "Saisie", "", 2, "", "Determine la regle non-reparable (LRUNR/SRUNR). Nom BdD avec ellipse Unicode U+2026.")
 
     ' --- Hors 19 ---
-    Call AjouterChamp(lo, "Produit", "Ref RAM Report", "Ref RAM Report_PRODUIT", 50, "Texte", "", "Non", "", "Saisie", "", 1, "", "Hors 19 champs MeQ. Saisie libre.")
+    Call AjouterChamp(lo, "Produit", "Ref RAM Report", "Reference RAM report produit dans AEC_PRODUIT", 50, "Texte", "", "Non", "", "Saisie", "", 1, "", "Hors 19 champs MeQ. Saisie libre.")
 
     ' --- Champs metier oblig si MotifNA != NA (13 champs) ---
     Call AjouterChamp(lo, "Produit", "Fournisseur", "Fournisseur_PRODUIT", 60, "Texte", "", "Conditionnel", "Obligatoire si MotifNA != NA", "Saisie", "", 1, "", "")
@@ -487,7 +487,6 @@ Private Sub PeuplerProjetSLI(lo As ListObject)
     Call AjouterChamp(lo, "ProjetSLI", "RSLI", "RSLI_PROJET SLI", 400, "Texte", "", "Non", "", "Saisie", "", 1, "", "Responsable SLI projet.")
     Call AjouterChamp(lo, "ProjetSLI", "RASL", "RASL_PROJET SLI", 410, "Texte", "", "Non", "", "Saisie", "", 1, "", "Responsable ASL projet.")
     Call AjouterChamp(lo, "ProjetSLI", "LU", "LU_PROJET SLI", 420, "Texte", "", "Non", "", "Saisie", "", 0, "", "")
-    Call AjouterChamp(lo, "ProjetSLI", "Interlocuteur LU", "InterlocuteurLU_PROJET SLI", 430, "Texte", "", "Non", "", "Saisie", "", 0, "", "")
     Call AjouterChamp(lo, "ProjetSLI", "ISR Manager LU", "ISR Manager LU_PROJET SLI", 440, "Texte", "", "Non", "", "Saisie", "", 0, "", "")
     Call AjouterChamp(lo, "ProjetSLI", "LSA Engineer LU", "LSA Engineer LU_PROJET SLI", 450, "Texte", "", "Non", "", "Saisie", "", 0, "", "")
     Call AjouterChamp(lo, "ProjetSLI", "Doc Manager LU", "Doc Manager LU_PROJET SLI", 460, "Texte", "", "Non", "", "Saisie", "", 0, "", "")
