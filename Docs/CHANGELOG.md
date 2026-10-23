@@ -6,6 +6,84 @@ Format : `[Date] — Auteur — Périmètre`, puis liste des changements par mod
 
 ---
 
+## 2026-10-23 — Port matrice MeQ Produit v0.2 vers PROD + alignement BdD sans accents
+
+Session focus : porter la **matrice MeQ Produit v0.2** (développée en PREPROD en juillet 2026) côté **PROD** pour que le MeQ affiché dans la ListView Generation au démarrage du UserForm soit calculé selon les règles v0.2 (dénominateur variable 3→19 champs selon NodeType + MotifPreventif) au lieu des règles v0.1 ad-hoc (dénominateur bloqué à 6). Alignement du config SIRUS sur la BdD TRAVAIL migrée **sans accents ET sans apostrophe `'`** côté Alstom. Nettoyage headers VBE pour permettre le copier-coller GitHub → Editor VBA.
+
+### Commit `9478f40` — Port MeQ v0.2 PREPROD → PROD + headers VBE copiables
+
+- **`PROD/Modules/G_SIRUS_Config.bas`** :
+  - Ajout `Public Const SIRUS_CONFIG_VERSION As String = "2026-10-23-v4"` (bump) + helper `SIRUS_ColonneBdDClePourTable` + fonction `SIRUS_VerifierConfigAJour` (rebuild auto si version obsolète).
+  - Écriture `ws.Range("O1").Value = SIRUS_CONFIG_VERSION` dans `SIRUS_InitConfigSheet` pour permettre la détection.
+  - Nouveau `PeuplerProduit` : matrice v0.2 (25 champs, dont **4 virtuels** `Source = "SnapShotPrix"` alimentés depuis `Produit_HistoPrix`). Noms BdD alignés sur schéma 07/2026 (`Designation_PRODUIT`, `MotifNonApplicabilite_PRODUIT`, `Motif_NonApplicabilitePreventif_PRODUIT`, `Prix SPARE catalogue a date_PRODUIT`, etc.).
+- **`PROD/Modules/G_SIRUS_Regles.bas`** :
+  - Routing `If sTable = "Produit" Then SIRUS_RegleObligatoire = EstObligatoire_Produit(sColonneBdD, ligne)` en tête de `SIRUS_RegleObligatoire`.
+  - Ajout `EstObligatoire_Produit` : 3 base + 16 conditionnels avec exemptions DVL HARD/SOFT selon MotifPreventif et exclusions REPAIR si NodeType LRUNR/SRUNR.
+  - Retrait des 2 Cases Produit obsolètes v0.1 (MTBF + MotifNA).
+  - Remplacement `Test_Regle_Produit_MTBFConditionnel` par `Test_Regle_Produit_MatriceMeQ` qui vérifie les 9 cas (3/14/15/16/17/18/19 champs obligatoires).
+- **`PROD/Modules/G_SIRUS_Analyse.bas`** :
+  - Ajout `Public Function SIRUS_MeQLigne(ligneDict, sTable, configCol) As Object` : helper unifié de comptage MeQ (source unique de vérité). Formule `nbRempli / nbObl`, poids uniforme, skip Auto/Herite + placeholders `??_*_a_definir`.
+- **`PROD/Modules/G_SIRUS_PBS.bas`** :
+  - `CalculerMeQDTR_Optim` refactoré : délègue au helper `SIRUS_MeQLigne` au lieu de refaire le comptage inline. Signature identique.
+- **`PROD/Forms/UserForm.frm`** :
+  - Ajout `Call G_SIRUS_Config.SIRUS_VerifierConfigAJour` avant `SIRUS_InitGeneration` dans `UserForm_Initialize`. Rebuild silencieux de `SIRUS_Config` au premier Ctrl+W après bump.
+- **Headers VBE copiables** :
+  - Retrait de la ligne `Attribute VB_Name = "..."` sur **40 .bas** de `PROD/Modules/` (PREPROD l'avait déjà fait).
+  - Retrait du bloc header `VERSION 5.00` + `Begin {GUID} ... End` + `Attribute VB_*` sur les **4 .frm** (`UserForm.frm` et `Barre_Progression.frm` × PROD + PREPROD). Les .frm démarrent maintenant par `Option Explicit` ou `Sub afficher()`.
+
+### Commit `57f6403` — Alignement PeuplerXxx + Regles.bas sur BdD sans accents (v5)
+
+Suite au nettoyage BdD TRAVAIL côté Alstom (toutes colonnes passées sans accents), alignement des `PeuplerXxx` hors Produit et des Cases TachesATM dans `G_SIRUS_Regles` sur les nouveaux noms. Objectif : éliminer les ~30 messages `[Table$] SELECT cible echoue (Aucune valeur donnée pour un ou plusieurs des paramètres requis.), fallback SELECT *` au démarrage du UserForm.
+
+- **`G_SIRUS_Config.bas` (PROD + PREPROD)** : 30 renommages `ColonneBdD` (accents → sans accent).
+  - InfoATM (1), TachesATM (2), EMMST (14), ProjetSLI (10), ProjetASL (5).
+  - + SourceHeritage MTBF intrinsèque Produit sans accent (pointeur vers nouveau nom Produit).
+- **`G_SIRUS_Regles.bas` (PROD)** : 5 Cases/GetVal (retrait `ChrW(232)`/`ChrW(233)`).
+  - `CriteresDimensionnels_TACHEATM`, `OutillageSpecifique_TACHEATM`, `NbOperateurs_TACHEATM`, `MTBF intrinseque Produit...`, tests Torque Tighten + alerte MTBF.
+- **Bump `SIRUS_CONFIG_VERSION`** : `2026-10-23-v4` → `2026-10-23-v5`.
+- **Encoding `windows-1252` préservé byte-à-byte** via PowerShell `[System.Text.Encoding]::GetEncoding(1252)` + `ReadAllBytes/WriteAllBytes` : l'Edit tool corrompt les accents cp1252 (byte `0xE9` → `0xEF 0xBF 0xBD` UTF-8 replacement). **Règle structurante pour toute édition de .bas/.frm latin-1 avec accents** : utiliser PowerShell, pas Edit.
+
+### Commit `7cf3862` — Nettoyage final 5 absences diag config vs BdD TRAVAIL (v6)
+
+Dernières absences remontées par `Test_DiagnostiquerEcartsConfig_Toutes` après `57f6403`.
+
+- **`G_SIRUS_Config.bas` (PROD + PREPROD)** :
+  - Produit `Ref RAM Report_PRODUIT` → `Reference RAM report produit dans AEC_PRODUIT`.
+  - ProjetSLI `Nombre de DTR dans l'EAP ou la PBS` → ` l EAP ou la PBS` (**apostrophe ASCII `0x27` retirée**, remplacée par espace — confirmation que la BdD retire aussi les apostrophes, pas seulement les accents).
+  - ProjetSLI `InterlocuteurLU_PROJET SLI` : **retiré du config** (colonne inexistante en BdD).
+  - ProjetASL `Prix spare (DEVISE du projet (SLI))_PROJETASL` → `ISP TIS HORS FRANCE (archive)_PROJETASL` (renommage 2026-07-28 confirmé).
+  - ProjetASL `Testabilite (... relatif a l'equipement ...)` → apostrophe retirée.
+- **Bump `SIRUS_CONFIG_VERSION`** : v5 → **v6**.
+
+### Impact MeQ Produit (vérifié par `Test_Regle_Produit_MatriceMeQ`)
+
+Pour un même DTR, le dénominateur passe de 6 (règles v0.1 ad-hoc) à 14-19 champs selon le profil :
+
+| MotifNA / MotifPrev / NodeType | PROD avant | PROD après |
+|---|---:|---:|
+| NA / * / * | 6 | **3** |
+| OK / HARD / LRU | 6 | **18** |
+| OK / HARD / LRUNR | 6 | **15** |
+| OK / BOTH / LRU | 6 | **19** |
+| OK / BOTH / LRUNR | 6 | **16** |
+| OK / NA / SRUNR | 6 | **14** |
+
+### Diag final
+
+`Test_DiagnostiquerEcartsConfig_Toutes` après le port + les 2 alignements (et après que Thomas a retiré le `à` restant de Testabilite côté BdD) : **0 absent sur toutes les tables** (Produit 24, InfoATM 8, TachesATM 8, EMMST 41, ProjetSLI 54, ProjetASL 19).
+
+### Convention mise à jour
+
+- `feedback_vba_conventions.md` règle 6 : BdD TRAVAIL migrée sans accents **ET sans apostrophe** depuis 2026-10-23. Les `ColonneBdD` du config SIRUS doivent être sans accent et sans apostrophe en clair (seule exception : ellipsis U+2026 via `ChrW(&H2026)`).
+- Règle structurante ajoutée : pour toute édition .bas/.frm cp1252/latin-1 avec accents, utiliser PowerShell avec encoding forcé windows-1252 (l'Edit tool réencode en UTF-8 et perd les accents en cp1252 → caractères de remplacement `0xEF 0xBF 0xBD`).
+
+### Chantier identifié pour sessions suivantes
+
+- **Validation terrain MeQ Produit v0.2 en PROD** : re-tester les 9 cas de la matrice sur des DTR réels (pas seulement sur Dictionary synthétique de `Test_Regle_Produit_MatriceMeQ`). Comparer MeQ ListView Generation vs MeQ attendu.
+- **Évaluation d'impact pour migration BdD vers SharePoint REST** (Étape 1 du handoff `HANDOFF_ECOSLI_CONNEXION_BDD_SHAREPOINT.md`) : inventaire fait côté dev, **16 points PROD + 32 points PREPROD** à adapter. Charge estimée **~12h / 1,5 j**. 10 questions à trancher avec Thomas avant Étape 2 (URL exacte SharePoint PROD vs PREPROD, délai de contrôle, fallback hors ligne, etc.).
+
+---
+
 ## 2026-09-21 / 2026-09-23 — Split du dépôt PROD / PREPROD
 
 Session focus : séparer proprement le complément **actif en prod** (ASL, template ECOSLI.xlsm avec formules intégrées) du complément **en préprod** (SIRUS intégré, template `ECOSLI_DATA_ASL.xlsx` sans formules). Objectif : itérer sur PREPROD sans casser la version utilisée en prod, et pouvoir déposer les deux codes distinctement depuis les deux PC de dev (perso + Alstom).
