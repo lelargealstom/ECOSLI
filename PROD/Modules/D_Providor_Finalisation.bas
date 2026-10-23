@@ -1,4 +1,3 @@
-Attribute VB_Name = "D_Providor_Finalisation"
 '--------------------------------------------------------------------------------------------------------
 '
 '                                       Generateur Livrables SLI

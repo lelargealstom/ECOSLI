@@ -1,4 +1,3 @@
-Attribute VB_Name = "B_ATM_V1"
 Option Explicit
 
 ' Index des colonnes dans les Recordsets renvoyes par RecupererTachesDTR_BdD

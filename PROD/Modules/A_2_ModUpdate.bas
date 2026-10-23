@@ -1,4 +1,3 @@
-Attribute VB_Name = "A_2_ModUpdate"
 Option Explicit
 
 Private Const REG_KEY As String = "HKEY_CURRENT_USER\Software\AlstomSLI\AddinPath"

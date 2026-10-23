@@ -1,4 +1,3 @@
-Attribute VB_Name = "X_Test_Appel_BDD"
 Public Function UpdateSharePointList(dtr As String)
 Set REQSEL = CreateObject("ADODB.Recordset")
 

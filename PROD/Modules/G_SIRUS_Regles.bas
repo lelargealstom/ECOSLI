@@ -50,27 +50,21 @@ Public Function SIRUS_RegleObligatoire(ByVal sTable As String, _
     ' Renvoie True si le champ est obligatoire pour cette ligne.
     ' ligne : Dictionary {ColonneBdD -> valeur} de la ligne en cours.
 
+    ' ----------------- Produit -----------------
+    ' Logique factorisee sur les 19 champs MeQ v0.2 (refonte 2026-07-07,
+    ' portee en PROD 2026-10-23 v4) :
+    '   Base 3 champs toujours obligatoires -> DTR, Designation, Node type.
+    '   Si MotifNonApplicabilite_PRODUIT = "NA" -> rien d'autre n'est obligatoire.
+    '   Sinon (Motif = "OK") : 16 champs restants obligatoires avec exemptions :
+    '     * DVL HARDWARE oblig ssi MotifPreventif in {HARD, BOTH}
+    '     * DVL SOFTWARE oblig ssi MotifPreventif in {SOFT, BOTH}
+    '     * 3 champs REPAIR non obligatoires si NodeType in {LRUNR, SRUNR}
+    If sTable = "Produit" Then
+        SIRUS_RegleObligatoire = EstObligatoire_Produit(sColonneBdD, ligne)
+        Exit Function
+    End If
+
     Select Case sTable & "|" & sColonneBdD
-
-        ' ----------------- Produit -----------------
-        ' Note 2026-06-10 : Prix Spare/Repair manuel + dates source ne sont
-        ' PLUS obligatoires conditionnellement (saisie libre).
-        ' Cf. PeuplerProduit -> Obligatoire = "Non".
-
-        Case "Produit|MTBF intrins" & ChrW(232) & "que Produit (h) issu de la datasheet _PRODUIT"
-            ' MTBF intrinseque obligatoire si NodeType LRU/SRU ET pas de
-            ' MotifNonApplicabilite renseigne (cas typique : LRU sans
-            ' donnees RAM disponibles a date).
-            If EstNodeTypeIn(ligne, "Node type Produit (LRU/SRU" & ChrW(8230) & ")_PRODUIT", _
-                             Array("LRU", "SRU")) Then
-                SIRUS_RegleObligatoire = (LenB(GetVal(ligne, "MotifNonApplicabilit" & ChrW(233) & "_PRODUIT")) = 0)
-            End If
-
-        Case "Produit|MotifNonApplicabilit" & ChrW(233) & "_PRODUIT"
-            ' MotifNonApplicabilite obligatoire si MTBF intrinseque vide
-            ' (justifie pourquoi on ne renseigne pas la valeur RAM).
-            SIRUS_RegleObligatoire = _
-                (LenB(GetVal(ligne, "MTBF intrins" & ChrW(232) & "que Produit (h) issu de la datasheet _PRODUIT")) = 0)
 
         ' ----------------- TachesATM -----------------
         Case "TachesATM|Description_TACHEATM"
@@ -302,23 +296,154 @@ Private Function EstNodeTypeIn(ByRef ligne As Object, _
 End Function
 
 ' =========================================================================
+' EstObligatoire_Produit
+' =========================================================================
+' Applique la matrice MeQ v0.2 sur les 19 champs Produit :
+'   - Base (3) : DTR, Designation, Node type -> toujours True.
+'   - Si MotifNonApplicabilite = "NA" : rien d'autre n'est obligatoire.
+'   - Sinon : les 16 autres champs sont obligatoires, avec 3 exemptions :
+'       * DVL HARDWARE ssi MotifPreventif in {HARD, BOTH}
+'       * DVL SOFTWARE ssi MotifPreventif in {SOFT, BOTH}
+'       * 3 champs REPAIR : non obligatoires si NodeType in {LRUNR, SRUNR}
+'   - Autres champs Produit hors 19 (Famille Gen, Ref RAM, Ref datasheet,
+'     Ref MUL install/soft/interface) : jamais obligatoires ici (le config
+'     les met deja Obligatoire=Non, donc en pratique on n'entre pas ici).
+Private Function EstObligatoire_Produit(ByVal sColonneBdD As String, ByRef ligne As Object) As Boolean
+    ' Noms BdD avec caracteres non-ASCII construits via ChrW pour eviter
+    ' toute normalisation par l'editeur VBA / re-import du .bas :
+    '   NodeType : "...LRU/SRU" + U+2026 (HORIZONTAL ELLIPSIS) + ")..."
+    '   Motif_Non... : underscore apres "Motif" (nom BdD 2026-07-07).
+    Dim sColNodeType As String
+    sColNodeType = "Node type Produit (LRU/SRU" & ChrW(&H2026) & ")_PRODUIT"
+    Const COL_MOTIFNA   As String = "MotifNonApplicabilite_PRODUIT"
+    Const COL_MOTIFPREV As String = "Motif_NonApplicabilitePreventif_PRODUIT"
+
+    ' Base : toujours obligatoire (meme si MotifNA = NA).
+    Select Case sColonneBdD
+        Case "DTR", "Designation_PRODUIT", sColNodeType
+            EstObligatoire_Produit = True
+            Exit Function
+    End Select
+
+    ' Lecture des 3 champs qui pilotent les regles.
+    Dim motifNA As String, motifPrev As String, nodeType As String
+    motifNA = UCase$(Trim$(CStr(GetVal(ligne, COL_MOTIFNA))))
+    motifPrev = UCase$(Trim$(CStr(GetVal(ligne, COL_MOTIFPREV))))
+    nodeType = UCase$(Trim$(CStr(GetVal(ligne, sColNodeType))))
+
+    ' Si MotifNA = "NA" : plus rien n'est obligatoire (seule la base compte).
+    If motifNA = "NA" Then
+        EstObligatoire_Produit = False
+        Exit Function
+    End If
+
+    ' DVL HARDWARE : oblig ssi MotifPreventif in {HARD, BOTH}.
+    If sColonneBdD = "Duree de vie generique Produit HARDWARE (annee)_PRODUIT" Then
+        EstObligatoire_Produit = (motifPrev = "HARD" Or motifPrev = "BOTH")
+        Exit Function
+    End If
+
+    ' DVL SOFTWARE : oblig ssi MotifPreventif in {SOFT, BOTH}.
+    If sColonneBdD = "Duree de vie generique Produit (annee) SOFTWARE _PRODUIT" Then
+        EstObligatoire_Produit = (motifPrev = "SOFT" Or motifPrev = "BOTH")
+        Exit Function
+    End If
+
+    ' 3 champs REPAIR : non obligatoires si NodeType in {LRUNR, SRUNR}.
+    Select Case sColonneBdD
+        Case "Prix REPAIR catalogue a date_PRODUIT", _
+             "Dates de validite des prix REPAIR connus sur Projet (ASL)_PRODUIT", _
+             "Lead time REPAIR (jours) manuel_PRODUIT"
+            EstObligatoire_Produit = Not (nodeType = "LRUNR" Or nodeType = "SRUNR")
+            Exit Function
+    End Select
+
+    ' 11 autres champs metier des 19 : obligatoires si MotifNA != NA.
+    Select Case sColonneBdD
+        Case "Fournisseur_PRODUIT", _
+             "Reference fournisseur_PRODUIT", _
+             COL_MOTIFNA, _
+             COL_MOTIFPREV, _
+             "Drawing number", _
+             "MTBF intrinseque Produit (h) issu de la datasheet _PRODUIT", _
+             "Reference MUL maintenance_PRODUIT", _
+             "Prix SPARE catalogue a date_PRODUIT", _
+             "Dates de validite des prix SPARE connus sur Projet (ASL)_PRODUIT", _
+             "MoQ spare catalogue_PRODUIT", _
+             "Lead time SPARE catalogue (jours) a date_PRODUIT"
+            EstObligatoire_Produit = True
+            Exit Function
+    End Select
+
+    ' Champs hors 19 (Famille Generique, Ref RAM Report, Ref datasheet,
+    ' Ref MUL install/soft/interface) : jamais obligatoires.
+    EstObligatoire_Produit = False
+End Function
+
+' =========================================================================
 ' TESTS
 ' =========================================================================
 
-Public Sub Test_Regle_Produit_MTBFConditionnel()
-    ' Test : MTBF intrinseque obligatoire si NodeType LRU/SRU ET MotifNA vide
+Public Sub Test_Regle_Produit_MatriceMeQ()
+    ' Test : matrice MeQ v0.2 sur les 19 champs Produit.
+    ' Chaque cas construit un row minimal, iterate sur les 19 champs, compte
+    ' nbObl et compare a la valeur attendue.
+    Debug.Print "=== Test_Regle_Produit_MatriceMeQ ==="
+    Call VerifierNbObl_Produit("NA",   "*",    "LRU",    3, "MotifNA=NA -> 3")
+    Call VerifierNbObl_Produit("OK",   "HARD", "LRU",   18, "HARD + non-NR -> 18")
+    Call VerifierNbObl_Produit("OK",   "HARD", "LRUNR", 15, "HARD + LRUNR -> 15")
+    Call VerifierNbObl_Produit("OK",   "SOFT", "SRU",   18, "SOFT + non-NR -> 18")
+    Call VerifierNbObl_Produit("OK",   "SOFT", "SRUNR", 15, "SOFT + SRUNR -> 15")
+    Call VerifierNbObl_Produit("OK",   "BOTH", "LRU",   19, "BOTH + non-NR -> 19")
+    Call VerifierNbObl_Produit("OK",   "BOTH", "LRUNR", 16, "BOTH + LRUNR -> 16")
+    Call VerifierNbObl_Produit("OK",   "NA",   "SRU",   17, "NA (prev) + non-NR -> 17")
+    Call VerifierNbObl_Produit("OK",   "NA",   "SRUNR", 14, "NA (prev) + SRUNR -> 14")
+End Sub
+
+Private Sub VerifierNbObl_Produit(ByVal sMotifNA As String, ByVal sMotifPrev As String, _
+                                   ByVal sNodeType As String, ByVal nbAttendu As Long, _
+                                   ByVal sLibelle As String)
+    ' Iterate sur les 19 ColonneBdD et compte combien retournent True.
+    Dim sColNT As String
+    sColNT = "Node type Produit (LRU/SRU" & ChrW(&H2026) & ")_PRODUIT"
+
     Dim d As Object
     Set d = CreateObject("Scripting.Dictionary")
-    d("Node type Produit (LRU/SRU" & ChrW(8230) & ")_PRODUIT") = "LRU"
-    d("MotifNonApplicabilit" & ChrW(233) & "_PRODUIT") = ""
-    Debug.Print "LRU + MotifNA vide -> MTBF oblig ? " & _
-        SIRUS_RegleObligatoire("Produit", "MTBF intrins" & ChrW(232) & "que Produit (h) issu de la datasheet _PRODUIT", d)
-    ' Attendu : True
+    d("MotifNonApplicabilite_PRODUIT") = sMotifNA
+    d("Motif_NonApplicabilitePreventif_PRODUIT") = sMotifPrev
+    d(sColNT) = sNodeType
 
-    d("MotifNonApplicabilit" & ChrW(233) & "_PRODUIT") = "NA MECA"
-    Debug.Print "LRU + MotifNA renseigne -> MTBF oblig ? " & _
-        SIRUS_RegleObligatoire("Produit", "MTBF intrins" & ChrW(232) & "que Produit (h) issu de la datasheet _PRODUIT", d)
-    ' Attendu : False
+    Dim champs As Variant
+    champs = Array( _
+        "DTR", _
+        "Designation_PRODUIT", _
+        sColNT, _
+        "Fournisseur_PRODUIT", _
+        "Reference fournisseur_PRODUIT", _
+        "MotifNonApplicabilite_PRODUIT", _
+        "Motif_NonApplicabilitePreventif_PRODUIT", _
+        "Drawing number", _
+        "MTBF intrinseque Produit (h) issu de la datasheet _PRODUIT", _
+        "Duree de vie generique Produit HARDWARE (annee)_PRODUIT", _
+        "Duree de vie generique Produit (annee) SOFTWARE _PRODUIT", _
+        "Reference MUL maintenance_PRODUIT", _
+        "Prix SPARE catalogue a date_PRODUIT", _
+        "Dates de validite des prix SPARE connus sur Projet (ASL)_PRODUIT", _
+        "MoQ spare catalogue_PRODUIT", _
+        "Lead time SPARE catalogue (jours) a date_PRODUIT", _
+        "Prix REPAIR catalogue a date_PRODUIT", _
+        "Dates de validite des prix REPAIR connus sur Projet (ASL)_PRODUIT", _
+        "Lead time REPAIR (jours) manuel_PRODUIT")
+
+    Dim nb As Long, i As Long
+    nb = 0
+    For i = LBound(champs) To UBound(champs)
+        If SIRUS_RegleObligatoire("Produit", CStr(champs(i)), d) Then nb = nb + 1
+    Next i
+
+    Dim sStatut As String
+    If nb = nbAttendu Then sStatut = "OK" Else sStatut = "KO"
+    Debug.Print "  [" & sStatut & "] " & sLibelle & " : attendu=" & nbAttendu & " obtenu=" & nb
 End Sub
 
 Public Sub Test_Regle_TachesATM_DescriptionRang3()
@@ -368,7 +493,7 @@ Public Sub Test_Regle_Alerte_MTBFInferieur()
 End Sub
 
 Public Sub Test_Regle_Toutes()
-    Call Test_Regle_Produit_MTBFConditionnel
+    Call Test_Regle_Produit_MatriceMeQ
     Call Test_Regle_TachesATM_DescriptionRang3
     Call Test_Regle_TachesATM_TorqueTighten
     Call Test_Regle_Alerte_MTBFInferieur

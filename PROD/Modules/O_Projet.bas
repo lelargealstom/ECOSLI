@@ -1,4 +1,3 @@
-Attribute VB_Name = "O_Projet"
 Option Compare Text
 Option Explicit
 Public Sub projet()

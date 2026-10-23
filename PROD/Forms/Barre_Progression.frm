@@ -1,19 +1,3 @@
-VERSION 5.00
-Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} Barre_Progression 
-   Caption         =   "Veuillez patienter..."
-   ClientHeight    =   1540
-   ClientLeft      =   -80
-   ClientTop       =   -450
-   ClientWidth     =   4740
-   OleObjectBlob   =   "Barre_Progression.frx":0000
-   StartUpPosition =   1  'CenterOwner
-End
-Attribute VB_Name = "Barre_Progression"
-Attribute VB_GlobalNameSpace = False
-Attribute VB_Creatable = False
-Attribute VB_PredeclaredId = True
-Attribute VB_Exposed = False
-
 Sub afficher()
 
     Me.Show 0

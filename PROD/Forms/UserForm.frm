@@ -1,20 +1,3 @@
-VERSION 5.00
-Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} UserForm 
-   Caption         =   "UserForm"
-   ClientHeight    =   10780
-   ClientLeft      =   -11050
-   ClientTop       =   -45890
-   ClientWidth     =   15770
-   OleObjectBlob   =   "UserForm.frx":0000
-   ShowModal       =   0   'False
-   StartUpPosition =   2  'CenterScreen
-End
-Attribute VB_Name = "UserForm"
-Attribute VB_GlobalNameSpace = False
-Attribute VB_Creatable = False
-Attribute VB_PredeclaredId = True
-Attribute VB_Exposed = False
-
 Option Explicit
 Public chemin As String
 Public userpath
@@ -668,6 +651,10 @@ Next i
 For i = LBound(family) To UBound(family)
     FamilyProduct_List.AddItem family(i)
 Next i
+
+'SIRUS - verifier version config (rebuild auto si SIRUS_CONFIG_VERSION a change,
+'sinon no-op). A appeler avant SIRUS_InitGeneration qui lit la feuille.
+Call G_SIRUS_Config.SIRUS_VerifierConfigAJour
 
 'SIRUS - configuration ListViews + alimentation Generation depuis DATA_ASL + BdD
 Call G_SIRUS_UserForm.SIRUS_InitGeneration

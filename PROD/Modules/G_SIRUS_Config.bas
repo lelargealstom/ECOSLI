@@ -19,6 +19,13 @@ Option Compare Text
 Public Const SIRUS_CONFIG_SHEET    As String = "SIRUS_Config"
 Public Const SIRUS_CONFIG_LISTOBJ  As String = "tblSIRUSConfig"
 
+' Version du peuplement du config. A bumper a chaque modification d un
+' PeuplerXxx ou ajout de champ. Comparee a la valeur stockee en cellule
+' O1 de SIRUS_Config par SIRUS_VerifierConfigAJour : si different,
+' force le rebuild automatique (au prochain Ctrl+W). Permet d eviter
+' que les ingenieurs ASL aient un config obsolete apres une maj du .xlam.
+Public Const SIRUS_CONFIG_VERSION  As String = "2026-10-23-v4"
+
 ' Noms de table (valeurs de la colonne "Table" du config)
 Public Const SIRUS_TBL_PRODUIT     As String = "Produit"
 Public Const SIRUS_TBL_INFOATM     As String = "InfoATM"
@@ -43,6 +50,25 @@ Public Function SIRUS_ColonneClePourTable(ByVal sTable As String) As Long
         Case "ProjetASL":  SIRUS_ColonneClePourTable = 4
         Case "Produit":    SIRUS_ColonneClePourTable = 3
         Case Else:         SIRUS_ColonneClePourTable = 2
+    End Select
+End Function
+
+' =========================================================================
+' SIRUS_ColonneBdDClePourTable
+' =========================================================================
+' Renvoie le NOM EXACT de la colonne cle metier dans la BdD (utilise pour
+' le WHERE des SQL SELECT de PreRemplirDepuisBdD).
+' Source unique de verite (avant : 1er champ du config -> Famille Generique
+' pour Produit, ce qui faisait planter le pre-remplissage Produit Modifier).
+Public Function SIRUS_ColonneBdDClePourTable(ByVal sTable As String) As String
+    Select Case sTable
+        Case SIRUS_TBL_PRODUIT:   SIRUS_ColonneBdDClePourTable = "DTR"
+        Case SIRUS_TBL_INFOATM:   SIRUS_ColonneBdDClePourTable = "DTR_INFOATM"
+        Case SIRUS_TBL_TACHESATM: SIRUS_ColonneBdDClePourTable = "DTR_TACHEATM"
+        Case SIRUS_TBL_EMMST:     SIRUS_ColonneBdDClePourTable = "DTR_EMMST"
+        Case SIRUS_TBL_PROJETASL: SIRUS_ColonneBdDClePourTable = "PROJET_PROJETASL"
+        Case SIRUS_TBL_PROJETSLI: SIRUS_ColonneBdDClePourTable = "Nom projet_PROJET SLI"
+        Case Else:                SIRUS_ColonneBdDClePourTable = ""
     End Select
 End Function
 
@@ -131,15 +157,57 @@ Public Sub SIRUS_InitConfigSheet(Optional ByVal bForcer As Boolean = False)
         End If
     End If
 
-    ' -- 6. Cacher la feuille (veryHidden) -------------------
+    ' -- 6. Ecrire la version en cellule O1 (hors ListObject) pour
+    '    permettre la detection "config obsolete" -> rebuild auto.
+    ws.Range("O1").Value = SIRUS_CONFIG_VERSION
+
+    ' -- 7. Cacher la feuille (veryHidden) -------------------
     ws.Visible = xlSheetVeryHidden
 
     Debug.Print "SIRUS_InitConfigSheet : feuille " & SIRUS_CONFIG_SHEET & _
-                " creee et peuplee pour 6 tables (" & lo.ListRows.count & " champs au total)."
+                " creee et peuplee pour 6 tables (" & lo.ListRows.count & " champs au total). Version : " & SIRUS_CONFIG_VERSION
     Exit Sub
 
 Sortie:
     MsgBox "Erreur dans SIRUS_InitConfigSheet : " & Err.description, vbCritical
+End Sub
+
+' =========================================================================
+' SIRUS_VerifierConfigAJour
+' =========================================================================
+' A appeler au demarrage du UserForm (UserForm_Initialize). Verifie si la
+' feuille SIRUS_Config est a jour avec le code (constante SIRUS_CONFIG_VERSION).
+' Si la feuille n'existe pas OU si sa version stockee ne correspond pas a
+' la version du code -> declenche un rebuild force (SIRUS_InitConfigSheet
+' bForcer:=True).
+'
+' Permet aux ingenieurs ASL d obtenir automatiquement la derniere version
+' du config a chaque mise a jour du .xlam, sans intervention manuelle.
+Public Sub SIRUS_VerifierConfigAJour()
+    Dim wb As Workbook
+    Dim ws As Worksheet
+    Dim sVersionFeuille As String
+    Dim bRebuild As Boolean
+
+    Set wb = ThisWorkbook
+    bRebuild = True
+
+    On Error Resume Next
+    Set ws = wb.Worksheets(SIRUS_CONFIG_SHEET)
+    On Error GoTo 0
+
+    If Not ws Is Nothing Then
+        sVersionFeuille = CStr(ws.Range("O1").Value)
+        If sVersionFeuille = SIRUS_CONFIG_VERSION Then
+            bRebuild = False
+        Else
+            Debug.Print "[SIRUS_VerifierConfigAJour] Version obsolete : feuille='" & sVersionFeuille & "' vs code='" & SIRUS_CONFIG_VERSION & "' -> rebuild auto."
+        End If
+    End If
+
+    If bRebuild Then
+        Call SIRUS_InitConfigSheet(bForcer:=True)
+    End If
 End Sub
 
 ' =========================================================================
@@ -151,129 +219,87 @@ End Sub
 ' Conditionnels : MTBF intrinseque / Motif NA (au moins un des deux),
 ' Prix/Date validite Spare et Repair selon Node Type et presence prix manuel.
 Private Sub PeuplerProduit(lo As ListObject)
-    ' Refonte 2026-06-10 : nouvel ordre + 25 champs metier alignes sur le
-    ' brief Thomas. Champs marques ??_*_a_definir : nom BdD a confirmer
-    ' via Test_DiagnostiquerEcartsConfig_Toutes / Test_DiagnostiquerColonnesBdDFeuille.
+    ' Refonte 2026-07-07 : MeQ v0.2 sur 19 champs obligatoires. Logique
+    ' factorisee dans G_SIRUS_Regles.EstObligatoire_Produit :
+    '   - Base (3 champs) : DTR / Designation / Node type - toujours obligatoires
+    '   - MotifNonApplicabilite = "NA" : rien d'autre n'est obligatoire (3 total)
+    '   - Sinon (Motif = "OK") : les 16 autres sont obligatoires, avec 3 exemptions
+    '     independantes qui se composent :
+    '     * DVL HARDWARE oblig ssi MotifPreventif in {HARD, BOTH}
+    '     * DVL SOFTWARE oblig ssi MotifPreventif in {SOFT, BOTH}
+    '     * Les 3 champs REPAIR (Prix / Dates / Lead time) oblig ssi
+    '       NodeType not in {LRUNR, SRUNR} (regle non-reparable)
+    '
+    ' Note prix / leadtime : les 7 champs SPARE + REPAIR sont maintenant stockes
+    ' cote BdD dans la table Produit_HistoPrix (feuille Produit_SnapShotPrix),
+    ' pas dans Produit$. Le config garde les ColonneBdD historiques comme
+    ' "champs virtuels" : le MeQ / la feuille SIRUS mergent la valeur SnapShotPrix
+    ' la plus recente (par Date Source, Prix non nul) dans le row Produit
+    ' avant lecture (cf. G_SIRUS_PBS et G_SIRUS_Analyse).
+    '
+    ' Les 6 champs hors des 19 (Famille Generique, Ref RAM Report, Ref datasheet,
+    ' Ref MUL installation/software/interface) restent presents Obligatoire=Non
+    ' pour permettre a l ingenieur de les renseigner en Creation / Modification.
 
-    Call AjouterChamp(lo, "Produit", "Famille Generique", _
-                      "??_FamilleGenerique_a_definir", 10, _
-                      "Texte", "", "Non", "", "Saisie", "", 1, "", _
-                      "Famille generique du produit (a definir).")
+    ' --- Champs hors 19 (info libre, non comptes dans MeQ) ---
+    Call AjouterChamp(lo, "Produit", "Famille Generique", "Famille generique_PRODUIT", 10, "Texte", "", "Non", "", "Saisie", "", 1, "", "Hors 19 champs MeQ. Saisie libre.")
 
-    Call AjouterChamp(lo, "Produit", "DTR", "DTR", 20, _
-                      "Texte", "", "Oui", "", "Saisie", "", 3, "", _
-                      "Identifiant unique du produit (cle).")
+    ' --- Base : 3 champs toujours obligatoires (meme si MotifNA=NA) ---
+    Call AjouterChamp(lo, "Produit", "DTR", "DTR", 20, "Texte", "", "Oui", "", "Saisie", "", 3, "", "Identifiant unique du produit (cle).")
 
-    Call AjouterChamp(lo, "Produit", "Designation manuelle", _
-                      "Désignation manuelle_PRODUIT", 30, _
-                      "Texte", "", "Oui", "", "Saisie", "", 2, "", "")
+    Call AjouterChamp(lo, "Produit", "Designation", "Designation_PRODUIT", 30, "Texte", "", "Oui", "", "Saisie", "", 2, "", "Renomme 2026-07-07 : ancien nom BdD 'Designation manuelle_PRODUIT'.")
 
-    Call AjouterChamp(lo, "Produit", "Node Type", _
-                      "Node type Produit (LRU/SRU…)_PRODUIT", 40, _
-                      "Liste", "NodeType", "Oui", "", "Saisie", "", 2, "", "")
+    Call AjouterChamp(lo, "Produit", "Node Type", "Node type Produit (LRU/SRU" & ChrW(&H2026) & ")_PRODUIT", 40, "Liste", "NodeType", "Oui", "", "Saisie", "", 2, "", "Determine la regle non-reparable (LRUNR/SRUNR). Nom BdD avec ellipse Unicode U+2026.")
 
-    Call AjouterChamp(lo, "Produit", "Ref RAM Report", _
-                      "??_RefRAMReport_a_definir", 50, _
-                      "Texte", "", "Non", "", "Saisie", "", 1, "", _
-                      "Reference RAM Report (a definir).")
+    ' --- Hors 19 ---
+    Call AjouterChamp(lo, "Produit", "Ref RAM Report", "Ref RAM Report_PRODUIT", 50, "Texte", "", "Non", "", "Saisie", "", 1, "", "Hors 19 champs MeQ. Saisie libre.")
 
-    Call AjouterChamp(lo, "Produit", "Fournisseur", _
-                      "Fournisseur_PRODUIT", 60, _
-                      "Texte", "", "Oui", "", "Saisie", "", 1, "", "")
+    ' --- Champs metier oblig si MotifNA != NA (13 champs) ---
+    Call AjouterChamp(lo, "Produit", "Fournisseur", "Fournisseur_PRODUIT", 60, "Texte", "", "Conditionnel", "Obligatoire si MotifNA != NA", "Saisie", "", 1, "", "")
 
-    Call AjouterChamp(lo, "Produit", "Reference fournisseur", _
-                      "Référence fournisseur_PRODUIT", 70, _
-                      "Texte", "", "Oui", "", "Saisie", "", 1, "", "")
+    Call AjouterChamp(lo, "Produit", "Reference fournisseur", "Reference fournisseur_PRODUIT", 70, "Texte", "", "Conditionnel", "Obligatoire si MotifNA != NA", "Saisie", "", 1, "", "")
 
-    Call AjouterChamp(lo, "Produit", "Motif NA", _
-                      "MotifNonApplicabilité_PRODUIT", 80, _
-                      "Liste", "MotifNA", "Conditionnel", "Vide si MTBF intrinseque renseigne", "Saisie", "", 1, "", _
-                      "Liste : NA, NA MECA, NA KIT.")
+    Call AjouterChamp(lo, "Produit", "Motif NA", "MotifNonApplicabilite_PRODUIT", 80, "Liste", "MotifNA", "Conditionnel", "Obligatoire si MotifNA != NA", "Saisie", "", 2, "", "Valeurs : OK ou NA. Si NA -> seuls DTR/Designation/NodeType sont obligatoires (3 champs). Si OK -> jusqu'a 19 champs obligatoires selon MotifNAPrev et NodeType.")
 
-    Call AjouterChamp(lo, "Produit", "Drawing Number", _
-                      "Drawing number", 90, _
-                      "Texte", "", "Oui", "", "Saisie", "", 1, "", _
-                      "Nom BdD sans suffixe _PRODUIT.")
+    Call AjouterChamp(lo, "Produit", "Motif NA Preventif", "Motif_NonApplicabilitePreventif_PRODUIT", 85, "Liste", "MotifNAPreventif", "Conditionnel", "Obligatoire si MotifNA != NA", "Saisie", "", 1, "", "Valeurs : HARD / SOFT / BOTH / NA. Determine l'obligation des 2 DVL. Nom BdD avec underscore apres Motif.")
 
-    Call AjouterChamp(lo, "Produit", "MTBF intrinseque (h)", _
-                      "MTBF intrinsèque Produit (h) issu de la datasheet _PRODUIT", 100, _
-                      "Nombre", "", "Conditionnel", "Vide si Motif NA renseigne", "Saisie", "", 2, "", _
-                      "Obligatoire sauf si Motif NA renseigne. Note : espace avant _PRODUIT dans le nom BdD.")
+    Call AjouterChamp(lo, "Produit", "Drawing Number", "Drawing number", 90, "Texte", "", "Conditionnel", "Obligatoire si MotifNA != NA", "Saisie", "", 1, "", "Nom BdD sans suffixe _PRODUIT.")
 
-    Call AjouterChamp(lo, "Produit", "DVL HARD generique", _
-                      "??_DureeVieLimiteeHARDGenerique_a_definir", 110, _
-                      "Nombre", "", "Non", "", "Saisie", "", 1, "", _
-                      "Duree de vie limitee HARD generique (a definir).")
+    Call AjouterChamp(lo, "Produit", "MTBF intrinseque (h)", "MTBF intrinseque Produit (h) issu de la datasheet _PRODUIT", 100, "Nombre", "", "Conditionnel", "Obligatoire si MotifNA != NA", "Saisie", "", 2, "", "Note : espace avant _PRODUIT dans le nom BdD.")
 
-    Call AjouterChamp(lo, "Produit", "DVL SOFT generique", _
-                      "??_DureeVieLimiteeSOFTGenerique_a_definir", 120, _
-                      "Nombre", "", "Non", "", "Saisie", "", 1, "", _
-                      "Duree de vie limitee SOFT generique (a definir).")
+    ' --- 2 DVL conditionnees par MotifNAPreventif ---
+    Call AjouterChamp(lo, "Produit", "DVL HARD generique", "Duree de vie generique Produit HARDWARE (annee)_PRODUIT", 110, "Nombre", "", "Conditionnel", "Obligatoire si MotifNAPrev in HARD/BOTH", "Saisie", "", 1, "", "Duree de vie limitee HARDWARE. Non oblig si MotifNAPrev = SOFT ou NA.")
 
-    Call AjouterChamp(lo, "Produit", "Prix Spare manuel", _
-                      "Prix SPARE manuel_PRODUIT", 130, _
-                      "Nombre", "", "Non", "", "Saisie", "", 1, "", _
-                      "Prix Spare manuel (saisie libre).")
+    Call AjouterChamp(lo, "Produit", "DVL SOFT generique", "Duree de vie generique Produit (annee) SOFTWARE _PRODUIT", 120, "Nombre", "", "Conditionnel", "Obligatoire si MotifNAPrev in SOFT/BOTH", "Saisie", "", 1, "", "Duree de vie limitee SOFTWARE. Non oblig si MotifNAPrev = HARD ou NA.")
 
-    Call AjouterChamp(lo, "Produit", "Lead Time Spare", _
-                      "??_LeadTimeSpare_a_definir", 140, _
-                      "Nombre", "", "Non", "", "Saisie", "", 1, "", _
-                      "Lead time Spare (jours) - a definir.")
+    ' --- Bloc SPARE (4 champs virtuels alimentes depuis Produit_HistoPrix) ---
+    ' Source = "SnapShotPrix" : skippes du SELECT Produit$ (evite ACE errors)
+    ' mais inclus dans le calcul MeQ (CalculerMeQDTR_Optim ne skip que Auto/Herite).
+    Call AjouterChamp(lo, "Produit", "Prix Spare a date", "Prix SPARE catalogue a date_PRODUIT", 130, "Nombre", "", "Conditionnel", "Obligatoire si MotifNA != NA", "SnapShotPrix", "", 1, "", "Source : Produit_HistoPrix Type='Spare', derniere Date Source, Prix non nul.")
 
-    Call AjouterChamp(lo, "Produit", "Source Spare", _
-                      "??_SourceSpare_a_definir", 150, _
-                      "Texte", "", "Non", "", "Saisie", "", 1, "", _
-                      "Source du prix Spare (a definir).")
+    Call AjouterChamp(lo, "Produit", "Dates validite Spare", "Dates de validite des prix SPARE connus sur Projet (ASL)_PRODUIT", 140, "Texte", "", "Conditionnel", "Obligatoire si MotifNA != NA", "SnapShotPrix", "", 1, "", "Source : Produit_HistoPrix.Ref Catalogue (Type=Spare).")
 
-    Call AjouterChamp(lo, "Produit", "Date Source Spare", _
-                      "??_DateSourceSpare_a_definir", 160, _
-                      "Date", "", "Non", "", "Saisie", "", 1, "", _
-                      "Date de la source du prix Spare (a definir).")
+    Call AjouterChamp(lo, "Produit", "MoQ Spare", "MoQ spare catalogue_PRODUIT", 150, "Nombre", "", "Conditionnel", "Obligatoire si MotifNA != NA", "SnapShotPrix", "", 1, "", "Source : Produit_HistoPrix.MoQ (Type=Spare).")
 
-    Call AjouterChamp(lo, "Produit", "Prix Repair manuel", _
-                      "Prix REPAIR manuel_PRODUIT", 170, _
-                      "Nombre", "", "Non", "", "Saisie", "", 1, "", _
-                      "Prix Repair manuel (saisie libre).")
+    Call AjouterChamp(lo, "Produit", "Lead Time Spare", "Lead time SPARE catalogue (jours) a date_PRODUIT", 160, "Nombre", "", "Conditionnel", "Obligatoire si MotifNA != NA", "SnapShotPrix", "", 1, "", "Source : Produit_HistoPrix.LeadTime (Type=Spare). Renomme (ex 'Lead time SPARE (jours) manuel_PRODUIT').")
 
-    Call AjouterChamp(lo, "Produit", "Lead Time Repair", _
-                      "Lead time REPAIR (jours) manuel_PRODUIT", 180, _
-                      "Nombre", "", "Non", "", "Saisie", "", 1, "", _
-                      "Lead time Repair manuel (jours).")
+    ' --- Bloc REPAIR (3 champs virtuels alimentes depuis Produit_HistoPrix) ---
+    ' Non obligatoires si Node Type in {LRUNR, SRUNR} (regle non-reparable).
+    Call AjouterChamp(lo, "Produit", "Prix Repair a date", "Prix REPAIR catalogue a date_PRODUIT", 170, "Nombre", "", "Conditionnel", "Obligatoire si MotifNA != NA ET NodeType not in LRUNR/SRUNR", "SnapShotPrix", "", 1, "", "Source : Produit_HistoPrix Type='Repair'.")
 
-    Call AjouterChamp(lo, "Produit", "Source Repair", _
-                      "??_SourceRepair_a_definir", 190, _
-                      "Texte", "", "Non", "", "Saisie", "", 1, "", _
-                      "Source du prix Repair (a definir).")
+    Call AjouterChamp(lo, "Produit", "Dates validite Repair", "Dates de validite des prix REPAIR connus sur Projet (ASL)_PRODUIT", 180, "Texte", "", "Conditionnel", "Obligatoire si MotifNA != NA ET NodeType not in LRUNR/SRUNR", "SnapShotPrix", "", 1, "", "Source : Produit_HistoPrix.Ref Catalogue (Type=Repair).")
 
-    Call AjouterChamp(lo, "Produit", "Date Source Repair", _
-                      "??_DateSourceRepair_a_definir", 200, _
-                      "Date", "", "Non", "", "Saisie", "", 1, "", _
-                      "Date de la source du prix Repair (a definir).")
+    Call AjouterChamp(lo, "Produit", "Lead Time Repair", "Lead time REPAIR (jours) manuel_PRODUIT", 190, "Nombre", "", "Conditionnel", "Obligatoire si MotifNA != NA ET NodeType not in LRUNR/SRUNR", "SnapShotPrix", "", 1, "", "Source : Produit_HistoPrix.LeadTime (Type=Repair).")
 
-    Call AjouterChamp(lo, "Produit", "Reference datasheet", _
-                      "??_RefDatasheet_a_definir", 210, _
-                      "Texte", "", "Non", "", "Saisie", "", 1, "", _
-                      "Reference de la datasheet (a definir).")
+    ' --- Ref MUL maintenance : oblig si MotifNA != NA (dans les 19) ---
+    Call AjouterChamp(lo, "Produit", "Reference MUL maintenance", "Reference MUL maintenance_PRODUIT", 200, "Texte", "", "Conditionnel", "Obligatoire si MotifNA != NA", "Saisie", "", 1, "", "")
 
-    Call AjouterChamp(lo, "Produit", "Reference MUL installation", _
-                      "??_RefMULInstallation_a_definir", 220, _
-                      "Texte", "", "Non", "", "Saisie", "", 1, "", _
-                      "Reference MUL installation (a definir).")
+    ' --- Champs hors 19 (info libre) ---
+    Call AjouterChamp(lo, "Produit", "Reference datasheet", "References datasheet_PRODUIT", 210, "Texte", "", "Non", "", "Saisie", "", 1, "", "Hors 19 champs MeQ. Saisie libre.")
 
-    Call AjouterChamp(lo, "Produit", "Reference MUL maintenance", _
-                      "??_RefMULMaintenance_a_definir", 230, _
-                      "Texte", "", "Non", "", "Saisie", "", 1, "", _
-                      "Reference MUL maintenance (a definir).")
+    Call AjouterChamp(lo, "Produit", "Reference MUL installation", "Reference MUL installation_PRODUIT", 220, "Texte", "", "Non", "", "Saisie", "", 1, "", "Hors 19 champs MeQ. Saisie libre.")
 
-    Call AjouterChamp(lo, "Produit", "Reference MUL software", _
-                      "??_RefMULSoftware_a_definir", 240, _
-                      "Texte", "", "Non", "", "Saisie", "", 1, "", _
-                      "Reference MUL software (a definir).")
-
-    Call AjouterChamp(lo, "Produit", "Reference MUL interface", _
-                      "??_RefMULInterface_a_definir", 250, _
-                      "Texte", "", "Non", "", "Saisie", "", 1, "", _
-                      "Reference MUL interface (a definir).")
+    Call AjouterChamp(lo, "Produit", "Reference MUL software", "Reference MUL software_PRODUIT", 240, "Texte", "", "Non", "", "Saisie", "", 1, "", "Hors 19 champs MeQ. Saisie libre.")
 End Sub
 
 ' =========================================================================

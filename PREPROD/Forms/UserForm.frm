@@ -1,19 +1,3 @@
-VERSION 5.00
-Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} UserForm 
-   Caption         =   "UserForm"
-   ClientHeight    =   7170
-   ClientLeft      =   -9330.001
-   ClientTop       =   -38840
-   ClientWidth     =   16120
-   OleObjectBlob   =   "UserForm.frx":0000
-   StartUpPosition =   2  'CenterScreen
-End
-Attribute VB_Name = "UserForm"
-Attribute VB_GlobalNameSpace = False
-Attribute VB_Creatable = False
-Attribute VB_PredeclaredId = True
-Attribute VB_Exposed = False
-
 Option Explicit
 Public chemin As String
 Public userpath

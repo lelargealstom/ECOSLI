@@ -1,4 +1,3 @@
-Attribute VB_Name = "B_ATM_V2"
 ' Cache du template local : copie unique depuis SharePoint en debut d'ATM_V2.
 ' Toutes les copies par DTR partent ensuite de cette copie locale (disque
 ' local ~10x plus rapide que OneDrive synchronise).

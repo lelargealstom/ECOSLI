@@ -1,4 +1,3 @@
-Attribute VB_Name = "A_1_ModEvents"
 Option Explicit
 ' Instance globale du gestionnaire d'evenements
 Private g_AppEvents As clsAppEvents
