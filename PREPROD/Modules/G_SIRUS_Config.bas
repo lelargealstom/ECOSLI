@@ -23,7 +23,7 @@ Public Const SIRUS_CONFIG_LISTOBJ  As String = "tblSIRUSConfig"
 ' O1 de SIRUS_Config par SIRUS_VerifierConfigAJour : si different,
 ' force le rebuild automatique (au prochain Ctrl+W). Permet d eviter
 ' que les ingenieurs ASL aient un config obsolete apres une maj du .xlam.
-Public Const SIRUS_CONFIG_VERSION  As String = "2026-07-07-v3"
+Public Const SIRUS_CONFIG_VERSION  As String = "2026-10-23-v5"
 
 ' Noms de table (valeurs de la colonne "Table" du config)
 Public Const SIRUS_TBL_PRODUIT     As String = "Produit"

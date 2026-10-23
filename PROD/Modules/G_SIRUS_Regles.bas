@@ -74,14 +74,14 @@ Public Function SIRUS_RegleObligatoire(ByVal sTable As String, _
             rang = CStr(GetVal(ligne, "Rang_TACHEATM"))
             SIRUS_RegleObligatoire = (Left$(rang, 2) = "3." Or Left$(rang, 2) = "4.")
 
-        Case "TachesATM|Crit" & ChrW(232) & "resDimensionnels_TACHEATM"
+        Case "TachesATM|CriteresDimensionnels_TACHEATM"
             ' Criteres dimensionnels (Critere Nm) obligatoires si la
             ' description mentionne "Torque Tighten" (couple de serrage).
             Dim descTorque As String
             descTorque = CStr(GetVal(ligne, "Description_TACHEATM"))
             SIRUS_RegleObligatoire = (InStr(1, descTorque, "Torque Tighten", vbTextCompare) > 0)
 
-        Case "TachesATM|OutillageStandard_TACHEATM", "TachesATM|Outillage" & ChrW(233) & "cifique_TACHEATM"
+        Case "TachesATM|OutillageStandard_TACHEATM", "TachesATM|OutillageSpecifique_TACHEATM"
             ' Outillage standard/specifique obligatoire pour les taches
             ' de rang 2.1 (Outils prerequis Depose) et 5.1 (Outils
             ' prerequis Pose) sur les composants >= SRU (LRU exclus :
@@ -144,10 +144,10 @@ Public Function SIRUS_RegleAlerte(ByVal sTable As String, _
         ' une fois "??_DateSourceSpare/Repair_a_definir" remplaces.
 
         ' ----------------- TachesATM -----------------
-        Case "TachesATM|NbOp" & ChrW(233) & "rateurs_TACHEATM"
+        Case "TachesATM|NbOperateurs_TACHEATM"
             ' Alerte si > 4 operateurs : valeur metier rare, a confirmer.
             Dim nbOp As String
-            nbOp = CStr(GetVal(ligne, "NbOp" & ChrW(233) & "rateurs_TACHEATM"))
+            nbOp = CStr(GetVal(ligne, "NbOperateurs_TACHEATM"))
             If IsNumeric(nbOp) Then
                 If CDbl(nbOp) > 4 Then
                     SIRUS_RegleAlerte = "Nb operateurs > 4 : valeur a confirmer"
@@ -160,7 +160,7 @@ Public Function SIRUS_RegleAlerte(ByVal sTable As String, _
             ' (le RAM report projet doit etre >= valeur datasheet).
             Dim mtbfF As String, mtbfI As String
             mtbfF = CStr(GetVal(ligne, "MTBF fonctionnel (h) issu du RAM report projet_PROJETASL"))
-            mtbfI = CStr(GetVal(ligne, "MTBF intrins" & ChrW(232) & "que Produit (h) issu de la datasheet _PRODUIT"))
+            mtbfI = CStr(GetVal(ligne, "MTBF intrinseque Produit (h) issu de la datasheet _PRODUIT"))
             If IsNumeric(mtbfF) And IsNumeric(mtbfI) Then
                 If CDbl(mtbfF) < CDbl(mtbfI) Then
                     SIRUS_RegleAlerte = "MTBF fonctionnel < MTBF intrinseque : verifier RAM report"
@@ -467,12 +467,12 @@ Public Sub Test_Regle_TachesATM_TorqueTighten()
     Set d = CreateObject("Scripting.Dictionary")
     d("Description_TACHEATM") = "Torque Tighten the M8 screws to 25 Nm"
     Debug.Print "Torque Tighten -> Criteres Nm oblig ? " & _
-        SIRUS_RegleObligatoire("TachesATM", "Crit" & ChrW(232) & "resDimensionnels_TACHEATM", d)
+        SIRUS_RegleObligatoire("TachesATM", "CriteresDimensionnels_TACHEATM", d)
     ' Attendu : True
 
     d("Description_TACHEATM") = "Remove the bracket"
     Debug.Print "Pas de Torque -> Criteres Nm oblig ? " & _
-        SIRUS_RegleObligatoire("TachesATM", "Crit" & ChrW(232) & "resDimensionnels_TACHEATM", d)
+        SIRUS_RegleObligatoire("TachesATM", "CriteresDimensionnels_TACHEATM", d)
     ' Attendu : False
 End Sub
 
@@ -481,7 +481,7 @@ Public Sub Test_Regle_Alerte_MTBFInferieur()
     Dim d As Object
     Set d = CreateObject("Scripting.Dictionary")
     d("MTBF fonctionnel (h) issu du RAM report projet_PROJETASL") = "5000"
-    d("MTBF intrins" & ChrW(232) & "que Produit (h) issu de la datasheet _PRODUIT") = "8000"
+    d("MTBF intrinseque Produit (h) issu de la datasheet _PRODUIT") = "8000"
     Debug.Print "MTBF fct=5000 < intrins=8000 -> alerte : '" & _
         SIRUS_RegleAlerte("ProjetASL", "MTBF fonctionnel (h) issu du RAM report projet_PROJETASL", d) & "'"
     ' Attendu : libelle d'alerte

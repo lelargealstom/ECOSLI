@@ -24,7 +24,7 @@ Public Const SIRUS_CONFIG_LISTOBJ  As String = "tblSIRUSConfig"
 ' O1 de SIRUS_Config par SIRUS_VerifierConfigAJour : si different,
 ' force le rebuild automatique (au prochain Ctrl+W). Permet d eviter
 ' que les ingenieurs ASL aient un config obsolete apres une maj du .xlam.
-Public Const SIRUS_CONFIG_VERSION  As String = "2026-10-23-v4"
+Public Const SIRUS_CONFIG_VERSION  As String = "2026-10-23-v5"
 
 ' Noms de table (valeurs de la colonne "Table" du config)
 Public Const SIRUS_TBL_PRODUIT     As String = "Produit"
@@ -349,7 +349,7 @@ Private Sub PeuplerInfoATM(lo As ListObject)
                       "Herite de EMMST. Si absent en base ==> alerte EMMST inconnu.")
 
     Call AjouterChamp(lo, "InfoATM", "Temps generique", _
-                      "Temps générique de la tâche_INFOATM", 80, _
+                      "Temps generique de la tache_INFOATM", 80, _
                       "Nombre", "", "Non", "", "Auto", "", 0, "", _
                       "Lecture seule, calcule (affichage gris).")
 End Sub
@@ -390,7 +390,7 @@ Private Sub PeuplerTachesATM(lo As ListObject)
                       "Obligatoire pour rang 3.* et 4.*. Si contient 'Torque Tighten' ==> critere N.m attendu.")
 
     Call AjouterChamp(lo, "TachesATM", "Critere Nm", _
-                      "CritèresDimensionnels_TACHEATM", 60, _
+                      "CriteresDimensionnels_TACHEATM", 60, _
                       "Nombre", "", "Conditionnel", "Description contient 'Torque Tighten'", "Saisie", "", 1, "", _
                       "Couple de serrage en N.m, attendu si Description contient 'Torque Tighten'. (Champ BdD 'CritèresDimensionnels' a confirmer.)")
 
@@ -403,7 +403,7 @@ Private Sub PeuplerTachesATM(lo As ListObject)
                       "Outillage standard utilise (couvre le besoin BTE du brief).")
 
     Call AjouterChamp(lo, "TachesATM", "Outillage specifique", _
-                      "OutillageSpécifique_TACHEATM", 80, _
+                      "OutillageSpecifique_TACHEATM", 80, _
                       "Texte", "", "Conditionnel", "Rang 2.1/5.1 et NodeType >= SRU", "Saisie", "", 1, "", _
                       "Outillage specifique projet (couvre le besoin BTE du brief).")
 End Sub
@@ -443,30 +443,30 @@ Private Sub PeuplerEMMST(lo As ListObject)
 
     ' --- Dimensions conditionne ---
     Call AjouterChamp(lo, "EMMST", "Longueur conditionne", _
-                      "DimensionConditionnéLongueur_EMMST", 200, _
+                      "DimensionConditionneLongueur_EMMST", 200, _
                       "Nombre", "", "Oui", "", "Saisie", "", 1, "", "mm")
     Call AjouterChamp(lo, "EMMST", "Largeur conditionne", _
-                      "DimensionConditionnéLargeur_EMMST", 210, _
+                      "DimensionConditionneLargeur_EMMST", 210, _
                       "Nombre", "", "Oui", "", "Saisie", "", 1, "", "mm")
     Call AjouterChamp(lo, "EMMST", "Hauteur conditionne", _
-                      "DimensionConditionnéHauteur_EMMST", 220, _
+                      "DimensionConditionneHauteur_EMMST", 220, _
                       "Nombre", "", "Oui", "", "Saisie", "", 1, "", "mm")
     Call AjouterChamp(lo, "EMMST", "Poids conditionne", _
-                      "DimensionConditionnéPoids_EMMST", 230, _
+                      "DimensionConditionnePoids_EMMST", 230, _
                       "Nombre", "", "Oui", "", "Saisie", "", 1, "", "kg")
 
     ' --- Conditionnement ---
     Call AjouterChamp(lo, "EMMST", "Unite conditionnement", _
-                      "UnitéConditionnement_EMMST", 300, _
+                      "UniteConditionnement_EMMST", 300, _
                       "Texte", "", "Non", "", "Saisie", "", 0, "", "")
     Call AjouterChamp(lo, "EMMST", "Date peremption", _
                       "DatePeremption_EMMST", 310, _
                       "Date", "", "Non", "", "Saisie", "", 0, "", "")
     Call AjouterChamp(lo, "EMMST", "Duree peremption", _
-                      "DuréePéremption_EMMST", 320, _
+                      "DureePeremption_EMMST", 320, _
                       "Texte", "", "Non", "", "Saisie", "", 0, "", "")
     Call AjouterChamp(lo, "EMMST", "Reutilisable", _
-                      "Réutilisable_EMMST", 330, _
+                      "Reutilisable_EMMST", 330, _
                       "Booleen", "Booleen", "Non", "", "Saisie", "", 0, "", "")
 
     ' --- Marquage / Manutention ---
@@ -480,10 +480,10 @@ Private Sub PeuplerEMMST(lo As ListObject)
                       "ManutentionEquipement_EMMST", 420, _
                       "Texte", "", "Non", "", "Saisie", "", 0, "", "")
     Call AjouterChamp(lo, "EMMST", "Outillage specifique manutention", _
-                      "OutillageSpécifiqueManutention_EMMST", 430, _
+                      "OutillageSpecifiqueManutention_EMMST", 430, _
                       "Texte", "", "Non", "", "Saisie", "", 0, "", "")
     Call AjouterChamp(lo, "EMMST", "Precaution manutention", _
-                      "PrécautionManutention_EMMST", 440, _
+                      "PrecautionManutention_EMMST", 440, _
                       "Texte", "", "Non", "", "Saisie", "", 0, "", "")
     Call AjouterChamp(lo, "EMMST", "Type outil", _
                       "TypeOutil_EMMST", 450, _
@@ -494,7 +494,7 @@ Private Sub PeuplerEMMST(lo As ListObject)
                       "PositionStockage_EMMST", 500, _
                       "Texte", "", "Non", "", "Saisie", "", 0, "", "")
     Call AjouterChamp(lo, "EMMST", "Stockage exterieur", _
-                      "StockageExtérieur_EMMST", 510, _
+                      "StockageExterieur_EMMST", 510, _
                       "Booleen", "Booleen", "Non", "", "Saisie", "", 0, "", "")
     Call AjouterChamp(lo, "EMMST", "Stockage sous abri", _
                       "StockageSousAbri_EMMST", 520, _
@@ -503,13 +503,13 @@ Private Sub PeuplerEMMST(lo As ListObject)
                       "StockageAirLibre_EMMST", 530, _
                       "Booleen", "Booleen", "Non", "", "Saisie", "", 0, "", "")
     Call AjouterChamp(lo, "EMMST", "Stockage hors poussiere", _
-                      "StockageHorsPoussière_EMMST", 540, _
+                      "StockageHorsPoussiere_EMMST", 540, _
                       "Booleen", "Booleen", "Non", "", "Saisie", "", 0, "", "")
     Call AjouterChamp(lo, "EMMST", "Stockage hors eau", _
                       "StockageHorsEau_EMMST", 550, _
                       "Booleen", "Booleen", "Non", "", "Saisie", "", 0, "", "")
     Call AjouterChamp(lo, "EMMST", "Stockage interieur", _
-                      "StockageIntérieur_EMMST", 560, _
+                      "StockageInterieur_EMMST", 560, _
                       "Booleen", "Booleen", "Non", "", "Saisie", "", 0, "", "")
     Call AjouterChamp(lo, "EMMST", "Stockage chaud", _
                       "StockageChaud_EMMST", 570, _
@@ -518,7 +518,7 @@ Private Sub PeuplerEMMST(lo As ListObject)
                       "StockageFroid_EMMST", 580, _
                       "Booleen", "Booleen", "Non", "", "Saisie", "", 0, "", "")
     Call AjouterChamp(lo, "EMMST", "Stockage hors lumiere", _
-                      "StockageHorsLumière_EMMST", 590, _
+                      "StockageHorsLumiere_EMMST", 590, _
                       "Booleen", "Booleen", "Non", "", "Saisie", "", 0, "", "")
     Call AjouterChamp(lo, "EMMST", "Gerbable", _
                       "Gerbable_EMMST", 600, _
@@ -527,7 +527,7 @@ Private Sub PeuplerEMMST(lo As ListObject)
                       "MoyenStockage_EMMST", 610, _
                       "Texte", "", "Non", "", "Saisie", "", 0, "", "")
     Call AjouterChamp(lo, "EMMST", "Precaution stockage", _
-                      "PrécautionStockage_EMMST", 620, _
+                      "PrecautionStockage_EMMST", 620, _
                       "Texte", "", "Non", "", "Saisie", "", 0, "", "")
     Call AjouterChamp(lo, "EMMST", "Maintenance stockage", _
                       "MaintenanceStockage_EMMST", 630, _
@@ -601,7 +601,7 @@ Private Sub PeuplerProjetSLI(lo As ListObject)
 
     ' --- Configuration projet (Ordre 70-150) -----------------
     Call AjouterChamp(lo, "ProjetSLI", "Duree de circulation", _
-                      "Durée de circulation_PROJET SLI", 70, _
+                      "Duree de circulation_PROJET SLI", 70, _
                       "Nombre", "", "Oui", "", "Saisie", "", 2, "", _
                       "En annees.")
     Call AjouterChamp(lo, "ProjetSLI", "Nombre de trains", _
@@ -609,7 +609,7 @@ Private Sub PeuplerProjetSLI(lo As ListObject)
                       "Nombre", "", "Oui", "", "Saisie", "", 2, "", _
                       "Note : nom BdD 'train' au singulier.")
     Call AjouterChamp(lo, "ProjetSLI", "Duree garantie", _
-                      "Durée de garantie_PROJET SLI", 90, _
+                      "Duree de garantie_PROJET SLI", 90, _
                       "Nombre", "", "Oui", "", "Saisie", "", 1, "", _
                       "En annees.")
     Call AjouterChamp(lo, "ProjetSLI", "Niveau de maintenance", _
@@ -619,17 +619,17 @@ Private Sub PeuplerProjetSLI(lo As ListObject)
                       "Nombre de DTR dans l'EAP ou la PBS_PROJET SLI", 110, _
                       "Nombre", "", "Non", "", "Saisie", "", 1, "", "")
     Call AjouterChamp(lo, "ProjetSLI", "Nombre fournisseurs CDRL", _
-                      "Nombre de fournisseur soumis à CDRL_PROJET SLI", 120, _
+                      "Nombre de fournisseur soumis a CDRL_PROJET SLI", 120, _
                       "Nombre", "", "Non", "", "Saisie", "", 1, "", "")
     Call AjouterChamp(lo, "ProjetSLI", "Type de pack", _
                       "Type de pack (complexe/standard/mini)_PROJET SLI", 130, _
                       "Texte", "", "Non", "", "Saisie", "", 1, "", _
                       "complexe / standard / mini.")
     Call AjouterChamp(lo, "ProjetSLI", "UO grand pere du pack", _
-                      "UO ""grand père"" du pack_PROJET SLI", 140, _
+                      "UO ""grand pere"" du pack_PROJET SLI", 140, _
                       "Texte", "", "Non", "", "Saisie", "", 1, "", "")
     Call AjouterChamp(lo, "ProjetSLI", "Statut", _
-                      "Statut (terminé/En cours/A planifier)_PROJET SLI", 150, _
+                      "Statut (termine/En cours/A planifier)_PROJET SLI", 150, _
                       "Texte", "", "Non", "", "Saisie", "", 1, "", _
                       "termine / En cours / A planifier.")
 
@@ -672,10 +672,10 @@ Private Sub PeuplerProjetSLI(lo As ListObject)
                       "nbre GDP fournisseur_PROJET SLI", 250, _
                       "Nombre", "", "Non", "", "Saisie", "", 0, "", "")
     Call AjouterChamp(lo, "ProjetSLI", "% GDP classique consommee", _
-                      "% de GDP classique consommée_PROJET SLI", 260, _
+                      "% de GDP classique consommee_PROJET SLI", 260, _
                       "Nombre", "", "Non", "", "Saisie", "", 0, "", "")
     Call AjouterChamp(lo, "ProjetSLI", "% GDP fournisseur consommee", _
-                      "% de GDP fournisseur consommée_PROJET SLI", 270, _
+                      "% de GDP fournisseur consommee_PROJET SLI", 270, _
                       "Nombre", "", "Non", "", "Saisie", "", 0, "", "")
 
     ' --- Requis client / fournisseur + PSLI (Ordre 280-330) ---
@@ -685,13 +685,13 @@ Private Sub PeuplerProjetSLI(lo As ListObject)
 
     ' --- References (Ordre 340-360) --------------------------
     Call AjouterChamp(lo, "ProjetSLI", "Reference PBS/EAP", _
-                      "Réf PBS/EAP_PROJET SLI", 340, _
+                      "Ref PBS/EAP_PROJET SLI", 340, _
                       "Texte", "", "Oui", "", "Saisie", "", 1, "", "")
     Call AjouterChamp(lo, "ProjetSLI", "Reference RAM report", _
-                      "Réf RAM report projet_PROJET SLI", 350, _
+                      "Ref RAM report projet_PROJET SLI", 350, _
                       "Texte", "", "Oui", "", "Saisie", "", 1, "", "")
     Call AjouterChamp(lo, "ProjetSLI", "Version Providor/BASL en BdD", _
-                      "Version du Providor/BASL intégré en BdD_PROJET SLI", 360, _
+                      "Version du Providor/BASL integre en BdD_PROJET SLI", 360, _
                       "Texte", "", "Non", "", "Saisie", "", 0, "", "")
 
     ' --- Interlocuteurs RSLI / RASL / LU (Ordre 400-490) -----
@@ -814,14 +814,14 @@ Private Sub PeuplerProjetASL(lo As ListObject)
                       "Doit correspondre a un Projet SLI existant", _
                       "Coherence forte : doit exister dans ProjetSLI.[Nom projet_PROJET SLI].")
     Call AjouterChamp(lo, "ProjetASL", "Sous Systeme", _
-                      "Sous Système_PROJETASL", 20, _
+                      "Sous Systeme_PROJETASL", 20, _
                       "Texte", "", "Oui", "", "Saisie", "", 2, "", _
                       "Sous-systeme du projet (obligatoire).")
     Call AjouterChamp(lo, "ProjetASL", "DTR", "DTR_PROJETASL", 30, _
                       "Texte", "", "Oui", "", "Saisie", "", 3, "", _
                       "Identifiant unique du DTR de la PBS.")
     Call AjouterChamp(lo, "ProjetASL", "Designation PBS", _
-                      "Désignation_PROJETASL", 40, _
+                      "Designation_PROJETASL", 40, _
                       "Texte", "", "Oui", "", "Saisie", "", 2, "", _
                       "Designation issue de la PBS du projet.")
     Call AjouterChamp(lo, "ProjetASL", "Qte", _
@@ -836,9 +836,9 @@ Private Sub PeuplerProjetASL(lo As ListObject)
                       "Produit.Node type Produit (LRU/SRU…)_PRODUIT", 0, "", _
                       "Pre-rempli depuis Produit (lecture conseillee). Saisie possible si specifique projet.")
     Call AjouterChamp(lo, "ProjetASL", "MTBF intrinseque Projet", _
-                      "MTBF intrinsèque Projet (h) issu du RAM report projet_PROJETASL", 70, _
+                      "MTBF intrinseque Projet (h) issu du RAM report projet_PROJETASL", 70, _
                       "Nombre", "", "Non", "", "Saisie", _
-                      "Produit.MTBF intrinsèque Produit (h) issu de la datasheet _PRODUIT", 0, "", _
+                      "Produit.MTBF intrinseque Produit (h) issu de la datasheet _PRODUIT", 0, "", _
                       "MTBF intrinseque projet (RAM report). Pre-rempli depuis Produit si dispo.")
     Call AjouterChamp(lo, "ProjetASL", "MTBF fonctionnel", _
                       "MTBF fonctionnel (h) issu du RAM report projet_PROJETASL", 80, _
@@ -880,13 +880,13 @@ Private Sub PeuplerProjetASL(lo As ListObject)
 
     ' --- Testabilite + autres prix (Ordre 150-180) -----------
     Call AjouterChamp(lo, "ProjetASL", "Testabilite", _
-                      "Testabilité (DTR du BTE relatif à l'équipement sur le projet concerné)_PROJETASL", 150, _
+                      "Testabilite (DTR du BTE relatif a l'equipement sur le projet concerne)_PROJETASL", 150, _
                       "Liste", "Booleen", "Non", "", "Saisie", "", 0, "", _
                       "Liste Oui/Non : indique si le DTR est testable sur le projet. " & _
                       "Non obligatoire (decision 2026-06-15) : la testabilite " & _
                       "n est pas un critere bloquant pour la MeQ Generation.")
     Call AjouterChamp(lo, "ProjetASL", "Prix Preventif", _
-                      "Prix préventif (DEVISE du projet (SLI))_PROJETASL", 160, _
+                      "Prix preventif (DEVISE du projet (SLI))_PROJETASL", 160, _
                       "Nombre", "", "Non", "", "Saisie", "", 0, "", _
                       "Prix preventif dans la devise du projet SLI.")
     Call AjouterChamp(lo, "ProjetASL", "Prix After Market Spare", _
