@@ -6,6 +6,56 @@ Format : `[Date] — Auteur — Périmètre`, puis liste des changements par mod
 
 ---
 
+## 2026-10-28 — Simplification règles Providor Preventive et Corrective Maintenance
+
+Session focus : nettoyer les règles de remplissage des feuilles **Preventive Maintenance (PM)** et **Corrective Maintenance (CM)** du livrable Providor côté **PROD**. Objectif : supprimer les hiérarchies de fallback internes au profit de règles claires pilotées par la Gate, et aligner la logique PM/CM avec la vraie attente métier (plus de fallback générique silencieux après CGR).
+
+Tous les changements concernent `PROD/Modules/D_Providor_Maintenance.bas`.
+
+### Commit `62acd59` — PM : fallback générique si colonne CGR vide + fix needSOFT
+
+- `remplissage_prev` branche **après CGR** : si la colonne analytique durée de vie `tDureevie_Ana_HARD` (resp. `tDureevie_Ana_SOFT`) ne contient **aucune valeur numérique** sur toute la plage DTR, bascule automatique sur `tDureevie_Gen_HARD` (resp. `tDureevie_Gen_SOFT`). Les deux bascules sont indépendantes. Un MsgBox d'avertissement consolidé liste quelles sources ont basculé.
+- Vient en complément du dialogue amont `ValiderDonneesRAMProvidor` (inchangé) — l'utilisateur peut avoir répondu "Oui, continuer avec les données intrinsèques" et bénéficier quand même du fallback automatique colonne par colonne.
+- Les temps de réparation NE sont PAS concernés par ce fallback : `sourceTpsHARD = tTps_CorrPrev_Ana_HARD` et `sourceTpsSOFT = tTps_Prev_Ana_SOFT` conservés tels quels dans la branche après CGR.
+- **Correction indépendante** : `InsererLignesPreventives.needSOFT` → retrait de la condition `And tNTI(index - 1, 1) = 3`. Test désormais identique à `needHARD` : une ligne SOFT est insérée dès que la durée de vie SOFT est numérique et ≠ 0, sans contrainte de NodeType.
+- Nouveau helper privé `AuMoinsUneValeurNumerique(ByRef t As Variant) As Boolean` : teste si un tableau 2D (nx1) contient au moins une valeur numérique. Un `0` compte comme renseigné, les cellules vides et chaînes vides non.
+
+### Commit `b5fce46` — PM : RemplirTempsReparationPrev — source unique selon Gate + HARD/SOFT
+
+- Suppression de la hiérarchie à 3 étages (`sourcePrimaire` → `sourceSecondaire` → `CalculerTempsFamille`) dans `RemplirTempsReparationPrev`.
+- Signature passée de 4 → 3 paramètres : `(ligne, index, source)`. La source est désormais déterminée **une seule fois en amont** dans `remplissage_prev` selon Gate + HARD/SOFT.
+- Corps réduit à un seul `If/Else` :
+  - Si `source(index, 1)` est numérique, non vide, `<> "#N/A"`, `<> 0` → pose le temps + commentaire `"Tps Generique"` (avant CGR) ou `"Tps Analytique"` (après CGR).
+  - Sinon → cellule PM vide, commentaire `"Aucun temps de reparation renseigne"`, `ColorIndex = 44`.
+- Appels dans `InsererLigneHARD` (ligne ~561) et `InsererLigneSOFT` (ligne ~591) alignés : 4e argument supprimé (`tTps_CorrPrev_Gen_HARD` / `tTps_Prev_Gen_SOFT`).
+- **Code mort** : `CalculerTempsFamille` (lignes ~674-699) n'a plus aucun appelant. Non supprimée (règle 8 : pas de refactoring hors demande explicite). À trancher dans une session ultérieure.
+
+### Commit `feffef6` — PM : retrait suppression dernière ligne en fin de `remplissage_prev`
+
+- Suppression du bloc final `If dlPM > 3 Then PM.Cells(dlPM, pm_col.NodeIndex).EntireRow.Delete`. Résidu de l'ancien algorithme qui ajoutait systématiquement une ligne vide à nettoyer en fin de boucle. Dans la version refactorisée où chaque DTR insère 0, 1 ou 2 lignes selon ses propres conditions, plus aucune ligne vide à supprimer. `remplissage_prev` se termine directement par `CleanUp:`.
+
+### Commit `aed7869` — CM : retrait fallback MTBF générique après CGR
+
+- `RemplirMTBF_Corr` branche **après CGR** : suppression du 3e étage de la hiérarchie (`tMTBF_gen`). La sélection se limite à :
+  1. `tMTBF_fct` (MTBF fonctionnel du RAM Report)
+  2. `tMTBF_Intr` (MTBF intrinsèque du RAM Report)
+  3. Sinon : cellule vide + `ColorIndex = 44` (orange) + `MTBFSource = "Pas de MTBF trouve en BDD"`
+- Avant CGR (PGR / GO ORDER / BA / IGR) : comportement **inchangé**, toujours `tMTBF_gen` uniquement.
+- Commentaire d'en-tête de la Sub + commentaire du bloc `APRES CGR` alignés sur la nouvelle logique (ligne header réécrite en ASCII conforme convention projet : `' APRES CGR : HIERARCHIE FONCTIONNEL -> INTRINSEQUE`).
+
+### Observation technique
+
+- Le fichier `D_Providor_Maintenance.bas` est en **UTF-8 sans BOM**, pas en cp1252 comme la mémoire des conventions l'indiquait. Les 2 premiers commits de la session touchaient uniquement des portions ASCII donc passaient en lisant via `GetEncoding(1252)` byte-par-byte. Le dernier commit (modifications de lignes contenant des accents dans `RemplirMTBF_Corr`) a dû passer par `[System.Text.Encoding]::UTF8` en lecture et `UTF8Encoding $false` en écriture. À confirmer si l'ensemble des `.bas` PROD partagent le même encoding UTF-8 — si oui, la convention projet est à mettre à jour.
+
+### À tester en VBE
+
+1. **PM fallback** : générer un Providor sur un projet Gate ≥ CGR avec `tDureevie_Ana_HARD` vide et `tDureevie_Ana_SOFT` renseignée → MsgBox affiche uniquement la bascule HARD, et les lignes PM HARD prennent les valeurs génériques pendant que les lignes SOFT utilisent l'analytique.
+2. **PM needSOFT** : un DTR avec `tDureevie_SOFT` numérique ≠ 0 et NTI ≠ 3 doit maintenant produire une ligne SOFT (avant il n'en produisait pas).
+3. **PM temps** : un DTR avec `tTps_CorrPrev_Ana_HARD` vide après CGR doit afficher une cellule TaskTime vide + orange + commentaire `"Aucun temps de reparation renseigne"` (plus de fallback vers temps famille 0.3h / 0.45h).
+4. **CM MTBF** : un DTR après CGR avec `tMTBF_fct` et `tMTBF_Intr` vides doit afficher cellule MTBF vide + orange + `MTBFSource = "Pas de MTBF trouve en BDD"` (plus de fallback vers `tMTBF_gen`).
+
+---
+
 ## 2026-10-23 — Port matrice MeQ Produit v0.2 vers PROD + alignement BdD sans accents
 
 Session focus : porter la **matrice MeQ Produit v0.2** (développée en PREPROD en juillet 2026) côté **PROD** pour que le MeQ affiché dans la ListView Generation au démarrage du UserForm soit calculé selon les règles v0.2 (dénominateur variable 3→19 champs selon NodeType + MotifPreventif) au lieu des règles v0.1 ad-hoc (dénominateur bloqué à 6). Alignement du config SIRUS sur la BdD TRAVAIL migrée **sans accents ET sans apostrophe `'`** côté Alstom. Nettoyage headers VBE pour permettre le copier-coller GitHub → Editor VBA.
