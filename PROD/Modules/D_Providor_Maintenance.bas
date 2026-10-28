@@ -578,7 +578,7 @@ Private Sub InsererLigneHARD(ByVal index As Integer, ByRef Source As Variant, By
         .Cells(dlPM, pm_col.MaterialQty) = 1
         
         ' Temps réparation
-        Call RemplirTempsReparationPrev(dlPM, index, sourceTps, tTps_CorrPrev_Gen_HARD)
+        Call RemplirTempsReparationPrev(dlPM, index, sourceTps)
     End With
     
 End Sub
@@ -608,7 +608,7 @@ Private Sub InsererLigneSOFT(ByVal index As Integer, ByRef Source As Variant, By
         .Cells(dlPM, pm_col.SkillName) = "Technician"
         
         ' Temps réparation
-        Call RemplirTempsReparationPrev(dlPM, index, sourceTps, tTps_Prev_Gen_SOFT)
+        Call RemplirTempsReparationPrev(dlPM, index, sourceTps)
     End With
     
 End Sub
@@ -617,41 +617,20 @@ End Sub
 ' PROCÉDURE: REMPLIR TEMPS RÉPARATION PRÉVENTIVE
 ' =========================================================================
 Private Sub RemplirTempsReparationPrev(ByVal ligne As Long, ByVal index As Integer, _
-                                       ByRef sourcePrimaire As Variant, ByRef sourceSecondaire As Variant)
-' Remplit temps réparation avec hiérarchie :
-' Analytique ? Générique ? Famille (Dataplug/PACIS/Autre)
-    
-    Dim temps As Variant
-    
-    ' Essayer source primaire (analytique si après CGR, générique si avant)
-    If IsNumeric(sourcePrimaire(index, 1)) And sourcePrimaire(index, 1) <> "" And _
-       sourcePrimaire(index, 1) <> "#N/A" And sourcePrimaire(index, 1) <> 0 Then
-        PM.Cells(ligne, pm_col.TaskTime) = sourcePrimaire(index, 1)
+                                       ByRef source As Variant)
+' Remplit le temps de reparation depuis une source unique (Gate + HARD/SOFT determinent
+' la colonne en amont dans remplissage_prev). Pas de fallback vers une autre source.
+' Cellule vide si source non numerique, ou vide, ou #N/A, ou 0.
+
+    If IsNumeric(source(index, 1)) And source(index, 1) <> "" And _
+       source(index, 1) <> "#N/A" And source(index, 1) <> 0 Then
+        PM.Cells(ligne, pm_col.TaskTime) = source(index, 1)
         Call AddCommentPM(ligne, IIf(AvantCGR, "Tps Generique", "Tps Analytique"))
-        Exit Sub
-    End If
-    
-    ' Essayer source secondaire (générique si après CGR uniquement)
-    If Not AvantCGR Then
-        If IsNumeric(sourceSecondaire(index, 1)) And sourceSecondaire(index, 1) <> "" And _
-           sourceSecondaire(index, 1) <> "#N/A" And sourceSecondaire(index, 1) <> 0 Then
-            PM.Cells(ligne, pm_col.TaskTime) = sourceSecondaire(index, 1)
-            Call AddCommentPM(ligne, "Tps Generique")
-            Exit Sub
-        End If
-    End If
-    
-    ' Calculer selon famille
-    temps = CalculerTempsFamille(tDES_MEF(index, 1), tSS(index, 1))
-    PM.Cells(ligne, pm_col.TaskTime) = temps
-    
-    If temps = "" Then
-        Call AddCommentPM(ligne, "Aucun temps de réparation trouvé")
-        PM.Cells(ligne, pm_col.TaskTime).Interior.ColorIndex = 44
     Else
-        Call AddCommentPM(ligne, "Tps famille")
+        Call AddCommentPM(ligne, "Aucun temps de reparation renseigne")
+        PM.Cells(ligne, pm_col.TaskTime).Interior.ColorIndex = 44
     End If
-    
+
 End Sub
 ' =========================================================================
 ' FONCTION: CALCULER TEMPS DÉFAUT
