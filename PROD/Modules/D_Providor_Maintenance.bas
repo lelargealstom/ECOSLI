@@ -486,13 +486,6 @@ Public Sub remplissage_prev()
         Call InsererLignesPreventives(i, sourceHARD, sourceSOFT, sourceTpsHARD, sourceTpsSOFT)
     Next i
     
-    ' Supprimer dernière ligne uniquement si le tableau est plein
-    dlPM = LastRowInCol(PM, pm_col.TaskDescription)
-    
-    If dlPM > 3 Then
-        PM.Cells(dlPM, pm_col.NodeIndex).EntireRow.Delete
-    End If
-    
 CleanUp:
     TurnOnFunctionality
     
