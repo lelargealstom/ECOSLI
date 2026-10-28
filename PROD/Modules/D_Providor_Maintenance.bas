@@ -164,8 +164,7 @@ Private Sub RemplirMTBF_Corr(ByVal i As Integer)
 ' Logique AprèsCGR (CGR, FEI, IQA):
 '   - 1. MTBF fonctionnel (tMTBF_fct)
 '   - 2. MTBF intrinsèque (tMTBF_Intr)
-'   - 3. MTBF générique (tMTBF_gen)
-'   - 4. Vide + coloré orange si rien
+'   - 3. Vide + coloré orange si rien
 
     Dim j As Integer
     Dim dtrCherche As String
@@ -207,7 +206,7 @@ Private Sub RemplirMTBF_Corr(ByVal i As Integer)
     End If
     
     ' =====================================================================
-    ' APRÈS CGR : HIÉRARCHIE FONCTIONNEL ? INTRINSÈQUE ? GÉNÉRIQUE
+    ' APRES CGR : HIERARCHIE FONCTIONNEL -> INTRINSEQUE
     ' =====================================================================
     
     ' Tentative 1 : MTBF Fonctionnel
@@ -223,14 +222,6 @@ Private Sub RemplirMTBF_Corr(ByVal i As Integer)
         CM.Cells(i, cm_col.MTBF).Value = tMTBF_Intr(indexDTR, 1)
         CM.Columns(cm_col.MTBF).NumberFormat = "General"
         CM.Cells(i, cm_col.MTBFSource) = "MTBF intrinsèque du RAM Report"
-        Exit Sub
-    End If
-    
-    ' Tentative 3 : MTBF Générique
-    If IsNumeric(tMTBF_gen(indexDTR, 1)) And tMTBF_gen(indexDTR, 1) <> 0 And Not IsNull(tMTBF_gen(indexDTR, 1)) Then
-        CM.Cells(i, cm_col.MTBF).Value = tMTBF_gen(indexDTR, 1)
-        CM.Columns(cm_col.MTBF).NumberFormat = "General"
-        CM.Cells(i, cm_col.MTBFSource) = "MTBF générique"
         Exit Sub
     End If
     
