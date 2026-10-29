@@ -34,6 +34,7 @@ Public BS As Worksheet
 Public ML As Worksheet
 Public CM As Worksheet
 Public PM As Worksheet
+Public CS As Worksheet
 Public TL As Worksheet
 Public SL As Worksheet
 Public LCC As Worksheet
@@ -663,6 +664,16 @@ Public Type pm_col
     MaterialQty As Integer
     JustificationTaskFR As Integer     ' Colonne EE et EF (FR, EN meme valeur)
     JustificationTaskEN As Integer
+End Type
+
+' =========================================================================
+' TYPE STRUCTURE - CONTROL SHEET
+' =========================================================================
+Public Type cs_col
+    Content As Integer
+    datecontrolsheet As Integer
+    Author As Integer
+    Issue As Integer
 End Type
 
 ' =========================================================================

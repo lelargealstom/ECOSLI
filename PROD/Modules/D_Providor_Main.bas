@@ -437,6 +437,7 @@ Private Sub GenererProvidor(ByRef wb As Workbook, test As Boolean)
     Set PM = wb.Worksheets("Preventive maintenance")
     Set SL = wb.Worksheets("Skill List")
     Set TL = wb.Worksheets("Tool List")
+    Set CS = wb.Worksheets("Control Sheet")
     Set LCC = wb.Worksheets("LCC Calculation")
     
     'Etape 4 : Initialisation des colonnes du Providor
@@ -459,6 +460,7 @@ Private Sub GenererProvidor(ByRef wb As Workbook, test As Boolean)
     
     Call remplissage_skillAndcontrolSheets       ' J_Providor_Finalisation
     Call remplissage_GeneralParameters           ' J_Providor_Finalisation
+    Call remplissage_ControlSheet                ' D_Providor_ControlSheet
     
     TurnOnFunctionality
     

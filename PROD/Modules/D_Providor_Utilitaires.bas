@@ -46,6 +46,8 @@ Public Sub InitialiserCadrageColonnes()
     ligneteteTL = 3
     ligneteteCM = 3
     lignetetePM = 3
+    Dim ligneteteCS As Integer
+    ligneteteCS = 18
     
     On Error GoTo ErrorHandler
     
@@ -132,6 +134,16 @@ Public Sub InitialiserCadrageColonnes()
         pm_col.MaterialQty = pm_col.MaterialName + 1
         pm_col.JustificationTaskFR = .rows(lignetetePM).Find(What:="Justification de la tâche", LookIn:=xlValues, lookat:=xlWhole).Column
         pm_col.JustificationTaskEN = .rows(lignetetePM).Find(What:="Justification of the task", LookIn:=xlValues, lookat:=xlWhole).Column
+    End With
+    
+    ' ======================================================================
+    ' CONTROL SHEET (ligne 18)
+    ' ======================================================================
+    With CS
+        cs_col.Content = .rows(ligneteteCS).Find(What:="Content of Modification", LookIn:=xlValues, lookat:=xlWhole).Column
+        cs_col.datecontrolsheet = .rows(ligneteteCS).Find(What:="Date", LookIn:=xlValues, lookat:=xlWhole).Column
+        cs_col.Author = .rows(ligneteteCS).Find(What:="Author", LookIn:=xlValues, lookat:=xlWhole).Column
+        cs_col.Issue = .rows(ligneteteCS).Find(What:="Issue", LookIn:=xlValues, lookat:=xlWhole).Column
     End With
     
     ' ======================================================================
