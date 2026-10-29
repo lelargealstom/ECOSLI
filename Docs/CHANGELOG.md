@@ -6,6 +6,49 @@ Format : `[Date] — Auteur — Périmètre`, puis liste des changements par mod
 
 ---
 
+## 2026-10-29 — Providor PM : Skill FR/EN + colonne Package Reference regroupée par fréquence
+
+Session focus : finaliser l'alignement de `InsererLigneSOFT` sur la convention métier (Skill = Electrician, pas Technician), ajouter la distinction FR/EN sur le libellé Skill en Preventive (déjà présente en Corrective), et introduire une nouvelle colonne **Package reference** dans la feuille Preventive Maintenance du Providor qui regroupe les lignes par même fréquence de maintenance via une lettre (A, B, C...).
+
+Commit unique : `4a9c0dd`.
+
+### `PROD/Modules/Z_Variables.bas`
+
+- `Type pm_col` : ajout du champ `PackageReference As Integer` entre `PrevMaintType` et `OnOff`.
+
+### `PROD/Modules/D_Providor_Utilitaires.bas`
+
+- `InitialiserCadrageColonnes`, section Preventive Maintenance : nouvelle ligne de cadrage auto-`Find` sur le header `"Package reference"` (le header doit exister dans la ligne 3 de la feuille PM du template Providor PROD).
+
+### `PROD/Modules/D_Providor_Maintenance.bas`
+
+- **Skill FR/EN pour les 2 types de ligne** :
+  - `InsererLigneHARD` : `SkillName = IIf(langue = "FR", "Electricien", "Electrician")` (avant : `"Electrician"` en dur).
+  - `InsererLigneSOFT` : même expression (avant : `"Technician"` en dur, non conforme à la convention métier).
+- **Appel de la nouvelle Sub** `RemplirPackageReference` à la fin de `remplissage_prev`, juste avant `CleanUp:`, après la boucle `For i = 1 To UBound(tDTR)`.
+- **Nouvelle Private Sub `RemplirPackageReference`** :
+  - Parcourt la feuille PM à partir de la ligne 4 (fin détectée via `LastRowInCol(PM, pm_col.TaskDescription)`).
+  - Collecte les valeurs numériques uniques de `pm_col.FrequencyValue` dans un `Scripting.Dictionary` (via `CreateObject`).
+  - Trie ces fréquences par ordre croissant (tri à bulles, taille généralement petite).
+  - Attribue A, B, C, ... à chaque fréquence unique dans l'ordre croissant.
+  - Au-delà de 26 fréquences distinctes : AA, AB, ..., ZZ, AAA, ...
+  - Lignes sans fréquence numérique exploitable (vide, non numérique) : pose `"-"`.
+  - Les lignes HARD et SOFT d'un même DTR qui partagent la même fréquence partagent la même lettre (le regroupement est purement basé sur la valeur de FrequencyValue, pas sur le DTR).
+- **Nouvelle Private Function `IndexToLettreExcel(n As Long) As String`** : convertit un index base 1 en lettre style Excel (1 → `A`, 26 → `Z`, 27 → `AA`, 28 → `AB`, ...).
+
+### Observation technique
+
+- Encodings mixtes constatés dans le projet PROD : `Z_Variables.bas` et `D_Providor_Utilitaires.bas` sont en **cp1252** (byte 0xE9 pour `é`), `D_Providor_Maintenance.bas` est en **UTF-8** sans BOM (bytes 0xC3 0xA9 pour `é`). Script d'édition PowerShell adapté par fichier.
+
+### À tester en VBE
+
+1. `langue = "FR"` → toutes les lignes PM HARD et SOFT doivent avoir `SkillName = "Electricien"`.
+2. `langue = "EN"` → `"Electrician"` partout.
+3. Projet avec 3 fréquences distinctes (ex. 5, 10, 20) sur plusieurs DTR → Package reference : `A` pour les lignes @ 5, `B` pour les lignes @ 10, `C` pour les lignes @ 20. Un même DTR BOTH avec HARD @ 20 et SOFT @ 10 doit porter `B` sur sa ligne HARD et `A` sur sa ligne SOFT.
+4. DTR avec fréquence vide / non numérique → `"-"` dans Package reference.
+
+---
+
 ## 2026-10-28 — Simplification règles Providor Preventive et Corrective Maintenance
 
 Session focus : nettoyer les règles de remplissage des feuilles **Preventive Maintenance (PM)** et **Corrective Maintenance (CM)** du livrable Providor côté **PROD**. Objectif : supprimer les hiérarchies de fallback internes au profit de règles claires pilotées par la Gate, et aligner la logique PM/CM avec la vraie attente métier (plus de fallback générique silencieux après CGR).
