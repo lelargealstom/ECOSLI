@@ -6,6 +6,57 @@ Format : `[Date] — Auteur — Périmètre`, puis liste des changements par mod
 
 ---
 
+## 2026-10-29 (soir) — Providor PM : colonne Periodic Cancelled occurences pour DTR BOTH
+
+Session focus : ajouter dans la feuille Preventive Maintenance du Providor une colonne qui liste, pour chaque DTR en `BOTH`, les occurrences de la tâche SOFTWARE qui doivent être annulées parce qu'elles coïncident temporellement avec un remplacement HARDWARE (le remplacement complet du DTR rend inutile l'upload logiciel programmé au même instant).
+
+Commit unique : `edceabc`. Testé OK par Thomas.
+
+### Règle métier implémentée
+
+Pour chaque DTR `BOTH` :
+- `n * DVL_SOFT ≤ DureeCirculation` → occurrences SOFT à n = 1, 2, 3...
+- `m * DVL_HARD ≤ DureeCirculation` → occurrences HARD à m = 1, 2, 3...
+- Une occurrence SOFT numéro `n` est **annulée** si `n * DVL_SOFT` est un multiple entier ≥ 1 de `DVL_HARD` (et ≤ `DureeCirculation`).
+- `pm_col.PeriodicCancelledOcc` de la ligne SOFT reçoit la liste des `n` séparés par virgules (ex. `"3"`, `"2,4,6"`).
+
+Exemple validé par Thomas : DureeCirculation = 45 ans, DVL HARD = 30, DVL SOFT = 10 → `"3"` posé sur la ligne SOFT (la 3e occurrence SOFT à 30 ans coïncide avec la 1re HARD à 30 ans). Les occurrences 1 (10 ans), 2 (20 ans) et 4 (40 ans) sont conservées, la 5e (50 ans) dépasse la durée.
+
+### `PROD/Modules/Z_Variables.bas`
+
+- `Type pm_col` : ajout `PeriodicCancelledOcc As Integer` entre `FrequencyUnit` et `TaskTime`.
+- Nouvelle variable globale `Public DureeCirculation As Variant` (en années), déclarée après `Public langue As String`.
+
+### `PROD/Modules/D_Providor_Utilitaires.bas`
+
+- `InitialiserCadrageColonnes`, section Preventive Maintenance : nouvelle ligne de cadrage auto-`Find` sur le header `"Periodic Cancelled occurences"` (le header doit exister dans la ligne 3 de la feuille PM du template Providor PROD, après `Frequency unit`).
+
+### `PROD/Modules/D_Providor_Main.bas`
+
+- `RecupererDonneesPBS_Providor` : ajout de la ligne `tHARD_SOFT = DS1.Range("Providor[HARD/SOFT]")` à la fin du bloc de récupération des tableaux depuis l'onglet Providor. Jusqu'ici la variable globale `tHARD_SOFT` (déclarée `Public` dans `Z_Variables.bas`) n'était alimentée que par le pipeline ATM (`B_ATM_Main.bas`).
+- `RecupererDonneesPBS_Providor` : appel de la nouvelle Sub `RecupererDureeCirculationProjet` juste après `tHARD_SOFT`.
+- **Nouvelle Private Sub `RecupererDureeCirculationProjet`** : requête SQL dédiée sur `[Projet_SLI$]`/`[Duree de circulation_PROJET SLI]` filtrée par `Code_Projet` (variable globale). Stocke le résultat dans `DureeCirculation`. La connexion BdD est déjà ouverte en amont par `Btn_Providor_Click` (ligne 222 de `UserForm.frm`) avant l'appel à `Main_Providor`.
+
+### `PROD/Modules/D_Providor_Maintenance.bas`
+
+- `InsererLignesPreventives` : après l'appel à `InsererLigneSOFT`, nouvel appel à `PoserPeriodicCancelledOcc(LastRowInCol(PM, pm_col.TaskDescription), index, sourceHARD(index, 1), sourceSOFT(index, 1))`. On passe les 2 durées de vie pour le calcul des coïncidences.
+- **Nouvelle Private Sub `PoserPeriodicCancelledOcc(lignePM, index, dvlHARD, dvlSOFT)`** :
+  - Sort immédiatement si `tHARD_SOFT(index, 1) <> "BOTH"` → cellule laissée vide.
+  - Sort immédiatement si l'une des 3 valeurs (`DureeCirculation`, `dvlSOFT`, `dvlHARD`) est non numérique ou = 0.
+  - Boucle `n = 1, 2, 3...` tant que `n * dvlSOFT ≤ DureeCirculation`. Pour chaque `n`, teste si `instantSOFT / dvlHARD` est un entier ≥ 1 (avec epsilon 1e-7 pour les flottants, bien que les DVL métier soient entières en pratique).
+  - Pose la liste des `n` annulés dans `pm_col.PeriodicCancelledOcc` séparés par virgules si au moins un `n` a été capté.
+
+### Décisions annexes
+
+- Approche α retenue : calcul inline dans `InsererLignesPreventives` plutôt que post-boucle. Évite d'avoir à inverser `LIST_NODE` pour retrouver le DTR correspondant à chaque ligne SOFT.
+- Pas de header d'erreur défensif dans `RecupererDureeCirculationProjet` : si `Code_Projet` ne matche aucun projet dans `Projet_SLI`, `DureeCirculation` tombe à 0 → `PoserPeriodicCancelledOcc` sort proprement sans rien poser.
+
+### À retester si refonte pipeline
+
+- Si quelqu'un fait un `Close_CONN` entre `Btn_Providor_Click` et `remplissage_prev`, `RecupererDureeCirculationProjet` plantera. À ce stade (2026-10-29), rien ne ferme la connexion dans le pipeline Providor avant la fin.
+
+---
+
 ## 2026-10-29 — Providor PM : Skill FR/EN + colonne Package Reference regroupée par fréquence
 
 Session focus : finaliser l'alignement de `InsererLigneSOFT` sur la convention métier (Skill = Electrician, pas Technician), ajouter la distinction FR/EN sur le libellé Skill en Preventive (déjà présente en Corrective), et introduire une nouvelle colonne **Package reference** dans la feuille Preventive Maintenance du Providor qui regroupe les lignes par même fréquence de maintenance via une lettre (A, B, C...).
