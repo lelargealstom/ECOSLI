@@ -119,6 +119,7 @@ Public Sub InitialiserCadrageColonnes()
         pm_col.SequenceNo = .rows(lignetetePM).Find(What:="Sequence No", LookIn:=xlValues, lookat:=xlWhole).Column
         pm_col.TaskDescription = .rows(lignetetePM).Find(What:="Task description", LookIn:=xlValues, lookat:=xlWhole).Column
         pm_col.PrevMaintType = .rows(lignetetePM).Find(What:="Preventive maintenance type", LookIn:=xlValues, lookat:=xlWhole).Column
+        pm_col.PackageReference = .rows(lignetetePM).Find(What:="Package reference", LookIn:=xlValues, lookat:=xlWhole).Column
         pm_col.OnOff = .rows(lignetetePM).Find(What:="On / Off (on/off)", LookIn:=xlValues, lookat:=xlWhole).Column
         pm_col.FrequencyValue = .rows(lignetetePM).Find(What:="Frequency value", LookIn:=xlValues, lookat:=xlWhole).Column
         pm_col.FrequencyUnit = .rows(lignetetePM).Find(What:="Frequency unit", LookIn:=xlValues, lookat:=xlWhole).Column

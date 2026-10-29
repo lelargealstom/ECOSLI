@@ -477,6 +477,9 @@ Public Sub remplissage_prev()
         Call InsererLignesPreventives(i, sourceHARD, sourceSOFT, sourceTpsHARD, sourceTpsSOFT)
     Next i
     
+    ' Regroupement des lignes par FrequencyValue : pose la Package Reference (A, B, C...)
+    Call RemplirPackageReference
+    
 CleanUp:
     TurnOnFunctionality
     
@@ -557,7 +560,7 @@ Private Sub InsererLigneHARD(ByVal index As Integer, ByRef Source As Variant, By
         .Cells(dlPM, pm_col.TaskDescription) = "REPLACE " & tDES_MEF(index, 1)
         .Cells(dlPM, pm_col.OnOff) = IIf(tNTI(index, 1) = 3, "On", "Off")
         .Cells(dlPM, pm_col.FrequencyValue) = Source(index, 1)
-        .Cells(dlPM, pm_col.SkillName) = "Electrician"
+        .Cells(dlPM, pm_col.SkillName) = IIf(langue = "FR", "Electricien", "Electrician")
         .Cells(dlPM, pm_col.MaterialName) = tDES_MEF(index, 1)
         .Cells(dlPM, pm_col.MaterialQty) = 1
         
@@ -589,7 +592,7 @@ Private Sub InsererLigneSOFT(ByVal index As Integer, ByRef Source As Variant, By
         .Cells(dlPM, pm_col.TaskDescription) = "SOFTWARE UPLOAD " & tDES_MEF(index, 1)
         .Cells(dlPM, pm_col.OnOff) = IIf(tNTI(index, 1) = 3, "On", "Off")
         .Cells(dlPM, pm_col.FrequencyValue) = Source(index, 1)
-        .Cells(dlPM, pm_col.SkillName) = "Technician"
+        .Cells(dlPM, pm_col.SkillName) = IIf(langue = "FR", "Electricien", "Electrician")
         
         ' Temps réparation
         Call RemplirTempsReparationPrev(dlPM, index, sourceTps)
@@ -689,4 +692,101 @@ Private Function AuMoinsUneValeurNumerique(ByRef t As Variant) As Boolean
             End If
         End If
     Next k
+End Function
+
+' =========================================================================
+' PROCEDURE: REMPLIR PACKAGE REFERENCE
+' =========================================================================
+Private Sub RemplirPackageReference()
+' Remplit la colonne PackageReference de la feuille Preventive Maintenance.
+' Regroupe les lignes par meme FrequencyValue (ordre croissant des frequences uniques).
+' Lettres attribuees : 1er niveau A, B, C, ..., Z, puis AA, AB, ..., ZZ, AAA, ...
+' Lignes sans frequence numerique exploitable : pose "-".
+
+    Dim dlPM As Long
+    Dim i As Long
+    Dim valFreq As Variant
+    Dim dictLettre As Object
+    Dim arrFreq() As Double
+    Dim nbFreq As Long
+    Dim k As Long
+    Dim tmp As Double
+    Dim swapped As Boolean
+
+    dlPM = LastRowInCol(PM, pm_col.TaskDescription)
+    If dlPM < 4 Then Exit Sub
+
+    ' Collecter les frequences uniques numeriques
+    Set dictLettre = CreateObject("Scripting.Dictionary")
+    ReDim arrFreq(1 To dlPM - 3)
+    nbFreq = 0
+    For i = 4 To dlPM
+        valFreq = PM.Cells(i, pm_col.FrequencyValue).Value
+        If IsNumeric(valFreq) And Not IsEmpty(valFreq) Then
+            If Len(CStr(valFreq)) > 0 Then
+                If Not dictLettre.Exists(CDbl(valFreq)) Then
+                    dictLettre.Add CDbl(valFreq), ""
+                    nbFreq = nbFreq + 1
+                    arrFreq(nbFreq) = CDbl(valFreq)
+                End If
+            End If
+        End If
+    Next i
+
+    If nbFreq = 0 Then
+        ' Rien a regrouper : poser "-" sur toutes les lignes
+        For i = 4 To dlPM
+            PM.Cells(i, pm_col.PackageReference).Value = "-"
+        Next i
+        Exit Sub
+    End If
+
+    ' Trier les frequences par ordre croissant (bulle, nbFreq petit en pratique)
+    Do
+        swapped = False
+        For k = 1 To nbFreq - 1
+            If arrFreq(k) > arrFreq(k + 1) Then
+                tmp = arrFreq(k)
+                arrFreq(k) = arrFreq(k + 1)
+                arrFreq(k + 1) = tmp
+                swapped = True
+            End If
+        Next k
+    Loop While swapped
+
+    ' Assigner A, B, C,... selon l'ordre croissant
+    For k = 1 To nbFreq
+        dictLettre(arrFreq(k)) = IndexToLettreExcel(k)
+    Next k
+
+    ' Poser la lettre dans chaque ligne (ou "-" si non numerique)
+    For i = 4 To dlPM
+        valFreq = PM.Cells(i, pm_col.FrequencyValue).Value
+        If IsNumeric(valFreq) And Not IsEmpty(valFreq) Then
+            If Len(CStr(valFreq)) > 0 Then
+                PM.Cells(i, pm_col.PackageReference).Value = dictLettre(CDbl(valFreq))
+            Else
+                PM.Cells(i, pm_col.PackageReference).Value = "-"
+            End If
+        Else
+            PM.Cells(i, pm_col.PackageReference).Value = "-"
+        End If
+    Next i
+
+End Sub
+
+' =========================================================================
+' FONCTION: INDEX TO LETTRE EXCEL
+' =========================================================================
+Private Function IndexToLettreExcel(ByVal n As Long) As String
+' Convertit un entier n (base 1) en lettre style Excel : 1 -> A, 26 -> Z, 27 -> AA, 28 -> AB, ...
+    Dim result As String
+    Dim rest As Long
+    Do While n > 0
+        n = n - 1
+        rest = n Mod 26
+        result = Chr(65 + rest) & result
+        n = n \ 26
+    Loop
+    IndexToLettreExcel = result
 End Function

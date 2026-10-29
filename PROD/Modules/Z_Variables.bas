@@ -649,6 +649,7 @@ Public Type pm_col
     SequenceNo As Integer
     TaskDescription As Integer
     PrevMaintType As Integer
+    PackageReference As Integer
     OnOff As Integer
     FrequencyValue As Integer
     FrequencyUnit As Integer
