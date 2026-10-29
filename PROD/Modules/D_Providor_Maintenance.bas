@@ -534,6 +534,8 @@ Private Sub InsererLignesPreventives(ByVal index As Integer, _
     
     If needSOFT Then
         Call InsererLigneSOFT(index, sourceSOFT, sourceTpsSOFT)
+        ' Si le DTR est BOTH, poser dans la ligne SOFT la liste des occurrences annulees
+        Call PoserPeriodicCancelledOcc(LastRowInCol(PM, pm_col.TaskDescription), index, sourceHARD(index, 1), sourceSOFT(index, 1))
     End If
     
 End Sub
@@ -790,3 +792,57 @@ Private Function IndexToLettreExcel(ByVal n As Long) As String
     Loop
     IndexToLettreExcel = result
 End Function
+
+' =========================================================================
+' PROCEDURE: POSER PERIODIC CANCELLED OCC
+' =========================================================================
+Private Sub PoserPeriodicCancelledOcc(ByVal lignePM As Long, ByVal index As Integer, _
+                                      ByVal dvlHARD As Variant, ByVal dvlSOFT As Variant)
+' Pose dans la ligne SOFT de PM la liste des occurrences SOFT annulees.
+' Une occurrence SOFT (n * DVL_SOFT) est annulee si elle coincide avec un instant HARD
+' (m * DVL_HARD) sur la DureeCirculation du projet (ans).
+' Rien pose si tHARD_SOFT(index) <> "BOTH", ou si DureeCirculation / DVL_SOFT / DVL_HARD invalides.
+
+    If tHARD_SOFT(index, 1) <> "BOTH" Then Exit Sub
+    If Not IsNumeric(DureeCirculation) Then Exit Sub
+    If CDbl(DureeCirculation) = 0 Then Exit Sub
+    If Not IsNumeric(dvlSOFT) Then Exit Sub
+    If CDbl(dvlSOFT) = 0 Then Exit Sub
+    If Not IsNumeric(dvlHARD) Then Exit Sub
+    If CDbl(dvlHARD) = 0 Then Exit Sub
+
+    Dim duree As Double
+    Dim dSOFT As Double
+    Dim dHARD As Double
+    Dim n As Long
+    Dim instantSOFT As Double
+    Dim ratio As Double
+    Dim listeCancelled As String
+
+    duree = CDbl(DureeCirculation)
+    dSOFT = CDbl(dvlSOFT)
+    dHARD = CDbl(dvlHARD)
+    listeCancelled = ""
+
+    n = 1
+    Do
+        instantSOFT = n * dSOFT
+        If instantSOFT > duree Then Exit Do
+        If instantSOFT >= dHARD Then
+            ratio = instantSOFT / dHARD
+            If Abs(ratio - Int(ratio)) < 0.0000001 Then
+                If Len(listeCancelled) = 0 Then
+                    listeCancelled = CStr(n)
+                Else
+                    listeCancelled = listeCancelled & "," & CStr(n)
+                End If
+            End If
+        End If
+        n = n + 1
+    Loop
+
+    If Len(listeCancelled) > 0 Then
+        PM.Cells(lignePM, pm_col.PeriodicCancelledOcc).Value = listeCancelled
+    End If
+
+End Sub

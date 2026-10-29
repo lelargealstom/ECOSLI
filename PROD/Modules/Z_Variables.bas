@@ -109,6 +109,7 @@ Public Code_Projet As String
 Public Projet_Abrev As String
 Public gate As String
 Public langue As String
+Public DureeCirculation As Variant
 Public Revision As String
 Public Version_ATM As Integer
 Public Auteur As String
@@ -653,6 +654,7 @@ Public Type pm_col
     OnOff As Integer
     FrequencyValue As Integer
     FrequencyUnit As Integer
+    PeriodicCancelledOcc As Integer
     TaskTime As Integer
     TimeSource As Integer
     SkillName As Integer

@@ -123,6 +123,7 @@ Public Sub InitialiserCadrageColonnes()
         pm_col.OnOff = .rows(lignetetePM).Find(What:="On / Off (on/off)", LookIn:=xlValues, lookat:=xlWhole).Column
         pm_col.FrequencyValue = .rows(lignetetePM).Find(What:="Frequency value", LookIn:=xlValues, lookat:=xlWhole).Column
         pm_col.FrequencyUnit = .rows(lignetetePM).Find(What:="Frequency unit", LookIn:=xlValues, lookat:=xlWhole).Column
+        pm_col.PeriodicCancelledOcc = .rows(lignetetePM).Find(What:="Periodic Cancelled occurences", LookIn:=xlValues, lookat:=xlWhole).Column
         pm_col.TaskTime = .rows(lignetetePM).Find(What:="Task time (in hours)", LookIn:=xlValues, lookat:=xlWhole).Column
         pm_col.TimeSource = .rows(lignetetePM).Find(What:="Procedure N°", LookIn:=xlValues, lookat:=xlWhole).Column
         pm_col.SkillName = .rows(lignetetePM).Find(What:="Skill name", LookIn:=xlValues, lookat:=xlWhole).Column

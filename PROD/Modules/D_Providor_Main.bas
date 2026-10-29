@@ -204,10 +204,36 @@ Private Sub RecupererDonneesPBS_Providor(test As Boolean)
         tMTBF_gen = DS1.Range("Providor[MTBF générique (offre et PGR)]")
         tMTBF_Intr = DS1.Range("Providor[MTBF intrinsèque (RAM report specifique projet (CGR))]")
         tMTBF_fct = DS1.Range("Providor[MTBF fonctionnel (RAM report specifique projet (CGR))]")
+
+        ' HARD/SOFT (necessaire pour PM : calcul des occurrences SOFT annulees)
+        tHARD_SOFT = DS1.Range("Providor[HARD/SOFT]")
+
+        ' Duree de circulation du projet (ans) necessaire pour PM
+        Call RecupererDureeCirculationProjet
     Else
         Call InitPBS_Etalon
         Call InjecterDonneesEtalon
     End If
+End Sub
+
+' =========================================================================
+' PROCEDURE: RECUPERER DUREE CIRCULATION PROJET
+' =========================================================================
+Private Sub RecupererDureeCirculationProjet()
+' Recupere la duree de circulation du projet (ans) depuis Projet_SLI.
+' Stocke le resultat dans la variable globale DureeCirculation.
+' La connexion BdD est deja ouverte par Btn_Providor_Click avant Main_Providor.
+    Dim sql As String
+    Set REQSEL = CreateObject("ADODB.Recordset")
+    sql = "SELECT [Duree de circulation_PROJET SLI] FROM [Projet_SLI$] " & _
+          "WHERE [Nom projet_PROJET SLI] = '" & Replace(Code_Projet, "'", "''") & "'"
+    Call open_REQSEL(sql)
+    If Not REQSEL.EOF Then
+        DureeCirculation = REQSEL.Fields(0).Value
+    Else
+        DureeCirculation = 0
+    End If
+    REQSEL.Close
 End Sub
 
 ' =========================================================================
