@@ -6,6 +6,95 @@ Format : `[Date] — Auteur — Périmètre`, puis liste des changements par mod
 
 ---
 
+## 2026-10-29 (fin de journée) — Retrait de tous les handlers d'erreur défensifs dans PROD
+
+Session focus : Thomas s'est heurté à une erreur masquée par un `ErrorHandler` dans `InitialiserCadrageColonnes`. Il demande le retrait complet de tous les handlers défensifs dans l'ensemble du dossier PROD pour que les erreurs VBA remontent naturellement à la ligne exacte (surlignage jaune VBE) — conforme à la convention projet règle 3 (inversée depuis 2026-07-20 pour faciliter le debug avec les ingénieurs).
+
+Commit unique : `311c8bd`. **−213 lignes nettes** sur **15 modules PROD**.
+
+### Modules modifiés et labels retirés
+
+| Module | Labels défensifs retirés |
+|---|---|
+| `A_1_ModEvents.bas` | ErreurLecture |
+| `A_2_ModUpdate.bas` | ErrorHandler (x2) |
+| `B_ATM_Main.bas` | ErrHandler |
+| `B_ATM_V1.bas` | ErrHandler |
+| `C_EMMST_Main.bas` | ErrHandler (x2) |
+| `D_Providor_Finalisation.bas` | InvalidValue, ErrorHandler, SafeExit, Fail |
+| `D_Providor_Main.bas` | ErrHandler (x3) |
+| `D_Providor_Utilitaires.bas` | ErrorHandler, ValidationFailed (cas spécial) |
+| `E_Extraction_ATM.bas` | ErrorHandler (x2) |
+| `E_Extraction_ATM_Tolerant.bas` | ErrorHandler (x2) |
+| `E_Extraction_EMMST.bas` | ErrorHandler |
+| `E_Extraction_Main.bas` | ErrorHandler (x2), ValidationFailed |
+| `F_FonctionsGlobales.bas` | SiErreur, ErrHandler (x2), EH |
+| `G_SIRUS_ATMAP.bas` | ErrCreate, ErrExcel, ErrRead, ErrDigest, ErrUser |
+| `G_SIRUS_Analyse.bas` | ErrBdD (x2) |
+
+### Logique de suppression (automatisée via PowerShell cp1252)
+
+Pour chaque occurrence d'un label défensif :
+1. La ligne `On Error GoTo <Label>` en tête de Sub/Function est retirée.
+2. Le bloc `<Label>: ... MsgBox / Err.Raise / etc.` jusqu'au `End Sub` ou `End Function` exclu est retiré.
+3. Le `Exit Sub` ou `Exit Function` immédiatement avant le label (séparé par des lignes vides) est retiré.
+
+### Conservé (règle 3b et 3c de la convention)
+
+- Les `On Error Resume Next` **fonctionnels** (test d'existence de feuille / clé Dictionary, CopyFile idempotent, patterns UI ListView.Clear tolérants) avec `On Error GoTo 0` juste après.
+- Les `On Error GoTo 0` seuls (reset du handler).
+- Les labels `Sortie:` / `SortieBdD:` utilisés comme early-exit pour nettoyage (ex. `Close_CONN` après `If REQSEL Is Nothing Then GoTo Sortie`).
+
+### Cas spécial : `D_Providor_Utilitaires.ValiderCadrageColonnes`
+
+Dans cette Function, le label `ValidationFailed:` est référencé par **6 `GoTo ValidationFailed` fonctionnels** dans le corps (`If bs_col.NodeLevel = 0 Then GoTo ValidationFailed`, etc.) — pas uniquement par le `On Error GoTo ValidationFailed` défensif. Suppression nuancée :
+- La ligne `On Error GoTo ValidationFailed` est retirée.
+- Le label `ValidationFailed:` et la ligne `ValiderCadrageColonnes = False` sont préservés pour que les 6 `GoTo` continuent de fonctionner.
+- Seul le `MsgBox` dans le bloc est retiré.
+
+### Perte intentionnelle de contexte en cleanup
+
+- Dans `G_SIRUS_ATMAP.AttachExcelToTicket`, le bloc `ErrExcel:` faisait du cleanup (`xlWb.Close False` + `xlApp.Quit`) après l'affichage de l'erreur. Supprimé → en cas d'erreur, l'instance Excel reste en mémoire. Acceptable car l'erreur sera visible en VBE et corrigible immédiatement.
+- Dans `F_FonctionsGlobales.ExecNonQuery`, le bloc `EH:` ré-émettait l'erreur avec le SQL en contexte. Supprimé → l'erreur brute remonte sans le SQL en annotation.
+
+---
+
+## 2026-10-29 (apres-midi) — Providor : remplissage Control Sheet ligne 19 selon langue FR/EN
+
+Session focus : ajouter dans la feuille `Control Sheet` du Providor un remplissage automatique de la ligne 19 (sous l'en-tête ligne 18) avec un texte structuré en 6 blocs selon la langue (FR / EN), les titres en gras, la date du jour, l'utilisateur Windows et l'issue `"A1"` en dur.
+
+Commit unique : `2fda14d`. **+162 lignes** avec un nouveau module.
+
+### Nouveau module `PROD/Modules/D_Providor_ControlSheet.bas`
+
+- `Public Sub remplissage_ControlSheet` : pose les 4 valeurs en ligne 19 de la feuille `Control Sheet` :
+  - **Content of Modification** : texte structuré 6 blocs (General Parameters, Breakdown Structure, Material List, Tool List, Preventive maintenance, Reliability & corr maintenance) selon la langue, titres mis en gras via `.Characters(start, len).Font.Bold = True`, `WrapText = True`.
+  - **Date** : `Date` (date du jour VBA).
+  - **Author** : `Application.UserName`.
+  - **Issue** : `"A1"` en dur.
+- 2 `Private Function` `ConstruireContenuControlSheet_FR` / `_EN` qui retournent la chaîne complète. Les `"..."` et `"XXX"` sont des placeholders à compléter manuellement par l'utilisateur. L'ellipsis `…` (U+2026) est posée via `ChrW(&H2026)` dans les 2 sections General Parameters (comme dans le texte original fourni par Thomas).
+
+### `PROD/Modules/Z_Variables.bas`
+
+- `Public CS As Worksheet` ajoutée dans la section des feuilles globales (après `Public PM As Worksheet`).
+- Nouveau `Public Type cs_col` avec 4 champs : `Content`, `datecontrolsheet` (nommé ainsi pour éviter la collision avec le mot-clé VBA `Date`), `Author`, `Issue`.
+
+### `PROD/Modules/D_Providor_Utilitaires.bas`
+
+- `InitialiserCadrageColonnes` : nouvelle section `CONTROL SHEET (ligne 18)` avec 4 appels `Find` sur les headers exacts `"Content of Modification"`, `"Date"`, `"Author"`, `"Issue"`. Variable `ligneteteCS = 18` déclarée en haut avec les autres `lignetete*`.
+
+### `PROD/Modules/D_Providor_Main.bas`
+
+- `GenererProvidor` : `Set CS = wb.Worksheets("Control Sheet")` ajouté après `Set TL`.
+- `GenererProvidor` : `Call remplissage_ControlSheet` ajouté après `Call remplissage_GeneralParameters`.
+
+### Décisions annexes
+
+- **Alignement de ponctuation EN** : les titres EN originaux fournis par Thomas manquaient parfois le `" :"` (`Breakdown structure`, `Material List`, `Tool List`). Ajouté partout pour cohérence avec la version FR et pour que la détection par `InStr` lors de l'application du gras matche correctement les 6 titres.
+- **Module séparé** : nouvelle Sub placée dans un nouveau module `D_Providor_ControlSheet.bas` plutôt que dans `D_Providor_Finalisation.bas` existant, pour isolation et pour éviter la confusion avec `remplissage_skillAndcontrolSheets` (nom historique qui concerne Skill List + Tool List, pas Control Sheet).
+
+---
+
 ## 2026-10-29 (soir) — Providor PM : colonne Periodic Cancelled occurences pour DTR BOTH
 
 Session focus : ajouter dans la feuille Preventive Maintenance du Providor une colonne qui liste, pour chaque DTR en `BOTH`, les occurrences de la tâche SOFTWARE qui doivent être annulées parce qu'elles coïncident temporellement avec un remplacement HARDWARE (le remplacement complet du DTR rend inutile l'upload logiciel programmé au même instant).
