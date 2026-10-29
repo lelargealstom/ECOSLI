@@ -137,7 +137,6 @@ Private Function CreateTicketREST(digest As String, _
            """NomoutilId"":" & outilID & _
            "}"
 
-    On Error GoTo ErrCreate
 
     xhr.Open "POST", url, False
     xhr.setRequestHeader "Accept", "application/json;odata=verbose"
@@ -156,12 +155,6 @@ Private Function CreateTicketREST(digest As String, _
     Else
         CreateTicketREST = "Erreur HTTP " & xhr.Status & vbCrLf & Left(resp, 500)
     End If
-    Exit Function
-
-ErrCreate:
-    CreateTicketREST = "Erreur : " & Err.Number & " a " & Err.description
-    MsgBox CreateTicketREST, vbCritical, "ATMAP a CreateTicketREST"
-
 End Function
 
 ' ============================================================
@@ -195,7 +188,6 @@ Private Function AttachExcelToTicket(ticketID As Long, _
     xlName = "SIRUS_" & tableName & "_" & Format(Now(), "yyyymmdd_hhmmss") & ".xlsx"
     xlPath = Environ("TEMP") & "\" & xlName
 
-    On Error GoTo ErrExcel
 
     ' -- 2. Creer le classeur --------------------------------
     Set xlApp = CreateObject("Excel.Application")
@@ -320,16 +312,6 @@ Private Function AttachExcelToTicket(ticketID As Long, _
         AttachExcelToTicket = "PJ HTTP " & uploadStatus & vbCrLf & _
                               Left(xhr.responseText, 300)
     End If
-    Exit Function
-
-ErrExcel:
-    AttachExcelToTicket = "Erreur Excel : " & Err.Number & " a " & Err.description
-    MsgBox AttachExcelToTicket, vbCritical, "ATMAP a AttachExcelToTicket"
-    On Error Resume Next
-    If Not xlWb Is Nothing Then xlWb.Close False
-    If Not xlApp Is Nothing Then xlApp.Quit
-    On Error GoTo 0
-
 End Function
 
 ' =========================================================================
@@ -758,7 +740,6 @@ Private Function ReadFileBinary(filePath As String) As Variant
     Dim fileSize As Long
     Dim data()   As Byte
 
-    On Error GoTo ErrRead
 
     fileSize = FileLen(filePath)
     If fileSize = 0 Then Exit Function
@@ -770,12 +751,6 @@ Private Function ReadFileBinary(filePath As String) As Variant
     Close #fileNum
 
     ReadFileBinary = data
-    Exit Function
-
-ErrRead:
-    MsgBox "Erreur ReadFileBinary : " & Err.Number & " a " & Err.description, vbCritical, "ATMAP"
-    ReadFileBinary = Empty
-
 End Function
 
 ' ============================================================
@@ -790,7 +765,6 @@ Private Function GetFormDigest() As String
     GetFormDigest = ""
     Set xhr = CreateObject("MSXML2.XMLHTTP.6.0")
 
-    On Error GoTo ErrDigest
 
     xhr.Open "POST", SITE_URL & "/_api/contextinfo", False
     xhr.setRequestHeader "Accept", "application/json;odata=verbose"
@@ -799,11 +773,6 @@ Private Function GetFormDigest() As String
 
     resp = xhr.responseText
     GetFormDigest = ParseJsonString(resp, """FormDigestValue"":""")
-    Exit Function
-
-ErrDigest:
-    MsgBox "Erreur GetFormDigest : " & Err.Number & " a " & Err.description, vbCritical, "ATMAP"
-
 End Function
 
 ' ============================================================
@@ -822,7 +791,6 @@ Private Function GetCurrentUserID(digest As String) As Long
     GetCurrentUserID = -1
     Set xhr = CreateObject("MSXML2.XMLHTTP.6.0")
 
-    On Error GoTo ErrUser
 
     xhr.Open "GET", SITE_URL & "/_api/web/currentuser?$select=Id", False
     xhr.setRequestHeader "Accept", "application/json;odata=verbose"
@@ -843,12 +811,6 @@ Private Function GetCurrentUserID(digest As String) As Long
     End If
 
     Debug.Print "Current user ID : " & GetCurrentUserID
-    Exit Function
-
-ErrUser:
-    MsgBox "Erreur GetCurrentUserID : " & Err.Number & " a " & Err.description, vbCritical, "ATMAP"
-    GetCurrentUserID = -1
-
 End Function
 
 ' ============================================================

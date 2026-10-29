@@ -281,7 +281,6 @@ Private Function SIRUS_GetDTRFromBdD() As Collection
 
     Dim col As New Collection
 
-    On Error GoTo ErrBdD
 
     Set REQSEL = CreateObject("ADODB.Recordset")
 
@@ -297,18 +296,11 @@ Private Function SIRUS_GetDTRFromBdD() As Collection
         If val <> "" Then
             On Error Resume Next
             col.Add val, val
-            On Error GoTo ErrBdD
         End If
         REQSEL.MoveNext
     Loop
 
     Set SIRUS_GetDTRFromBdD = col
-    Exit Function
-
-ErrBdD:
-    ' En cas d'erreur BdD, on retourne une collection vide
-    Set SIRUS_GetDTRFromBdD = New Collection
-
 End Function
 
 ' ============================================================

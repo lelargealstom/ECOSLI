@@ -16,7 +16,6 @@ Private Sub Update_AddIn_Entry(Optional ByVal skipConfirm As Boolean = False)
     Dim result As VbMsgBoxResult
     Dim wsh As Object
 
-    On Error GoTo ErrorHandler
 
     Set wsh = CreateObject("WScript.Shell")
 
@@ -34,7 +33,6 @@ Private Sub Update_AddIn_Entry(Optional ByVal skipConfirm As Boolean = False)
     ' Recuperer le chemin de destination depuis le registre
     On Error Resume Next
     destPath = wsh.RegRead(REG_KEY)
-    On Error GoTo ErrorHandler
 
     ' Si pas de chemin enregistre, demander a l'utilisateur (une seule fois)
     If destPath = "" Or Dir(destPath) = "" Then
@@ -91,12 +89,6 @@ Private Sub Update_AddIn_Entry(Optional ByVal skipConfirm As Boolean = False)
 
     ' Fermer Excel
     Application.Quit
-
-    Exit Sub
-
-ErrorHandler:
-    MsgBox "Erreur: " & Err.description, vbCritical
-    If Not wsh Is Nothing Then Set wsh = Nothing
 End Sub
 
 ' ==========================================

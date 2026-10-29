@@ -182,18 +182,12 @@ Private Function CopierTemplateV1(ByVal chemin As String) As Workbook
     End If
     
     ' Copier template
-    On Error GoTo ErrHandler
     Application.DisplayAlerts = False
     fso.CopyFile templatePath, chemin & "\" & nomFichier
     Application.DisplayAlerts = True
     
     ' Ouvrir fichier
     Set CopierTemplateV1 = Workbooks.Open(chemin & "\" & nomFichier)
-    Exit Function
-    
-ErrHandler:
-    MsgBox "Erreur lors de la copie du template: " & Err.description, vbCritical
-    Set CopierTemplateV1 = Nothing
 End Function
 ' =========================================================================
 ' PROCEDURE: REMPLIR INDEX V1

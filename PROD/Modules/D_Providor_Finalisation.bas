@@ -384,7 +384,6 @@ Private Function EstPrixValide(ByVal valeur As Variant) As Boolean
 '   - 0
 '   - Non numérique
 
-    On Error GoTo InvalidValue
     
     ' Vérifier NULL ou Empty
     If IsNull(valeur) Or IsEmpty(valeur) Then
@@ -430,12 +429,6 @@ Private Function EstPrixValide(ByVal valeur As Variant) As Boolean
     
     ' Prix valide
     EstPrixValide = True
-    Exit Function
-    
-InvalidValue:
-    ' Erreur conversion ? prix invalide
-    EstPrixValide = False
-    
 End Function
 
 ' =========================================================================
@@ -445,7 +438,6 @@ Private Function ValeurToString(ByVal valeur As Variant) As String
 ' Convertit une valeur en String pour affichage dans commentaire
 ' Gère NULL, Empty, Erreur, etc.
 
-    On Error GoTo ErrorHandler
     
     If IsNull(valeur) Then
         ValeurToString = "NULL"
@@ -458,11 +450,6 @@ Private Function ValeurToString(ByVal valeur As Variant) As String
     Else
         ValeurToString = CStr(valeur)
     End If
-    Exit Function
-    
-ErrorHandler:
-    ValeurToString = "Valeur invalide"
-    
 End Function
 ' =========================================================================
 ' PROCÉDURE: EXÉCUTER CALCUL LCC (SANS MOT DE PASSE)
@@ -473,7 +460,6 @@ Public Sub ExecuterCalculLCC(ByRef wb As Workbook)
     
     Dim vbsPath As String
     
-    On Error GoTo SafeExit
     
     ' Activer le classeur Providor AVANT d'appeler les macros
     wb.Activate
@@ -496,13 +482,6 @@ Public Sub ExecuterCalculLCC(ByRef wb As Workbook)
     
     ' Appeler macro LCC_Button_Click
     Application.Run "'" & wb.Name & "'!Feuil29.LCC_Button_Click"
-    
-SafeExit:
-    ' Nettoyage du fichier VBS
-    On Error Resume Next
-    Application.Wait Now + TimeValue("00:00:01")
-    If Len(vbsPath) > 0 Then Kill vbsPath
-    On Error GoTo 0
     
 End Sub
 
@@ -573,17 +552,10 @@ Public Function Build_DoubleClicker_VBS( _
     script = script & "Loop" & vbCrLf
 
     ' Écrit le .vbs
-    On Error GoTo Fail
     f = FreeFile
     Open vbsPath For Output As #f
     Print #f, script
     Close #f
 
     Build_DoubleClicker_VBS = vbsPath
-    Exit Function
-
-Fail:
-    On Error Resume Next
-    If f <> 0 Then Close #f
-    Build_DoubleClicker_VBS = ""
 End Function

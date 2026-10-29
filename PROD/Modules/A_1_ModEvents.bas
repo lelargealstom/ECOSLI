@@ -194,7 +194,6 @@ Public Sub VerifierVersionComplement()
     
     cheminTxt = Environ$("UserProfile") & "\Alstom\DIS Service VBN Pole ISR - Outils Métier ISR\01. BDD SLI\11_Livraison de l'OUTIL excel BDD\VersionComplement.txt"
     cheminMacro = Environ$("UserProfile") & "\Alstom\DIS Service VBN Pole ISR - Outils Métier ISR"
-    On Error GoTo ErreurLecture
     
     Set fso = CreateObject("Scripting.FileSystemObject")
     Set fichier = fso.OpenTextFile(cheminTxt, 1)
@@ -214,12 +213,6 @@ Public Sub VerifierVersionComplement()
                "Veuillez télécharger le dernier complément sur le chemin suivant." & vbCrLf & _
                cheminTxt, vbInformation, "Mise à jour disponible"
     End If
-
-    Exit Sub
-
-ErreurLecture:
-    MsgBox "Impossible de vérifier la version du complément." & vbCrLf & _
-           "Vérifiez que le fichier 'VersionComplement.txt' est bien synchronisé via SharePoint.", vbExclamation
 End Sub
 
 
