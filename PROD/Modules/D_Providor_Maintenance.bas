@@ -279,24 +279,18 @@ End Sub
 ' PROCÉDURE: REMPLIR TEMPS RÉPARATION CORRECTIVE
 ' =========================================================================
 Private Sub RemplirTempsReparation_Corr(ByVal i As Integer)
-' Remplit temps réparation selon gate en utilisant directement les tableaux variants
-'
-' Logique AvantCGR (PGR, GO ORDER, BA, IGR):
-'   - Temps générique HARD uniquement (tTps_CorrPrev_Gen_HARD)
-'
-' Logique AprèsCGR (CGR, FEI, IQA):
-'   - 1. Temps analytique HARD (tTps_CorrPrev_Ana_HARD)
-'   - 2. Temps générique HARD (tTps_CorrPrev_Gen_HARD)
-'   - 3. Temps famille (Dataplug 0.45, autre 0.3)
+' Pose le temps de reparation corrective selon la Gate (source unique, pas de fallback).
+'   Avant CGR (PGR, GO ORDER, BA, IGR) : tTps_CorrPrev_Gen_HARD uniquement.
+'   Apres CGR (CGR, FEI, IQA)          : tTps_CorrPrev_Ana_HARD uniquement.
+' Cellule vide + ColorIndex 44 si source non numerique / nulle, ou si DTR absent de la PBS.
 
     Dim j As Integer
     Dim dtrCherche As String
     Dim indexDTR As Integer
-    Dim tempsDefaut As Double
-    
+    Dim source As Variant
+
     dtrCherche = CM.Cells(i, cm_col.TamponDTR)
-    
-    ' Trouver l'index du DTR
+
     indexDTR = 0
     For j = LBound(tDTR) To UBound(tDTR)
         If tDTR(j, 1) = dtrCherche Then
@@ -304,77 +298,23 @@ Private Sub RemplirTempsReparation_Corr(ByVal i As Integer)
             Exit For
         End If
     Next j
-    
-    ' Si DTR non trouvé
-    If indexDTR = 0 Then
-        tempsDefaut = CalculerTempsDefaut(CM.Cells(i, cm_col.NodeName))
-        CM.Cells(i, cm_col.RepairTime) = tempsDefaut
-        CM.Columns(cm_col.RepairTime).NumberFormat = "General"
-        CM.Cells(i, cm_col.RepairTime).AddComment
-        CM.Cells(i, cm_col.RepairTime).Comment.Visible = False
-        CM.Cells(i, cm_col.RepairTime).Comment.Text Text:="DTR non trouvé - Temps famille"
-        CM.Cells(i, cm_col.RepairTime).Interior.ColorIndex = 44
-        Exit Sub
-    End If
-    
-    ' =====================================================================
-    ' AVANT CGR : TEMPS GÉNÉRIQUE UNIQUEMENT
-    ' =====================================================================
-    If AvantCGR Then
-        If IsNumeric(tTps_CorrPrev_Gen_HARD(indexDTR, 1)) And tTps_CorrPrev_Gen_HARD(indexDTR, 1) <> 0 And _
-           Not IsNull(tTps_CorrPrev_Gen_HARD(indexDTR, 1)) Then
-            CM.Cells(i, cm_col.RepairTime) = tTps_CorrPrev_Gen_HARD(indexDTR, 1)
-            CM.Columns(cm_col.RepairTime).NumberFormat = "General"
-            CM.Cells(i, cm_col.RepairTime).AddComment
-            CM.Cells(i, cm_col.RepairTime).Comment.Visible = False
-            CM.Cells(i, cm_col.RepairTime).Comment.Text Text:="Temps générique"
+
+    If indexDTR > 0 Then
+        If AvantCGR Then
+            source = tTps_CorrPrev_Gen_HARD(indexDTR, 1)
         Else
-            tempsDefaut = CalculerTempsDefaut(CM.Cells(i, cm_col.NodeName))
-            CM.Cells(i, cm_col.RepairTime) = tempsDefaut
-            CM.Columns(cm_col.RepairTime).NumberFormat = "General"
-            CM.Cells(i, cm_col.RepairTime).AddComment
-            CM.Cells(i, cm_col.RepairTime).Comment.Visible = False
-            CM.Cells(i, cm_col.RepairTime).Comment.Text Text:="Pas de temps en BDD - Temps famille"
-            CM.Cells(i, cm_col.RepairTime).Interior.ColorIndex = 44
+            source = tTps_CorrPrev_Ana_HARD(indexDTR, 1)
         End If
-        Exit Sub
     End If
-    
-    ' =====================================================================
-    ' APRÈS CGR : HIÉRARCHIE ANALYTIQUE ? GÉNÉRIQUE ? FAMILLE
-    ' =====================================================================
-    
-    ' Tentative 1 : Temps analytique
-    If IsNumeric(tTps_CorrPrev_Ana_HARD(indexDTR, 1)) And tTps_CorrPrev_Ana_HARD(indexDTR, 1) <> 0 And _
-       Not IsNull(tTps_CorrPrev_Ana_HARD(indexDTR, 1)) Then
-        CM.Cells(i, cm_col.RepairTime) = tTps_CorrPrev_Ana_HARD(indexDTR, 1)
+
+    If IsNumeric(source) And Not IsEmpty(source) And source <> "" And source <> 0 Then
+        CM.Cells(i, cm_col.RepairTime) = source
         CM.Columns(cm_col.RepairTime).NumberFormat = "General"
-        CM.Cells(i, cm_col.RepairTime).AddComment
-        CM.Cells(i, cm_col.RepairTime).Comment.Visible = False
-        CM.Cells(i, cm_col.RepairTime).Comment.Text Text:="Temps analytique RAM Report"
-        Exit Sub
+    Else
+        CM.Cells(i, cm_col.RepairTime) = ""
+        CM.Cells(i, cm_col.RepairTime).Interior.ColorIndex = 44
     End If
-    
-    ' Tentative 2 : Temps générique
-    If IsNumeric(tTps_CorrPrev_Gen_HARD(indexDTR, 1)) And tTps_CorrPrev_Gen_HARD(indexDTR, 1) <> 0 And _
-       Not IsNull(tTps_CorrPrev_Gen_HARD(indexDTR, 1)) Then
-        CM.Cells(i, cm_col.RepairTime) = tTps_CorrPrev_Gen_HARD(indexDTR, 1)
-        CM.Columns(cm_col.RepairTime).NumberFormat = "General"
-        CM.Cells(i, cm_col.RepairTime).AddComment
-        CM.Cells(i, cm_col.RepairTime).Comment.Visible = False
-        CM.Cells(i, cm_col.RepairTime).Comment.Text Text:="Temps générique"
-        Exit Sub
-    End If
-    
-    ' Tentative 3 : Temps famille
-    tempsDefaut = CalculerTempsDefaut(CM.Cells(i, cm_col.NodeName))
-    CM.Cells(i, cm_col.RepairTime) = tempsDefaut
-    CM.Columns(cm_col.RepairTime).NumberFormat = "General"
-    CM.Cells(i, cm_col.RepairTime).AddComment
-    CM.Cells(i, cm_col.RepairTime).Comment.Visible = False
-    CM.Cells(i, cm_col.RepairTime).Comment.Text Text:="Pas de temps en BDD - Temps famille"
-    CM.Cells(i, cm_col.RepairTime).Interior.ColorIndex = 44
-    
+
 End Sub
 
 ' =========================================================================
