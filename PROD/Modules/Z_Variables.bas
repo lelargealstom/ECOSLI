@@ -397,51 +397,6 @@ End Type
 Public EMMST_type As EMMST_Col
 
 'Generateur Livrables
-'Construction d'un type personnalisé pour le stockage des numéro de lignes et colonne pour le tableau du générateur
-Public Type ECOSLI_Col
-
-    dtr As Integer
-    designation As Integer
-    Designation_BdD As Integer
-    Designation_Providor As Integer
-    Sous_syst As Integer
-    Qte As Integer
-    NodeType As Integer
-    HARD_SOFT As Integer
-    NTI As Integer
-    RefPlan As Integer
-    MTBF_Gen As Integer
-    MTBF_Intr As Integer
-    MTBF_Fonct As Integer
-    TxDefaillanceGen As Integer
-    TxDefaillanceAna As Integer
-    DureeTacheGenHARD As Integer
-    DureeTacheAnaHARD As Integer
-    DureeTacheGenSOFT As Integer
-    DureeTacheAnaSOFT As Integer
-    DureeVieGenHARD As Integer
-    DureeVieGenSOFT As Integer
-    DureeVieProjetHARD As Integer
-    DureeVieProjetSOFT As Integer
-    UniteCorrective As Integer
-    UnitePreventive As Integer
-    CoutTotal As Integer
-    PrixSpare_Catalogue As Integer
-    LeadTimeSpare_Catalogue As Integer
-    PrixRepa_Catalogue As Integer
-    LeadTimeRepa_Catalogue As Integer
-    PrixSpare_FRS As Integer
-    LeadTimeSpare_FRS As Integer
-    PrixRepa_FRS As Integer
-    LeadTimeRepa_FRS As Integer
-    PrixSpare_Manuel As Integer
-    PrixRepa_Manuel As Integer
-    PrixProjet_Archive As Integer
-    
-End Type
-
-Public ECOSLI_Type As ECOSLI_Col
-
 ' Taches ATM
 'Constuction d'un type personnalisé pour le stockage des numéros de lignes et de colonnes pour l'onglet Taches_ATM
 Public Type Projets_SLI_Col

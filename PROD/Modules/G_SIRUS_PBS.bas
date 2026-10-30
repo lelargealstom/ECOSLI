@@ -33,20 +33,16 @@ Public Type DATA_ASL_Col
     NTI                           As Long
     RefPlan                       As Long
     MTBF_Gen                      As Long
-    TxDef_Gen                     As Long
     DureeTacheCorrPrev_Gen_HARD   As Long
     MTBF_Intr                     As Long
     MTBF_Fonct                    As Long
-    TxDef_Fonct                   As Long
     DureeTacheCorrPrev_Ana_HARD   As Long
-    UniteMaintCorrective          As Long
     DureeVie_Gen_HARD             As Long
     DureeVie_Ana_HARD             As Long
     DureeVie_Gen_SOFT             As Long
     DureeTachePrev_Gen_SOFT       As Long
     DureeVie_Ana_SOFT             As Long
     DureeTachePrev_Ana_SOFT       As Long
-    UniteMaintPreventive          As Long
     CoutTotal                     As Long
     ISP_TIS_FCS                   As Long
     ISP_TIS_Calc                  As Long
@@ -180,19 +176,16 @@ Public Function MapColonnesDATA_ASL(ByVal ws As Worksheet) As Boolean
 
         ' --- RAM -------------------------------------------------------------
         .MTBF_Gen = TrouverColonne(ws, "MTBF g" & ChrW(233) & "n" & ChrW(233) & "rique (offre et PGR)", False, manqueCritique, manqueOptionnel)
-        .TxDef_Gen = TrouverColonne(ws, "Tx d" & ChrW(233) & "ffaillance g" & ChrW(233) & "n" & ChrW(233) & "rique", False, manqueCritique, manqueOptionnel)
         .DureeTacheCorrPrev_Gen_HARD = TrouverColonne(ws, _
             "Dur" & ChrW(233) & "e de la t" & ChrW(226) & "che corrective et pr" & ChrW(233) & _
             "ventive g" & ChrW(233) & "n" & ChrW(233) & "rique (offre et PGR) HARDWARE", _
             False, manqueCritique, manqueOptionnel)
         .MTBF_Intr = TrouverColonne(ws, "MTBF intrins" & ChrW(232) & "que (RAM report specifique projet (CGR))", False, manqueCritique, manqueOptionnel)
         .MTBF_Fonct = TrouverColonne(ws, "MTBF fonctionnel (RAM report specifique projet (CGR))", False, manqueCritique, manqueOptionnel)
-        .TxDef_Fonct = TrouverColonne(ws, "Tx d" & ChrW(233) & "ffaillance fonctionnel", False, manqueCritique, manqueOptionnel)
         .DureeTacheCorrPrev_Ana_HARD = TrouverColonne(ws, _
             "Dur" & ChrW(233) & "e de la t" & ChrW(226) & "che corrective et pr" & ChrW(233) & _
             "ventive analytique (CGR) HARDWARE", _
             False, manqueCritique, manqueOptionnel)
-        .UniteMaintCorrective = TrouverColonne(ws, "UNITE de la maintenance corrective", False, manqueCritique, manqueOptionnel)
 
         ' --- Duree de vie / taches preventives -----------------------------
         .DureeVie_Gen_HARD = TrouverColonne(ws, "DUREE DE VIE LIMITEE g" & ChrW(233) & "n" & ChrW(233) & "rique (offre et PGR) HARDWARE", False, manqueCritique, manqueOptionnel)
@@ -207,7 +200,6 @@ Public Function MapColonnesDATA_ASL(ByVal ws As Worksheet) As Boolean
             "Dur" & ChrW(233) & "e de la t" & ChrW(226) & "che pr" & ChrW(233) & _
             "ventive analytique SOFTWARE (CGR)", _
             False, manqueCritique, manqueOptionnel)
-        .UniteMaintPreventive = TrouverColonne(ws, "UNITE de la maintenance pr" & ChrW(233) & "ventive", False, manqueCritique, manqueOptionnel)
 
         ' --- Couts et prix --------------------------------------------------
         ' Critiques : les 6 prix utilises pour la qualite Spare/Repair
