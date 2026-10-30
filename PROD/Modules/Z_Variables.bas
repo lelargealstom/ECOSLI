@@ -688,6 +688,7 @@ Public bs_col As bs_col
 Public ml_col As ml_col
 Public cm_col As cm_col
 Public pm_col As pm_col
+Public cs_col As cs_col
 Public sl_col As sl_col
 Public tl_col As tl_col
 Public gp_col As gp_col
