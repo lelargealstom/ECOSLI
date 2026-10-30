@@ -386,30 +386,22 @@ Public Sub remplissage_prev()
         sourceTpsSOFT = tTps_Prev_Gen_SOFT
     Else
         ' Après CGR : données analytiques
-        Dim msgFallback As String
-        msgFallback = ""
 
         If AuMoinsUneValeurNumerique(tDureevie_Ana_HARD) Then
             sourceHARD = tDureevie_Ana_HARD
         Else
             sourceHARD = tDureevie_Gen_HARD
-            msgFallback = msgFallback & "- Duree de vie HARDWARE : aucune valeur analytique (CGR) renseignee, utilisation de la colonne generique (offre et PGR)." & vbCrLf
         End If
 
         If AuMoinsUneValeurNumerique(tDureevie_Ana_SOFT) Then
             sourceSOFT = tDureevie_Ana_SOFT
         Else
             sourceSOFT = tDureevie_Gen_SOFT
-            msgFallback = msgFallback & "- Duree de vie SOFTWARE : aucune valeur analytique (CGR) renseignee, utilisation de la colonne generique (offre et PGR)." & vbCrLf
         End If
 
         sourceTpsHARD = tTps_CorrPrev_Ana_HARD
         sourceTpsSOFT = tTps_Prev_Ana_SOFT
 
-        If Len(msgFallback) > 0 Then
-            MsgBox "Preventive Maintenance - Fallback sur les donnees Offre/PGR :" & vbCrLf & vbCrLf & msgFallback, _
-                   vbInformation, "Providor"
-        End If
     End If
     
     ' Boucle unique sur tous les DTR
@@ -620,7 +612,7 @@ End Sub
 ' =========================================================================
 ' FONCTION: AU MOINS UNE VALEUR NUMERIQUE
 ' =========================================================================
-Private Function AuMoinsUneValeurNumerique(ByRef t As Variant) As Boolean
+Public Function AuMoinsUneValeurNumerique(ByRef t As Variant) As Boolean
 ' Verifie si le tableau 2D (nx1) contient au moins une valeur numerique.
 ' Un 0 compte comme valeur renseignee. Les cellules vides ou chaines vides ne comptent pas.
     Dim k As Long

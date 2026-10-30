@@ -232,61 +232,114 @@ End Sub
 ' FONCTION: VALIDER DONNÉES RAM PROVIDOR
 ' =========================================================================
 Private Function ValiderDonneesRAMProvidor() As Boolean
-' Vérifie si les données du RAM Report sont requises et présentes
-' Retourne True pour continuer, False pour arrêter
+' Positionne AvantCGR et RAMReportDATA selon la Gate.
+' A partir de CGR : appelle AfficherAlerteRAMReportCGR (MsgBox informatif OK, non bloquant).
+' Retourne toujours True (plus de dialogue bloquant Oui/Non).
 
-    Dim MTBF_intr_pres As Boolean, MTBF_fonct_pres As Boolean
-    Dim Tps_CorrPrev_Ana_HARD_pres As Boolean, Tps_CorrPrev_Ana_SOFT_pres As Boolean
-    Dim Dureevie_Ana_HARD_pres As Boolean, Dureevie_Ana_SOFT_pres As Boolean
-    
-    ' Déterminer si on est avant ou après CGR
     Select Case gate
         Case "PGR", "GO ORDER", "BA", "IGR"
-            ' Avant CGR : pas de vérification RAM Report
             AvantCGR = True
             RAMReportDATA = False
-            ValiderDonneesRAMProvidor = True
-            
+
         Case "CGR", "FEI", "IQA"
-            ' Après CGR : vérification obligatoire
             AvantCGR = False
-            
-            ' Vérifier présence données
-            MTBF_intr_pres = IsInArray_1D("", tMTBF_Intr)
-            MTBF_fonct_pres = IsInArray_1D("", tMTBF_fct)
-            Tps_CorrPrev_Ana_HARD_pres = IsInArray_1D("", tTps_CorrPrev_Ana_HARD)
-            Tps_CorrPrev_Ana_SOFT_pres = IsInArray_1D("", tTps_Prev_Ana_SOFT)
-            Dureevie_Ana_HARD_pres = IsInArray_1D("", tDureevie_Ana_HARD)
-            Dureevie_Ana_SOFT_pres = IsInArray_1D("", tDureevie_Ana_SOFT)
-            
-            If MTBF_fonct_pres Or MTBF_intr_pres Or Tps_CorrPrev_Ana_HARD_pres Or _
-               Tps_CorrPrev_Ana_SOFT_pres Or Dureevie_Ana_HARD_pres Or Dureevie_Ana_SOFT_pres Then
-                ' Données incomplètes : demander confirmation
-                If MsgBox("Toutes les données spécifiques du RAM Report ne sont pas renseignées (obligatoire dès CGR)" & vbCrLf & _
-                          "Souhaitez-vous continuer avec les données intrinsèques ?" & vbCrLf & vbCrLf & _
-                          "Les données non renseignées seront remplacées par les données intrinsèques si présentes, et par les valeurs génériques si rien n'est renseigné", _
-                          vbYesNo + vbQuestion) = vbNo Then
-                    MsgBox "Arrêt de la procédure, vous pouvez renseigner les données du RAM Report (obligatoire à CGR)", vbInformation
-                    ValiderDonneesRAMProvidor = False
-                    Exit Function
-                End If
-                RAMReportDATA = False
-            Else
-                ' Toutes les données présentes
-                MsgBox "Toutes les données spécifiques du RAM Report sont renseignées." & vbCrLf & _
-                       "La procédure peut continuer", vbInformation
-                RAMReportDATA = True
-            End If
-            
-            ValiderDonneesRAMProvidor = True
-            
+            Call AfficherAlerteRAMReportCGR
+
         Case Else
-            ' Gate inconnue : considérer comme avant CGR
             AvantCGR = True
             RAMReportDATA = False
-            ValiderDonneesRAMProvidor = True
     End Select
-    
+
+    ValiderDonneesRAMProvidor = True
+End Function
+
+' =========================================================================
+' PROCEDURE: AFFICHER ALERTE RAM REPORT CGR
+' =========================================================================
+Private Sub AfficherAlerteRAMReportCGR()
+' Construit et affiche un MsgBox informatif OK avant la generation du Providor
+' quand la Gate est a CGR ou au-dela. Positionne RAMReportDATA en consequence.
+' 3 sections :
+'   - Durees de vie limitee analytique HARDWARE/SOFTWARE : annonce du fallback generique
+'     si la colonne analytique est entierement vide (meme critere que le fallback
+'     applique en pratique dans remplissage_prev).
+'   - Durees de tache analytique Corrective HARDWARE / Preventive SOFTWARE :
+'     nombre de DTR sans valeur. Si > 0 : suggere de renseigner les taches ATM en BdD.
+'   - MTBF : nombre de DTR sans MTBF fonctionnel. Rappel de la hierarchie
+'     appliquee par DTR dans RemplirMTBF_Corr.
+
+    Dim nbTotal As Long
+    Dim nbSansTpsCorr As Long
+    Dim nbSansTpsPrev As Long
+    Dim nbSansMTBFfct As Long
+    Dim fallbackDVL_HARD As Boolean
+    Dim fallbackDVL_SOFT As Boolean
+    Dim i As Long
+    Dim msg As String
+
+    nbTotal = UBound(tDTR, 1) - LBound(tDTR, 1) + 1
+
+    nbSansTpsCorr = 0
+    nbSansTpsPrev = 0
+    nbSansMTBFfct = 0
+    For i = LBound(tDTR, 1) To UBound(tDTR, 1)
+        If Not EstValeurRenseignee(tTps_CorrPrev_Ana_HARD(i, 1)) Then nbSansTpsCorr = nbSansTpsCorr + 1
+        If Not EstValeurRenseignee(tTps_Prev_Ana_SOFT(i, 1)) Then nbSansTpsPrev = nbSansTpsPrev + 1
+        If Not EstValeurRenseignee(tMTBF_fct(i, 1)) Then nbSansMTBFfct = nbSansMTBFfct + 1
+    Next i
+
+    fallbackDVL_HARD = Not AuMoinsUneValeurNumerique(tDureevie_Ana_HARD)
+    fallbackDVL_SOFT = Not AuMoinsUneValeurNumerique(tDureevie_Ana_SOFT)
+
+    If fallbackDVL_HARD Or fallbackDVL_SOFT Or nbSansTpsCorr > 0 Or nbSansTpsPrev > 0 Or nbSansMTBFfct > 0 Then
+        RAMReportDATA = False
+    Else
+        RAMReportDATA = True
+    End If
+
+    msg = "Attention : certaines donnees RAM Report sont incompletes a CGR." & vbCrLf
+    msg = msg & "La generation du Providor continue avec les fallbacks ci-dessous." & vbCrLf & vbCrLf
+
+    msg = msg & "== Durees de vie limitee ==" & vbCrLf
+    If fallbackDVL_HARD Then
+        msg = msg & "- HARDWARE : colonne analytique vide, bascule sur la colonne generique (Offre et PGR)." & vbCrLf
+    Else
+        msg = msg & "- HARDWARE : OK (colonne analytique utilisee)." & vbCrLf
+    End If
+    If fallbackDVL_SOFT Then
+        msg = msg & "- SOFTWARE : colonne analytique vide, bascule sur la colonne generique (Offre et PGR)." & vbCrLf
+    Else
+        msg = msg & "- SOFTWARE : OK (colonne analytique utilisee)." & vbCrLf
+    End If
+    msg = msg & vbCrLf
+
+    msg = msg & "== Durees de tache analytique ==" & vbCrLf
+    msg = msg & "- Corrective HARDWARE : " & nbSansTpsCorr & " DTR sur " & nbTotal & " sans valeur."
+    If nbSansTpsCorr > 0 Then msg = msg & " -> renseigner les taches ATM en BdD."
+    msg = msg & vbCrLf
+    msg = msg & "- Preventive SOFTWARE : " & nbSansTpsPrev & " DTR sur " & nbTotal & " sans valeur."
+    If nbSansTpsPrev > 0 Then msg = msg & " -> renseigner les taches ATM en BdD."
+    msg = msg & vbCrLf & vbCrLf
+
+    msg = msg & "== MTBF ==" & vbCrLf
+    msg = msg & "- " & nbSansMTBFfct & " DTR sur " & nbTotal & " sans MTBF fonctionnel." & vbCrLf
+    msg = msg & "- Hierarchie appliquee par DTR : 1) MTBF fonctionnel  2) MTBF intrinseque  3) vide + orange"
+
+    MsgBox msg, vbInformation, "Providor - Donnees RAM Report a CGR"
+
+End Sub
+
+' =========================================================================
+' FONCTION: EST VALEUR RENSEIGNEE
+' =========================================================================
+Private Function EstValeurRenseignee(ByVal v As Variant) As Boolean
+' Vrai si v est une valeur numerique non nulle (ni vide, ni Null, ni 0, ni chaine vide).
+    If IsEmpty(v) Then Exit Function
+    If IsNull(v) Then Exit Function
+    If Not IsNumeric(v) Then Exit Function
+    If Len(CStr(v)) = 0 Then Exit Function
+    If CDbl(v) = 0 Then Exit Function
+    EstValeurRenseignee = True
 End Function
 
 ' =========================================================================
