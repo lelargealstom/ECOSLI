@@ -6,6 +6,71 @@ Format : `[Date] — Auteur — Périmètre`, puis liste des changements par mod
 
 ---
 
+## 2026-10-30 — Providor CM temps unique selon Gate + nettoyage code mort + MsgBox RAM Report CGR consolidé
+
+Session focus : finir d'aligner la Corrective Maintenance sur la logique "source unique selon Gate" (symétrique au PM d'il y a 2 jours), nettoyer le code mort généré par la suppression de 4 colonnes dans le template Providor côté Thomas, puis refondre l'avertissement RAM Report à CGR+ en un seul MsgBox informatif non bloquant. Puis fix d'une régression `cs_col` oubliée.
+
+4 commits : `47556e1`, `6593efe`, `f6e83ec`, `4d03517`.
+
+### Commit `47556e1` — CM : `RemplirTempsReparation_Corr` source unique selon Gate
+
+Symétrique de la refonte PM `b5fce46` du 2026-10-28. Plus de hiérarchie analytique → générique → famille après CGR. Une seule colonne lue selon la Gate :
+- **Avant CGR** (PGR, GO ORDER, BA, IGR) : `tTps_CorrPrev_Gen_HARD` uniquement.
+- **Après CGR** (CGR, FEI, IQA) : `tTps_CorrPrev_Ana_HARD` uniquement.
+
+Cellule `RepairTime` vide + `ColorIndex 44` si DTR absent de `tDTR`, ou si source non numérique / nulle / `0`. **Plus de commentaires Excel** (`.AddComment`) posés sur la cellule (demande explicite Thomas).
+
+`CalculerTempsDefaut` devient orpheline (plus aucun appelant). Laissée en place par convention règle 8, même situation que `CalculerTempsFamille` déjà orpheline depuis `b5fce46`.
+
+Volume : −60 lignes nettes dans `D_Providor_Maintenance.bas`.
+
+### Commit `6593efe` — Nettoyage code mort après suppression de 4 colonnes template Providor
+
+Thomas a supprimé côté template 4 colonnes du tableau structuré `Providor` :
+- `Tx déffaillance générique`, `Tx déffaillance fonctionnel`
+- `UNITE de la maintenance corrective`, `UNITE de la maintenance preventive`
+
+Impact fonctionnel : **aucun**. Les 4 colonnes étaient référencées uniquement par du code mort. Nettoyage :
+
+- **`G_SIRUS_PBS.bas`** : retrait de 4 champs du Type `DATA_ASL_Col` (`TxDef_Gen`, `TxDef_Fonct`, `UniteMaintCorrective`, `UniteMaintPreventive`) + des 4 appels `TrouverColonne` correspondants dans `MapColonnesDATA_ASL`. Ces champs n'étaient jamais lus ailleurs dans PROD.
+- **`Ybis_CadrageTemplate.bas`** : **fichier supprimé entièrement**. La Sub `Cadrage_ECOSLI` qu'il contenait n'était jamais appelée.
+- **`Z_Variables.bas`** : retrait du `Type ECOSLI_Col` (37 champs) et de la variable `Public ECOSLI_Type As ECOSLI_Col`. Devenus définitivement orphelins avec la disparition de `Ybis_CadrageTemplate.bas`.
+
+Volume : −97 lignes nettes sur 3 fichiers.
+
+### Commit `f6e83ec` — Alerte RAM Report CGR consolidée + non bloquante
+
+Refonte du dispositif de validation RAM Report. Plus de dialogue bloquant Oui/Non, plus de MsgBox "données complètes". À partir de la Gate CGR, un seul MsgBox informatif OK (non bloquant) qui résume les 3 points annoncés par Thomas :
+
+**`D_Providor_Main.bas`** :
+- `ValiderDonneesRAMProvidor` : réduite à l'orchestration (positionne `AvantCGR` + appelle `AfficherAlerteRAMReportCGR` conditionnellement). Toujours retourne True.
+- **Nouvelle Sub `AfficherAlerteRAMReportCGR`** : construit le message en 3 sections, positionne `RAMReportDATA`, affiche MsgBox `vbInformation` OK avec titre "Providor - Donnees RAM Report a CGR" :
+  - **== Durées de vie limitée ==** : HARDWARE/SOFTWARE → "OK (colonne analytique utilisée)" ou "colonne analytique vide, bascule sur la colonne générique (Offre et PGR)". Même critère que le fallback effectif dans `remplissage_prev` (via `AuMoinsUneValeurNumerique`).
+  - **== Durées de tâche analytique ==** : "Corrective HARDWARE : X DTR sur Y sans valeur" + "Preventive SOFTWARE : X DTR sur Y sans valeur". Si > 0, ajoute "→ renseigner les taches ATM en BdD".
+  - **== MTBF ==** : "X DTR sur Y sans MTBF fonctionnel" + rappel de la hiérarchie "1) MTBF fonctionnel 2) MTBF intrinsèque 3) vide + orange".
+- **Nouveau helper Private `EstValeurRenseignee(v As Variant) As Boolean`** : vrai si v est numérique non nul, ni vide, ni Null, ni chaîne vide. Utilisé pour compter les DTR sans valeur.
+
+**`D_Providor_Maintenance.bas`** :
+- `AuMoinsUneValeurNumerique` : passée Private → **Public** pour réutilisation croisée depuis `AfficherAlerteRAMReportCGR`.
+- `remplissage_prev` : retrait du MsgBox local de fallback DVL (variable `msgFallback` + 2 concaténations + bloc `If MsgBox`). L'avertissement unique en entrée via `AfficherAlerteRAMReportCGR` remplace ce MsgBox local → **un seul point d'information utilisateur** dans tout le pipeline Providor.
+
+`RAMReportDATA` est toujours positionnée (True si tout OK, False sinon) — préservée car utilisée par `B_ATM_V1.bas:824,866`.
+
+### Commit `4d03517` — Fix : `Public cs_col As cs_col` manquant dans Z_Variables
+
+Régression détectée par Thomas en VBE à la compilation. Le `Type cs_col` était bien déclaré depuis le commit `2fda14d` du 2026-10-29, mais la variable publique `Public cs_col As cs_col` manquait dans la section "INSTANCES PUBLIQUES DES TYPES" (lignes 687-693 de `Z_Variables.bas`). Les 7 autres `*_col` sont bien là. Ajout de la 8e ligne entre `pm_col` et `sl_col` par cohérence d'ordre.
+
+### À tester en VBE
+
+1. Gate avant CGR → aucun MsgBox s'affiche (comme avant la refonte).
+2. Gate ≥ CGR, données complètes → MsgBox s'affiche avec toutes sections "OK (colonne analytique utilisée)" + "0 DTR sur Y sans valeur" partout.
+3. Gate ≥ CGR, colonne analytique DVL HARDWARE vide → section HARDWARE "bascule sur la colonne générique (Offre et PGR)".
+4. Gate ≥ CGR, quelques DTR sans tps correctif → "X DTR sur Y sans valeur. → renseigner les taches ATM en BdD".
+5. Projet DTR BOTH avec `DureeCirculation = 45`, DVL HARD = 30, DVL SOFT = 10 → ligne SOFT PM porte `"3"` dans Periodic Cancelled occurences (test de non-régression commit `edceabc`).
+6. `remplissage_corr` : un DTR avec `tTps_CorrPrev_Ana_HARD` vide après CGR → `RepairTime` vide + orange (plus de temps famille).
+
+---
+
 ## 2026-10-29 (fin de journée) — Retrait de tous les handlers d'erreur défensifs dans PROD
 
 Session focus : Thomas s'est heurté à une erreur masquée par un `ErrorHandler` dans `InitialiserCadrageColonnes`. Il demande le retrait complet de tous les handlers défensifs dans l'ensemble du dossier PROD pour que les erreurs VBA remontent naturellement à la ligne exacte (surlignage jaune VBE) — conforme à la convention projet règle 3 (inversée depuis 2026-07-20 pour faciliter le debug avec les ingénieurs).
