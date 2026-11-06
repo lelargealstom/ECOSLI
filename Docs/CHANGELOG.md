@@ -6,11 +6,15 @@ Format : `[Date] — Auteur — Périmètre`, puis liste des changements par mod
 
 ---
 
-## 2026-11-06 — Diagnostic troncature 255 chars commentaires EMMST (ACE OLE DB) + règle projet CLAUDE.md
+## 2026-11-06 — Diagnostic troncature 255 chars commentaires EMMST (ACE OLE DB) + règle projet CLAUDE.md + bench plan B
 
 Session focus : Thomas constate que les commentaires EMMST (`CommentaireStockage_EMMST`, `CommentaireEmballage_EMMST`, etc.) sont tronqués à 255 caractères lors de la génération EMMST. Cause : le driver `Microsoft.ACE.OLEDB.12.0` échantillonne les 8 premières lignes pour deviner le type d'une colonne ; si aucune des 8 ne dépasse 255 chars → colonne typée `Text(255)` → troncature silencieuse. Thomas exclut d'ouvrir la BdD en `Workbooks.Open` (coût perf). On reste donc sur ADO et on cherche à contourner la limite via la chaîne de connexion.
 
-Commits : `67043bc`.
+**Verdict Piste 1 : KO.** Les 5 variantes testées (`TypeGuessRows=0`, `MaxScanRows=0`, avec/sans `IMEX=1`) retournent exactement les mêmes longueurs max que la chaîne actuelle, avec plafond systématique à 255 chars sur 8 des 10 colonnes commentaires (seul `CommentaireMarquage` FR/EN n'a pas de valeurs > 255 en BdD, donc n'est pas tronqué). ACE 12 installé sur le poste Alstom ignore ces paramètres dans la chaîne de connexion (comportement documenté Microsoft). Troncature confirmée : DTR0000157911 plafonne à 255 sur 5 colonnes à la fois (pattern qui ne peut être du hasard).
+
+**Bascule vers Plan B1** : ouvrir la BdD TRAVAIL en Excel natif, invisible, ReadOnly, uniquement pour lire les 10 colonnes commentaires via `Range.Value` (pas de limite 255), puis fermer. Bench livré pour arbitrer objectivement entre instance Excel courante masquée vs instance Excel séparée via `CreateObject`.
+
+Commits : `67043bc`, `d1d941a`, `<hash-bench>`.
 
 Création en parallèle de `CLAUDE.md` à la racine : règle "mettre à jour `CHANGELOG.md` et les docs à chaque évolution de l'outil".
 
@@ -35,13 +39,44 @@ Verdict attendu :
 - Si toutes les variantes plafonnent à 255 → ACE ignore les paramètres dans la chaîne (comportement documenté Microsoft). Plan B nécessaire (ouverture BdD ou modification registre).
 - Si une variante remonte > 255 → Piste 1 validée, on adopte la chaîne gagnante dans la chaîne de connexion EMMST de `Z_Variables.bas` ou dans `C_EMMST_Main.RecupererDonneesBDD_EMMST`.
 
-### À tester en VBE
+### À tester en VBE (statut 2026-11-06)
 
-1. Pull du commit `67043bc` sur poste Alstom.
-2. Importer `X_Test_TypeGuessRows.bas` dans le VBE (projet `ECOSLI.xlam`).
-3. Ctrl+G pour ouvrir la fenêtre Immediate, placer le curseur dans `Test_TypeGuessRows_Commentaires`, F5.
-4. Lire la sortie : pour chaque variante A→E, vérifier la longueur max par colonne.
-5. Décision : la plus faible variante qui dépasse 255 chars sur au moins une colonne gagne.
+1. ✅ Pull du commit `67043bc` sur poste Alstom.
+2. ✅ Importer `X_Test_TypeGuessRows.bas` dans le VBE (projet `ECOSLI.xlam`).
+3. ✅ Ctrl+G pour ouvrir la fenêtre Immediate, placer le curseur dans `Test_TypeGuessRows_Commentaires`, F5.
+4. ✅ Lire la sortie : toutes les variantes plafonnent à 255 sur 8 colonnes.
+5. ✅ Décision : Piste 1 invalidée → bascule Plan B1 (bench ci-dessous).
+
+### Commit `<hash-bench>` — Module de bench `X_Test_OuvertureBdDMasquee`
+
+Ajout de `PROD/Modules/X_Test_OuvertureBdDMasquee.bas` — bench exécutable depuis VBE pour arbitrer entre les 2 variantes de Plan B1.
+
+Contenu du module :
+- `Test_OuvertureBdDMasquee_Tous` (Public, point d'entrée F5) — lance les 2 scénarios en séquence et imprime les temps + longueurs max par colonne.
+- `BenchOuvertureBdD` (Private) — paramètre `creerInstanceSeparee As Boolean` :
+  - **Scénario A** (False) : ouvre la BdD dans l'instance Excel courante avec `ScreenUpdating=False`, `EnableEvents=False`, `Calculation=xlCalculationManual`, `DisplayAlerts=False`. Restauration de l'état à la fin.
+  - **Scénario B** (True) : crée une nouvelle instance via `CreateObject("Excel.Application")`, `Visible=False`, mêmes optimisations. L'instance est `Quit`-tée à la fin.
+  - Ouverture : `Workbooks.Open(..., UpdateLinks:=0, ReadOnly:=True, Notify:=False)`.
+  - Fermeture : `wb.Close SaveChanges:=False`.
+  - Chronomètre les 3 phases : ouverture, lecture, setup+fermeture.
+- `LireCommentairesEtMesurer` (Private) — trouve les 11 colonnes via `Find` sur ligne 1 (pattern convention 2 : `xlValues`/`xlWhole` + fallback `xlPart`), lit chaque colonne en bloc via `Range.Value` (pattern qui serait utilisé en prod pour peupler un `Dictionary(DTR → commentaires)`), mesure la longueur max par colonne.
+- `TrouverColonne`, `ExtraireDataSource`, `PadRight` (Private) — utilitaires.
+
+Respecte les conventions projet : `Range(Cells, Cells)` qualifié via `With ws` (convention 12), pas de handler défensif (convention 3), pas d'`Attribute VB_Name` (convention copy/paste GitHub → VBE), commentaires ASCII pur sans accents (convention 6).
+
+**Garantie non-destructive** : `ReadOnly:=True` à l'ouverture + `SaveChanges:=False` à la fermeture.
+
+### À tester en VBE (bench Plan B1)
+
+1. Pull du commit `<hash-bench>`.
+2. Importer `X_Test_OuvertureBdDMasquee.bas` dans le VBE.
+3. Ctrl+G + F5 dans `Test_OuvertureBdDMasquee_Tous`.
+4. Lire les temps affichés pour chaque scénario + vérifier que les longueurs max dépassent maintenant 255 sur les colonnes concernées (sinon la BdD elle-même n'a pas de commentaires longs — à investiguer).
+5. Grille d'arbitrage :
+   - `Total < 2 s` → Plan B1 adopté directement.
+   - `2 s ≤ Total < 5 s` → négociable selon fréquence d'usage EMMST.
+   - `Total ≥ 5 s` → envisager Plan B2 (export CSV externe).
+   - Si écart A vs B `< 0.5 s` → retenir A (instance courante, plus simple).
 
 ---
 
