@@ -6,6 +6,45 @@ Format : `[Date] — Auteur — Périmètre`, puis liste des changements par mod
 
 ---
 
+## 2026-11-06 — Diagnostic troncature 255 chars commentaires EMMST (ACE OLE DB) + règle projet CLAUDE.md
+
+Session focus : Thomas constate que les commentaires EMMST (`CommentaireStockage_EMMST`, `CommentaireEmballage_EMMST`, etc.) sont tronqués à 255 caractères lors de la génération EMMST. Cause : le driver `Microsoft.ACE.OLEDB.12.0` échantillonne les 8 premières lignes pour deviner le type d'une colonne ; si aucune des 8 ne dépasse 255 chars → colonne typée `Text(255)` → troncature silencieuse. Thomas exclut d'ouvrir la BdD en `Workbooks.Open` (coût perf). On reste donc sur ADO et on cherche à contourner la limite via la chaîne de connexion.
+
+Commits : `67043bc`.
+
+Création en parallèle de `CLAUDE.md` à la racine : règle "mettre à jour `CHANGELOG.md` et les docs à chaque évolution de l'outil".
+
+### Commit `67043bc` — Module de test `X_Test_TypeGuessRows`
+
+Ajout de `PROD/Modules/X_Test_TypeGuessRows.bas` — diagnostic autonome exécutable depuis VBE.
+
+Contenu du module :
+- `Test_TypeGuessRows_Commentaires` (Public, point d'entrée F5) — lance 5 variantes de `Extended Properties` sur la chaîne de connexion de la BdD TRAVAIL :
+  - **A** `Excel 12.0 Macro;HDR=Yes;IMEX=1` (chaîne actuelle, référence)
+  - **B** `+ TypeGuessRows=0`
+  - **C** `+ MaxScanRows=0`
+  - **D** `+ TypeGuessRows=0;MaxScanRows=0`
+  - **E** sans IMEX `+ TypeGuessRows=0;MaxScanRows=0`
+- `MesurerLongueursCommentaires` (Private) — scanne `EMMST$`, calcule la longueur max observée sur les 10 colonnes commentaires (5 FR + 5 EN), imprime dans la fenêtre Immediate le DTR porteur du max.
+- `ForcerExtendedProperties` (Private) — substitue le bloc `Extended Properties='...'` dans la chaîne de connexion sans toucher au `Data Source=`.
+- `PadRight` (Private) — utilitaire d'alignement pour la sortie Immediate.
+
+Respecte les conventions projet : utilise `Open_CONN` / `open_REQSEL` / `Close_CONN` existants, pas de handler d'erreur défensif, commentaires français sans accents (ASCII pur).
+
+Verdict attendu :
+- Si toutes les variantes plafonnent à 255 → ACE ignore les paramètres dans la chaîne (comportement documenté Microsoft). Plan B nécessaire (ouverture BdD ou modification registre).
+- Si une variante remonte > 255 → Piste 1 validée, on adopte la chaîne gagnante dans la chaîne de connexion EMMST de `Z_Variables.bas` ou dans `C_EMMST_Main.RecupererDonneesBDD_EMMST`.
+
+### À tester en VBE
+
+1. Pull du commit `67043bc` sur poste Alstom.
+2. Importer `X_Test_TypeGuessRows.bas` dans le VBE (projet `ECOSLI.xlam`).
+3. Ctrl+G pour ouvrir la fenêtre Immediate, placer le curseur dans `Test_TypeGuessRows_Commentaires`, F5.
+4. Lire la sortie : pour chaque variante A→E, vérifier la longueur max par colonne.
+5. Décision : la plus faible variante qui dépasse 255 chars sur au moins une colonne gagne.
+
+---
+
 ## 2026-10-30 — Providor CM temps unique selon Gate + nettoyage code mort + MsgBox RAM Report CGR consolidé
 
 Session focus : finir d'aligner la Corrective Maintenance sur la logique "source unique selon Gate" (symétrique au PM d'il y a 2 jours), nettoyer le code mort généré par la suppression de 4 colonnes dans le template Providor côté Thomas, puis refondre l'avertissement RAM Report à CGR+ en un seul MsgBox informatif non bloquant. Puis fix d'une régression `cs_col` oubliée.
