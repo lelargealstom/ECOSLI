@@ -14,7 +14,7 @@ Session focus : Thomas constate que les commentaires EMMST (`CommentaireStockage
 
 **Bascule vers Plan B1** : ouvrir la BdD TRAVAIL en Excel natif, invisible, ReadOnly, uniquement pour lire les 10 colonnes commentaires via `Range.Value` (pas de limite 255), puis fermer. Bench livré pour arbitrer objectivement entre instance Excel courante masquée vs instance Excel séparée via `CreateObject`.
 
-Commits : `67043bc`, `d1d941a`, `<hash-bench>`.
+Commits : `67043bc`, `d1d941a`, `a40a02c`.
 
 Création en parallèle de `CLAUDE.md` à la racine : règle "mettre à jour `CHANGELOG.md` et les docs à chaque évolution de l'outil".
 
@@ -47,7 +47,7 @@ Verdict attendu :
 4. ✅ Lire la sortie : toutes les variantes plafonnent à 255 sur 8 colonnes.
 5. ✅ Décision : Piste 1 invalidée → bascule Plan B1 (bench ci-dessous).
 
-### Commit `<hash-bench>` — Module de bench `X_Test_OuvertureBdDMasquee`
+### Commit `a40a02c` — Module de bench `X_Test_OuvertureBdDMasquee`
 
 Ajout de `PROD/Modules/X_Test_OuvertureBdDMasquee.bas` — bench exécutable depuis VBE pour arbitrer entre les 2 variantes de Plan B1.
 
@@ -68,7 +68,7 @@ Respecte les conventions projet : `Range(Cells, Cells)` qualifié via `With ws` 
 
 ### À tester en VBE (bench Plan B1)
 
-1. Pull du commit `<hash-bench>`.
+1. Pull du commit `a40a02c`.
 2. Importer `X_Test_OuvertureBdDMasquee.bas` dans le VBE.
 3. Ctrl+G + F5 dans `Test_OuvertureBdDMasquee_Tous`.
 4. Lire les temps affichés pour chaque scénario + vérifier que les longueurs max dépassent maintenant 255 sur les colonnes concernées (sinon la BdD elle-même n'a pas de commentaires longs — à investiguer).
