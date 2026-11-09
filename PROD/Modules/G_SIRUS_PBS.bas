@@ -614,7 +614,6 @@ Private Function ChargerRowsTableBdD_Optim(ByVal nomTable As String, _
     On Error Resume Next
     Call open_REQSEL(sql)
     If Err.Number <> 0 Then
-        Debug.Print "[" & nomTable & "] SELECT cible echoue (" & Err.description & "), fallback SELECT *"
         Err.Clear
         On Error GoTo Sortie
         Call open_REQSEL("SELECT * FROM [" & nomTable & "]")

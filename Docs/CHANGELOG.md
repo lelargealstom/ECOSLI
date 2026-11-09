@@ -60,7 +60,17 @@ Nouveau module `PROD/Modules/D_EMMST_CacheCommentaires.bas` — cache session Di
 
 Les 3 modules de diagnostic (`X_Test_TypeGuessRows.bas`, `X_Test_OuvertureBdDMasquee.bas`, `X_Test_OuvertureBdD_V2.bas`) restent dans le repo pour traçabilité historique. Peuvent être supprimés par Thomas une fois le cache validé en prod.
 
-### Commit `<hash-attr>` — Retrait des `Attribute VB_Name` en tête des .bas PROD
+### Commit `<hash-noselect>` — Suppression Debug.Print fallback SELECT dans ChargerRowsTableBdD_Optim
+
+Suite à la suppression des Debug.Print de bruit au Ctrl+W (commit `9c993b2`), il restait une trace `[Projet_ASL$] SELECT cible echoue (Aucune valeur donnée pour un ou plusieurs des paramètres requis.), fallback SELECT *` qui persistait. Source identifiée : `G_SIRUS_PBS.bas:617` dans la fonction `ChargerRowsTableBdD_Optim` (le fallback silencieux reste actif, seule la trace est supprimée).
+
+Enchaînement : Ctrl+W → `UserForm_Initialize` → `SIRUS_InitGeneration` → `SIRUS_RemplirListViewGeneration` → `ChargerRowsTableBdD_Optim("Projet_ASL$")` → `open_REQSEL(sql)` échoue (erreur ACE "paramètre requis") → fallback `SELECT * FROM [Projet_ASL$]` qui fonctionne.
+
+Cause probable (à investiguer plus tard si besoin) : nom de colonne ProjetASL > 64 caractères tronqué par ACE OLE DB (cf. convention `TronquerColonneBdD`), ou caractère spécial mal géré dans le SQL cible. Le diag `Test_DiagnostiquerEcartsConfig_Toutes` rapporte 0 écart config ↔ BdD, donc le mapping global est bon, mais le SELECT construit par `ChargerRowsTableBdD_Optim` déclenche l'erreur ACE à l'exécution.
+
+Impact : aucun. Le fallback `SELECT *` charge toute la table et la suite du pipeline filtre les colonnes utiles. Juste un léger surcoût (toutes colonnes lues au lieu des nécessaires).
+
+### Commit `5320fa5` — Retrait des `Attribute VB_Name` en tête des .bas PROD
 
 Les lignes `Attribute VB_Name = "..."` au début des modules .bas empêchent un copier-coller propre GitHub → VBE sur le poste Alstom. Retrait via script PowerShell qui détecte l'encoding de chaque fichier (UTF-8 vs cp1252) et préserve.
 
