@@ -12,7 +12,7 @@ Session focus : bench v1 (2026-11-06) → validation fonctionnelle de la lecture
 
 Puis refactor : à la demande de Thomas, consolidation du cache commentaires dans le module `C_EMMST_Main.bas` existant au lieu d'un module séparé `D_EMMST_CacheCommentaires.bas` (règle "garder le développement EMMST dans un seul module").
 
-Commits : `228d76f`, `742199a`, `9c0b5e5`, `<hash-refactor>`.
+Commits : `228d76f`, `742199a`, `9c0b5e5`, `e9b60e0`.
 
 ### Commit `9c0b5e5` — Implémentation cache commentaires EMMST + injection dans EMMST_tab
 
@@ -60,7 +60,7 @@ Nouveau module `PROD/Modules/D_EMMST_CacheCommentaires.bas` — cache session Di
 
 Les 3 modules de diagnostic (`X_Test_TypeGuessRows.bas`, `X_Test_OuvertureBdDMasquee.bas`, `X_Test_OuvertureBdD_V2.bas`) restent dans le repo pour traçabilité historique. Peuvent être supprimés par Thomas une fois le cache validé en prod.
 
-### Commit `<hash-refactor>` — Refactor : cache commentaires dans C_EMMST_Main (module unique EMMST)
+### Commit `e9b60e0` — Refactor : cache commentaires dans C_EMMST_Main (module unique EMMST)
 
 Thomas a demandé de garder tout le développement EMMST dans un seul module, en ajoutant uniquement des procédures. Consolidation du module séparé `D_EMMST_CacheCommentaires.bas` (créé au commit `9c0b5e5`) dans `C_EMMST_Main.bas` :
 
