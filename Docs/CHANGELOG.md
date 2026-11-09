@@ -60,7 +60,7 @@ Nouveau module `PROD/Modules/D_EMMST_CacheCommentaires.bas` — cache session Di
 
 Les 3 modules de diagnostic (`X_Test_TypeGuessRows.bas`, `X_Test_OuvertureBdDMasquee.bas`, `X_Test_OuvertureBdD_V2.bas`) restent dans le repo pour traçabilité historique. Peuvent être supprimés par Thomas une fois le cache validé en prod.
 
-### Commit `<hash-rm-tests>` — Suppression des 3 modules de test diagnostic (session EMMST)
+### Commit `115198a` — Suppression des 3 modules de test diagnostic (session EMMST)
 
 Thomas valide la suppression des 3 modules de diagnostic/bench créés pendant la session EMMST (Piste 1 → bench v1 → bench v2 → Plan B1 adopté) :
 - `PROD/Modules/X_Test_TypeGuessRows.bas` (commit `67043bc`, 2026-11-06)
