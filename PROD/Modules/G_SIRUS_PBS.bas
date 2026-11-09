@@ -152,7 +152,6 @@ Public Function MapColonnesDATA_ASL(ByVal ws As Worksheet) As Boolean
     ElseIf DATA_ASL_HeaderRow = 0 Then
         DATA_ASL_HeaderRow = 1
     End If
-    Debug.Print "[DATA_ASL] Ligne d'entete utilisee : " & DATA_ASL_HeaderRow
 
     With DATA_ASL_type
         ' --- Identification --------------------------------------------------
@@ -444,16 +443,6 @@ Public Sub SIRUS_RemplirListViewGeneration()
 
 SuivanteLigne:
     Next ligne
-
-    Debug.Print "SIRUS_RemplirListViewGeneration : " & nbAjoutees & _
-                " ligne(s) (Lookup=" & SIRUS_LookupDTR_Active & ")"
-    Debug.Print "  Colonnes prix mappees (0 = introuvable) :"
-    Debug.Print "    PrixManuelSpare        = col " & DATA_ASL_type.PrixManuelSpare
-    Debug.Print "    CoutSpare_AlstomFR_FRS = col " & DATA_ASL_type.CoutSpare_AlstomFR_FRS
-    Debug.Print "    ISP_TIS_FCS            = col " & DATA_ASL_type.ISP_TIS_FCS
-    Debug.Print "    PrixManuelRepair       = col " & DATA_ASL_type.PrixManuelRepair
-    Debug.Print "    PrixRepair_Alstom_FRS  = col " & DATA_ASL_type.PrixRepair_Alstom_FRS
-    Debug.Print "    PrixRepa_ISP           = col " & DATA_ASL_type.PrixRepa_ISP
 
 Sortie:
     Application.ScreenUpdating = True

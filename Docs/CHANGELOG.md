@@ -60,6 +60,25 @@ Nouveau module `PROD/Modules/D_EMMST_CacheCommentaires.bas` — cache session Di
 
 Les 3 modules de diagnostic (`X_Test_TypeGuessRows.bas`, `X_Test_OuvertureBdDMasquee.bas`, `X_Test_OuvertureBdD_V2.bas`) restent dans le repo pour traçabilité historique. Peuvent être supprimés par Thomas une fois le cache validé en prod.
 
+### Commit `<hash-debug>` — Nettoyage Debug.Print bruyants au Ctrl+W (SIRUS init)
+
+Thomas a identifié ~10 Debug.Print qui s'affichent dans la fenêtre Immediate à chaque Ctrl+W (ouverture du UserForm ECOSLI). Enchaînement d'appels : `W_AppelUsf.Appel_Usf` → `UserForm.Show` → `UserForm_Initialize` (L660) → `SIRUS_InitGeneration` (L27) → `SIRUS_RemplirListViewGeneration`, qui faisait plusieurs `Debug.Print` d'init + diag de mapping.
+
+Suppression des 10 lignes de bruit dans `G_SIRUS_PBS.bas` :
+- L155 : `Debug.Print "[DATA_ASL] Ligne d'entete utilisee : " & DATA_ASL_HeaderRow`
+- L448-449 : `Debug.Print "SIRUS_RemplirListViewGeneration : …"`
+- L450 : `Debug.Print "  Colonnes prix mappees (0 = introuvable) :"`
+- L451-456 : 6 lignes `Debug.Print "    PrixXxx = col " & …`
+
+**Conservés** (signaux utiles pour debug futur, non bruyants en cas normal) :
+- L461 : `Debug.Print "ERREUR SIRUS_RemplirListViewGeneration : "` (branche erreur).
+- L516, L629, L667 : `Debug.Print` fallback/erreur sur `ChargerSetDTR_BdD`, `ChargerRowsTableBdD_Optim`.
+- L225 : `Debug.Print` conditionnel sur colonnes optionnelles manquantes (silencieux dans le cas Thomas).
+
+**Note préservée** : le fallback `[Projet_ASL$] SELECT cible echoue (…), fallback SELECT *` (L629) s'affiche toujours au Ctrl+W. Cause pas élucidée : `Test_DiagnostiquerEcartsConfig_Toutes` rapporte 0 écart config ↔ BdD sur les 6 tables, pourtant le SELECT cible échoue à l'exécution de `ChargerRowsTableBdD_Optim` sur `Projet_ASL`. Hypothèse à explorer plus tard : typage ACE sur une colonne du config, ou nom de colonne avec un caractère spécial qui s'échappe mal dans le SQL construit. Non bloquant (le fallback `SELECT *` fait le job).
+
+Encoding `G_SIRUS_PBS.bas` : ASCII pur (0 high bytes avant modif, 0 après). Édition via Edit tool safe. Vérification post-modif : pas de BOM ajouté, 0 FFFD, 10 Debug.Print supprimés (35 → 25).
+
 ### Commit `f3e2e87` — Fix "Utilisation incorrecte de Null" ligne 638 injection commentaires
 
 Thomas a remonté une erreur 94 "Utilisation incorrecte de Null" à l'exécution de `ChargerEtInjecterCommentairesEMMST`, ligne 638 : `dtr = CStr(EMMST_tab(iLigne, colDTR))`. Cause : ADO retourne `Null` (pas `Empty`) pour une cellule BdD vide, et `CStr(Null)` lève erreur 94.
