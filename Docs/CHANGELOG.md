@@ -6,11 +6,13 @@ Format : `[Date] — Auteur — Périmètre`, puis liste des changements par mod
 
 ---
 
-## 2026-11-09 — Bench v2 ventilation + implémentation cache commentaires EMMST (Plan B1 adopté)
+## 2026-11-09 — Bench v2 ventilation + implémentation cache commentaires EMMST (Plan B1 adopté) + refactor dans C_EMMST_Main
 
 Session focus : bench v1 (2026-11-06) → validation fonctionnelle de la lecture `Workbooks.Open` (commentaires Stockage lus jusqu'à **1007 chars** vs 255 avec ADO), mais coût prohibitif (37,93 s scénario A, 453,84 s scénario B). Bench v2 pour localiser les 27 s inexpliquées. Verdict bench v2 : les 27 s sont dans la **restauration `Calculation = xlCalculationAutomatic` quand la BdD vient d'OneDrive** (A1 = 26,71 s, A2 sans restauration = 0,02 s, A3 copie locale `%TEMP%` = 0,22 s). Combo "OneDrive + restauration auto" éliminé en copiant la BdD en local avant ouverture. **Plan B1 adopté** avec cache session.
 
-Commits : `228d76f`, `742199a`, `9c0b5e5`.
+Puis refactor : à la demande de Thomas, consolidation du cache commentaires dans le module `C_EMMST_Main.bas` existant au lieu d'un module séparé `D_EMMST_CacheCommentaires.bas` (règle "garder le développement EMMST dans un seul module").
+
+Commits : `228d76f`, `742199a`, `9c0b5e5`, `<hash-refactor>`.
 
 ### Commit `9c0b5e5` — Implémentation cache commentaires EMMST + injection dans EMMST_tab
 
@@ -57,6 +59,22 @@ Nouveau module `PROD/Modules/D_EMMST_CacheCommentaires.bas` — cache session Di
 ### Suppression des modules de test (optionnel)
 
 Les 3 modules de diagnostic (`X_Test_TypeGuessRows.bas`, `X_Test_OuvertureBdDMasquee.bas`, `X_Test_OuvertureBdD_V2.bas`) restent dans le repo pour traçabilité historique. Peuvent être supprimés par Thomas une fois le cache validé en prod.
+
+### Commit `<hash-refactor>` — Refactor : cache commentaires dans C_EMMST_Main (module unique EMMST)
+
+Thomas a demandé de garder tout le développement EMMST dans un seul module, en ajoutant uniquement des procédures. Consolidation du module séparé `D_EMMST_CacheCommentaires.bas` (créé au commit `9c0b5e5`) dans `C_EMMST_Main.bas` :
+
+- **Déclarations module** ajoutées en tête de `C_EMMST_Main.bas` après `Option Explicit` : `m_dictCommentaires` (Private Dictionary) + 10 constantes `N_*` (Private Const, noms des colonnes BdD).
+- **4 procédures** ajoutées en fin de `C_EMMST_Main.bas` :
+  - `ChargerEtInjecterCommentairesEMMST` (Public) — point d'entrée.
+  - `ChargerCacheCommentaires` (Private) — 5 étapes avec `F_Progression` (renommée depuis `ChargerCache` pour éviter l'ambiguïté dans un module partagé).
+  - `TrouverColonneBdD_EMMST` (Private) — suffixe `_EMMST` pour éviter toute collision même en Private.
+  - `ExtraireDataSourceDepuisConnStr` (Private).
+- **Suppression** de `PROD/Modules/D_EMMST_CacheCommentaires.bas`.
+
+Aucune modification de la logique métier. Le point d'injection dans `RecupererDonneesBDD_EMMST` reste `Call ChargerEtInjecterCommentairesEMMST` juste après `EMMST_tab = RecordsetToArray(REQSEL)`.
+
+**Règle projet actée** (ajoutée en mémoire `feedback_vba_conventions.md`) : les évolutions EMMST restent dans `C_EMMST_Main.bas` + les modules `C_EMMST_*.bas` existants, pas de nouveau module dédié sauf accord explicite.
 
 ---
 
