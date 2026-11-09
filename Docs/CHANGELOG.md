@@ -41,6 +41,21 @@ Vérifications post-fix : **40 caractères cp1252 0xE9** restaurés (vs 0 avant)
 
 **Pattern cp1252-safe documenté** pour futures sessions (cf. mémoire `feedback_vba_conventions.md`).
 
+### Commit `283ab15` — RemplirTempsReparation_Corr : extension du scope ID_PBS
+
+Thomas a identifié un cas réel qui restait cassé : 2 lignes PBS avec même DTR "TBD" mais `tTps_CorrPrev_Gen_HARD` différents (vide + x). Après mon commit `5d63f40` (lookup par DTR), les 2 lignes recevaient la même valeur (celle de la 1ère occurrence = vide), alors que la 2ème devait afficher `x`.
+
+Cause : lookup par valeur DTR dans la boucle `For j … If tDTR(j,1) = dtrCherche Then`. Fix : passer au lookup par `dictCMRowToIDPBS(CLng(i))`, même pattern que `RemplirMTBF_Corr` (chaque ligne CM pointe vers sa ligne PBS d'origine).
+
+**Nouveau scope ID_PBS en Providor** : `RemplirMTBF_Corr` + `RemplirTempsReparation_Corr`. Les Prix ML (`RemplirPrixRepair`, `RemplirPrixSpare`) restent en lookup `(DTR, Designation)`.
+
+Comportement fonctionnel inchangé :
+- Avant CGR : `tTps_CorrPrev_Gen_HARD` uniquement.
+- Après CGR : `tTps_CorrPrev_Ana_HARD` uniquement.
+- Source non numérique / vide / 0 : cellule vide + orange, pas de fallback.
+
+Infrastructure déjà en place (commit `0062397`), rien à ajouter côté plomberie.
+
 ### Commit `5d63f40` — RemplirTempsReparation_Corr : re-application de "source unique selon Gate"
 
 Correction d'un aller-retour : mon commit `b7044a8` avait restauré à tort la version **pré-refonte** (hiérarchie Ana → Gen → famille). Thomas a clarifié que le bon comportement est **celui du `47556e1`** : source unique par Gate, pas de fallback, cellule vide si source vide.
