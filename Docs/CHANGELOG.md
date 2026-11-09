@@ -10,9 +10,9 @@ Format : `[Date] — Auteur — Périmètre`, puis liste des changements par mod
 
 Session focus : bench v1 (2026-11-06) → validation fonctionnelle de la lecture `Workbooks.Open` (commentaires Stockage lus jusqu'à **1007 chars** vs 255 avec ADO), mais coût prohibitif (37,93 s scénario A, 453,84 s scénario B). Bench v2 pour localiser les 27 s inexpliquées. Verdict bench v2 : les 27 s sont dans la **restauration `Calculation = xlCalculationAutomatic` quand la BdD vient d'OneDrive** (A1 = 26,71 s, A2 sans restauration = 0,02 s, A3 copie locale `%TEMP%` = 0,22 s). Combo "OneDrive + restauration auto" éliminé en copiant la BdD en local avant ouverture. **Plan B1 adopté** avec cache session.
 
-Commits : `228d76f`, `742199a`, `<hash-cache>`.
+Commits : `228d76f`, `742199a`, `9c0b5e5`.
 
-### Commit `<hash-cache>` — Implémentation cache commentaires EMMST + injection dans EMMST_tab
+### Commit `9c0b5e5` — Implémentation cache commentaires EMMST + injection dans EMMST_tab
 
 Nouveau module `PROD/Modules/D_EMMST_CacheCommentaires.bas` — cache session Dictionary(DTR → Array(10 commentaires)) peuplé lazy au 1er appel de `Main_EMMST`.
 
@@ -45,7 +45,7 @@ Nouveau module `PROD/Modules/D_EMMST_CacheCommentaires.bas` — cache session Di
 
 ### À tester en VBE
 
-1. Pull du commit `<hash-cache>`.
+1. Pull du commit `9c0b5e5`.
 2. Importer `D_EMMST_CacheCommentaires.bas` dans VBE.
 3. Récupérer la modif d'une ligne dans `C_EMMST_Main.bas` (ou ré-importer le module).
 4. Générer EMMST depuis le UserForm :
