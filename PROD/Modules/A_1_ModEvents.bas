@@ -9,6 +9,12 @@ Public Sub Auto_Open()
 
     Call InitializeEventHandler
 
+    ' Rediriger Ctrl+W (Fermer natif Excel) vers l'ouverture du UserForm ECOSLI.
+    ' Resiste aux copier-coller VBE qui perdent l'attribut VB_ProcData.VB_Invoke_Func
+    ' de W_AppelUsf.Appel_Usf. A chaque chargement du complement, le raccourci est
+    ' repose explicitement.
+    Application.OnKey "^w", "Appel_Usf"
+
     ' Verifier si une mise a jour est disponible
     Call A_2_ModUpdate.CheckForUpdatesOnStartup
 End Sub
@@ -17,6 +23,10 @@ End Sub
 ' Auto_Close - Execute automatiquement a la fermeture de l'add-in
 ' ==========================================
 Public Sub Auto_Close()
+
+    ' Restaurer le comportement natif Excel pour Ctrl+W (= Fermer la fenetre)
+    Application.OnKey "^w"
+
     Call TerminateEventHandler
 End Sub
 
@@ -214,7 +224,6 @@ Public Sub VerifierVersionComplement()
                cheminTxt, vbInformation, "Mise à jour disponible"
     End If
 End Sub
-
 
 
 
