@@ -6,7 +6,61 @@ Format : `[Date] — Auteur — Périmètre`, puis liste des changements par mod
 
 ---
 
-## 2026-11-09 — Bench v2 : ventilation fine du coût d'ouverture BdD EMMST + 2 hypothèses testées
+## 2026-11-09 — Bench v2 ventilation + implémentation cache commentaires EMMST (Plan B1 adopté)
+
+Session focus : bench v1 (2026-11-06) → validation fonctionnelle de la lecture `Workbooks.Open` (commentaires Stockage lus jusqu'à **1007 chars** vs 255 avec ADO), mais coût prohibitif (37,93 s scénario A, 453,84 s scénario B). Bench v2 pour localiser les 27 s inexpliquées. Verdict bench v2 : les 27 s sont dans la **restauration `Calculation = xlCalculationAutomatic` quand la BdD vient d'OneDrive** (A1 = 26,71 s, A2 sans restauration = 0,02 s, A3 copie locale `%TEMP%` = 0,22 s). Combo "OneDrive + restauration auto" éliminé en copiant la BdD en local avant ouverture. **Plan B1 adopté** avec cache session.
+
+Commits : `228d76f`, `742199a`, `<hash-cache>`.
+
+### Commit `<hash-cache>` — Implémentation cache commentaires EMMST + injection dans EMMST_tab
+
+Nouveau module `PROD/Modules/D_EMMST_CacheCommentaires.bas` — cache session Dictionary(DTR → Array(10 commentaires)) peuplé lazy au 1er appel de `Main_EMMST`.
+
+**API publique** :
+- `ChargerEtInjecterCommentairesEMMST()` — point d'entrée unique appelé depuis `C_EMMST_Main.RecupererDonneesBDD_EMMST` juste après `EMMST_tab = RecordsetToArray(REQSEL)`. Au 1er appel : déclenche le chargement du cache (14 s). Aux suivants : réutilise le Dictionary mémoire (0 s). Écrase ensuite dans `EMMST_tab` les 10 colonnes commentaires tronquées par ADO avec les valeurs complètes du cache. DTR absents du cache = valeurs ADO tronquées conservées (dégradation gracieuse).
+
+**API privée** :
+- `ChargerCache()` — pipeline complet en 5 étapes avec `F_Progression` :
+  1. `FileCopy BdD → %TEMP%\ECOSLI_bdd_cache_<timestamp>.xlsb` (0,07 s)
+  2. `Workbooks.Open ReadOnly invisible, Notify:=False, UpdateLinks:=0` (12,86 s)
+  3. 10 × `Range.Value` lecture bloc + DTR (0,02 s)
+  4. Indexation Dictionary(DTR → Array(10)) (~ms)
+  5. `wb.Close SaveChanges:=False` + `Kill` copie (1,14 + 0,1 s)
+- `TrouverColonneBdD` — `Find xlValues/xlWhole` + fallback `xlPart` (convention 2)
+- `ExtraireDataSourceDepuisConnStr` — parsing de `Data Source=` dans la chaîne de connexion
+
+**Intégration dans `C_EMMST_Main.RecupererDonneesBDD_EMMST`** : ajout d'un `Call ChargerEtInjecterCommentairesEMMST` juste après `EMMST_tab = RecordsetToArray(REQSEL)` (ligne 227). Aucune modification de la requête SQL ADO ni du pipeline existant (`Cadrage_EMMST` continue à peupler `EMMST_type` normalement).
+
+**Barre de progression** : 5 étapes via `F_Progression` (pattern ATM V1/V2/Providor). La barre est visible dans le UserForm principal, StatusBar Excel idem, TopMost API Windows actif.
+
+**État Application** : non touché par le module cache. `TurnOffFunctionality` (appelé dans `Main_EMMST` avant `RecupererDonneesBDD_EMMST`) a déjà positionné `ScreenUpdating/EnableEvents/Calculation/DisplayAlerts`. `TurnOnFunctionality` restaure en fin de `Main_EMMST`. Zéro impact sur le combo OneDrive-Calculation identifié par bench v2.
+
+**Respect conventions projet** :
+- Pas de handler défensif (convention 3) — erreurs remontent naturellement.
+- `With ws` + `.Cells(...)` qualifiés (convention 12).
+- `Find` xlValues/xlWhole + fallback xlPart (convention 2).
+- ASCII pur sans accents (convention 6).
+- UDT pas utilisé (Dictionary + Array Variant → OK convention 11).
+- Pas d'`Attribute VB_Name` (pattern copy/paste GitHub → VBE depuis 2026-10-23).
+
+### À tester en VBE
+
+1. Pull du commit `<hash-cache>`.
+2. Importer `D_EMMST_CacheCommentaires.bas` dans VBE.
+3. Récupérer la modif d'une ligne dans `C_EMMST_Main.bas` (ou ré-importer le module).
+4. Générer EMMST depuis le UserForm :
+   - 1er clic : barre "Chargement commentaires EMMST" visible pendant ~14 s (5 étapes), puis pipeline EMMST normal.
+   - Clics suivants (même session) : aucune pause supplémentaire.
+5. Ouvrir une fiche EMMST générée pour un DTR connu avec commentaire long (ex. DTR1000140360 pour Stockage → 1007 chars attendus). Comparer avec l'ancienne version (plafonnait à 255).
+6. Non-régression : un DTR absent de la BdD (nouveau DTR ajouté dans DATA_ASL mais pas encore enregistré) doit garder ses commentaires ADO tronqués, pas crasher.
+
+### Suppression des modules de test (optionnel)
+
+Les 3 modules de diagnostic (`X_Test_TypeGuessRows.bas`, `X_Test_OuvertureBdDMasquee.bas`, `X_Test_OuvertureBdD_V2.bas`) restent dans le repo pour traçabilité historique. Peuvent être supprimés par Thomas une fois le cache validé en prod.
+
+---
+
+## 2026-11-09 (début de session) — Bench v2 ventilation fine du coût d'ouverture BdD EMMST + 2 hypothèses testées
 
 Session focus : le bench v1 du 2026-11-06 a validé fonctionnellement la lecture via `Workbooks.Open` (commentaires Stockage lus jusqu'à **1007 chars** vs 255 avec ADO), mais révélé un coût prohibitif — 37,93 s pour le scénario A "instance courante masquée" (dont 27,66 s inexpliquées en "Setup+Fermeture") et 453,84 s pour le scénario B "instance séparée". Scénario B écarté définitivement. Bench v2 livré pour localiser précisément les 27 s du scénario A et tester 2 pistes d'optimisation.
 

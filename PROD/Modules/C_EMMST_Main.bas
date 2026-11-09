@@ -143,8 +143,8 @@ Private Sub RecupererDonneesPBS_EMMST()
     
     tDTR = DS1.Range("Providor[DTR Reference (issue de PBS)]")
     tDES_PBS = DS1.Range("Providor[DESIGNATION (issue de PBS)]")
-    tDES_MEF = DS1.Range("Providor[DESIGNATION (mise en forme pour copier dans Providor : construite à partir de celle de la PBS et de la désignation issue de BdD (ORCHESTRA)))]")
-    tSS = DS1.Range("Providor[SOUS SYSTÈME (copiés de la PBS et classifiés selon génériques)]")
+    tDES_MEF = DS1.Range("Providor[DESIGNATION (mise en forme pour copier dans Providor : construite ï¿½ partir de celle de la PBS et de la dï¿½signation issue de BdD (ORCHESTRA)))]")
+    tSS = DS1.Range("Providor[SOUS SYSTï¿½ME (copiï¿½s de la PBS et classifiï¿½s selon gï¿½nï¿½riques)]")
     
 End Sub
 
@@ -184,10 +184,10 @@ Private Function CopierTemplateEMMST(ByVal chemin As String) As Workbook
     ' Construire nom fichier et chemin template selon langue
     If langue = "FR" Then
         nomFichier = Projet_Abrev & "_EMMST_" & Revision & ".xlsx"
-        templatePath = userpath & "\Alstom\DIS Service VBN Pole ISR - Qualité\005-03 Templates\02_Phase Projet\02. ASL\Fiches EMMST\Template EMMST-FR_V02.xlsx"
+        templatePath = userpath & "\Alstom\DIS Service VBN Pole ISR - Qualitï¿½\005-03 Templates\02_Phase Projet\02. ASL\Fiches EMMST\Template EMMST-FR_V02.xlsx"
     Else
         nomFichier = Projet_Abrev & "_PHLST_" & Revision & ".xlsx"
-        templatePath = userpath & "\Alstom\DIS Service VBN Pole ISR - Qualité\005-03 Templates\02_Phase Projet\02. ASL\Fiches EMMST\Template PHLST-ENG_V02.xlsx"
+        templatePath = userpath & "\Alstom\DIS Service VBN Pole ISR - Qualitï¿½\005-03 Templates\02_Phase Projet\02. ASL\Fiches EMMST\Template PHLST-ENG_V02.xlsx"
     End If
     
     ' Copier template
@@ -223,7 +223,15 @@ Private Sub RecupererDonneesBDD_EMMST()
     
     Call open_REQSEL(STRSEL)
     EMMST_tab = RecordsetToArray(REQSEL)
-    
+
+    ' Contourne la troncature ACE 255 chars sur les 10 colonnes commentaires
+    ' (Emballage/Marquage/Manutention/Stockage/Transport FR+EN) : surcharge
+    ' dans EMMST_tab les valeurs tronquees par ADO avec les valeurs completes
+    ' lues en Excel natif ReadOnly invisible. Cache session Dictionary - cout
+    ' 14 s au 1er appel, 0 s aux suivants. Cf. D_EMMST_CacheCommentaires +
+    ' Docs/CHANGELOG.md session 2026-11-09.
+    Call ChargerEtInjecterCommentairesEMMST
+
     ' =====================================================================
     ' REQUeTE 2: RASL Projet
     ' =====================================================================
@@ -325,7 +333,7 @@ Private Sub RemplirIndexEMMST(ByRef index As Worksheet, ByRef Template As Workbo
                 TabIndex.ListColumns("Designation").DataBodyRange(i).Value = tDES_MEF(i, 1)
             End If
             
-            TabIndex.ListColumns("Sous système").DataBodyRange(i).Value = tSS(i, 1)
+            TabIndex.ListColumns("Sous systï¿½me").DataBodyRange(i).Value = tSS(i, 1)
         Next i
     Else
         For i = 1 To UBound(tDTR)
