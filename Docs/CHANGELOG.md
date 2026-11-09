@@ -60,7 +60,7 @@ Nouveau module `PROD/Modules/D_EMMST_CacheCommentaires.bas` — cache session Di
 
 Les 3 modules de diagnostic (`X_Test_TypeGuessRows.bas`, `X_Test_OuvertureBdDMasquee.bas`, `X_Test_OuvertureBdD_V2.bas`) restent dans le repo pour traçabilité historique. Peuvent être supprimés par Thomas une fois le cache validé en prod.
 
-### Commit `<hash-accents>` — Fix accents cassés sur noms de colonnes PBS dans C_EMMST_Main
+### Commit `559efc2` — Fix accents cassés sur noms de colonnes PBS dans C_EMMST_Main
 
 L'édit tool Claude avait remplacé 10 caractères accentués par le replacement character U+FFFD (affiché `` dans VBE) sur 5 lignes de `C_EMMST_Main.bas`. Impact critique : les `Range("Providor[…accents cassés…]")` échouaient à la compilation/exécution, et les chemins de fichier template contenaient le dossier "Qualit" (sans accent) → `FileCopy` KO.
 
