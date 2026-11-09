@@ -206,6 +206,31 @@ Private Sub RecupererDonneesPBS_Providor(test As Boolean)
         Call InitPBS_Etalon
         Call InjecterDonneesEtalon
     End If
+
+    ' Construit tID_PBS : un identifiant incremental 1..N pour chaque ligne du
+    ' tableau Providor. Resout les DTR dupliques (meme DTR peut apparaitre sur
+    ' plusieurs lignes PBS avec valeurs differentes). Utilise ensuite par la BS,
+    ' la ML et la CM pour tracer la ligne PBS d'origine de chaque entree.
+    Dim nbLignesPBS As Long
+    If IsArray(tDTR) Then
+        nbLignesPBS = UBound(tDTR, 1)
+    Else
+        nbLignesPBS = 0
+    End If
+
+    Dim idxPBS As Long
+    If nbLignesPBS > 0 Then
+        ReDim tID_PBS(1 To nbLignesPBS, 1 To 1)
+        For idxPBS = 1 To nbLignesPBS
+            tID_PBS(idxPBS, 1) = idxPBS
+        Next idxPBS
+    End If
+
+    ' Initialise les 3 mappings volatiles Ligne feuille -> ID_PBS. Vides au
+    ' debut du pipeline, peuples lors des copies BS, BS->ML, BS->CM.
+    Set dictBSRowToIDPBS = CreateObject("Scripting.Dictionary")
+    Set dictMLRowToIDPBS = CreateObject("Scripting.Dictionary")
+    Set dictCMRowToIDPBS = CreateObject("Scripting.Dictionary")
 End Sub
 
 ' =========================================================================
