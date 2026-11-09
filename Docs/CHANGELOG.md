@@ -60,6 +60,19 @@ Nouveau module `PROD/Modules/D_EMMST_CacheCommentaires.bas` — cache session Di
 
 Les 3 modules de diagnostic (`X_Test_TypeGuessRows.bas`, `X_Test_OuvertureBdDMasquee.bas`, `X_Test_OuvertureBdD_V2.bas`) restent dans le repo pour traçabilité historique. Peuvent être supprimés par Thomas une fois le cache validé en prod.
 
+### Commit `<hash-rm-tests>` — Suppression des 3 modules de test diagnostic (session EMMST)
+
+Thomas valide la suppression des 3 modules de diagnostic/bench créés pendant la session EMMST (Piste 1 → bench v1 → bench v2 → Plan B1 adopté) :
+- `PROD/Modules/X_Test_TypeGuessRows.bas` (commit `67043bc`, 2026-11-06)
+- `PROD/Modules/X_Test_OuvertureBdDMasquee.bas` (commit `a40a02c`, 2026-11-06)
+- `PROD/Modules/X_Test_OuvertureBdD_V2.bas` (commit `228d76f`, 2026-11-09)
+
+Vérification pré-suppression : les 7 fonctions définies dans ces 3 modules (`Test_TypeGuessRows_Commentaires`, `MesurerLongueursCommentaires`, `Test_OuvertureBdDMasquee_Tous`, `BenchOuvertureBdD`, `LireCommentairesEtMesurer`, `Test_OuvertureBdD_V2`, `BenchVentile`, `LireCommentairesBlocSilencieux`) ne sont référencées que dans leurs propres modules. Aucune Sub/Function externe ne les appelle. Suppression sans impact sur `Main_EMMST`, `UserForm_Initialize` ou toute autre entrée du pipeline ECOSLI.
+
+**Préservé** : `PROD/Modules/X_Test_Appel_BDD.bas` (pré-existant à cette session, pas touché).
+
+Traçabilité : les 3 modules restent accessibles via l'historique git sur les commits précités si besoin de rejouer un diagnostic.
+
 ### Commit `9c993b2` — Nettoyage Debug.Print bruyants au Ctrl+W (SIRUS init)
 
 Thomas a identifié ~10 Debug.Print qui s'affichent dans la fenêtre Immediate à chaque Ctrl+W (ouverture du UserForm ECOSLI). Enchaînement d'appels : `W_AppelUsf.Appel_Usf` → `UserForm.Show` → `UserForm_Initialize` (L660) → `SIRUS_InitGeneration` (L27) → `SIRUS_RemplirListViewGeneration`, qui faisait plusieurs `Debug.Print` d'init + diag de mapping.
