@@ -635,13 +635,16 @@ Public Sub ChargerEtInjecterCommentairesEMMST()
 
     ' Parcours des lignes de donnees (ligne 0 = en-tetes dans RecordsetToArray)
     For iLigne = 1 To UBound(EMMST_tab, 1)
+        If IsNull(EMMST_tab(iLigne, colDTR)) Then GoTo SuivantLigne
         dtr = CStr(EMMST_tab(iLigne, colDTR))
+        If LenB(dtr) = 0 Then GoTo SuivantLigne
         If m_dictCommentaires.Exists(dtr) Then
             arrComm = m_dictCommentaires(dtr)
             For iCol = LBound(colsBdD) To UBound(colsBdD)
                 EMMST_tab(iLigne, colsTab(iCol)) = arrComm(iCol)
             Next iCol
         End If
+SuivantLigne:
     Next iLigne
 
 End Sub

@@ -60,6 +60,31 @@ Nouveau module `PROD/Modules/D_EMMST_CacheCommentaires.bas` — cache session Di
 
 Les 3 modules de diagnostic (`X_Test_TypeGuessRows.bas`, `X_Test_OuvertureBdDMasquee.bas`, `X_Test_OuvertureBdD_V2.bas`) restent dans le repo pour traçabilité historique. Peuvent être supprimés par Thomas une fois le cache validé en prod.
 
+### Commit `<hash-null>` — Fix "Utilisation incorrecte de Null" ligne 638 injection commentaires
+
+Thomas a remonté une erreur 94 "Utilisation incorrecte de Null" à l'exécution de `ChargerEtInjecterCommentairesEMMST`, ligne 638 : `dtr = CStr(EMMST_tab(iLigne, colDTR))`. Cause : ADO retourne `Null` (pas `Empty`) pour une cellule BdD vide, et `CStr(Null)` lève erreur 94.
+
+Correction appliquée via PowerShell UTF-8 safe (règle encoding `C_EMMST_Main.bas`) : garde la ligne protégée par un `If IsNull(...) Then GoTo SuivantLigne` + filtre `LenB(dtr) = 0` + label `SuivantLigne:` devant `Next iLigne` pour continuer la boucle proprement.
+
+```vba
+For iLigne = 1 To UBound(EMMST_tab, 1)
+    If IsNull(EMMST_tab(iLigne, colDTR)) Then GoTo SuivantLigne
+    dtr = CStr(EMMST_tab(iLigne, colDTR))
+    If LenB(dtr) = 0 Then GoTo SuivantLigne
+    If m_dictCommentaires.Exists(dtr) Then
+        arrComm = m_dictCommentaires(dtr)
+        For iCol = LBound(colsBdD) To UBound(colsBdD)
+            EMMST_tab(iLigne, colsTab(iCol)) = arrComm(iCol)
+        Next iCol
+    End If
+SuivantLigne:
+Next iLigne
+```
+
+Le label `SuivantLigne:` sert d'`early continue` (pattern autorisé par convention 3 — pas de handler défensif mais `GoTo <label>` fonctionnel OK).
+
+Pas de pattern similaire dans `ChargerCacheCommentaires` ligne 743 (`dtrs(iLigne, 1)`) : la source est `Range.Value` d'Excel qui retourne `Empty` (pas `Null`) pour une cellule vide, et `CStr(Empty) = ""` ne crash pas. Le filtre `LenB(dtr) > 0` existant suffit.
+
 ### Commit `559efc2` — Fix accents cassés sur noms de colonnes PBS dans C_EMMST_Main
 
 L'édit tool Claude avait remplacé 10 caractères accentués par le replacement character U+FFFD (affiché `` dans VBE) sur 5 lignes de `C_EMMST_Main.bas`. Impact critique : les `Range("Providor[…accents cassés…]")` échouaient à la compilation/exécution, et les chemins de fichier template contenaient le dossier "Qualit" (sans accent) → `FileCopy` KO.
