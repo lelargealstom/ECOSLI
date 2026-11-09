@@ -41,7 +41,19 @@ Vérifications post-fix : **40 caractères cp1252 0xE9** restaurés (vs 0 avant)
 
 **Pattern cp1252-safe documenté** pour futures sessions (cf. mémoire `feedback_vba_conventions.md`).
 
-### Commit `b7044a8` — Rollback RemplirTempsReparation_Corr à la version pré-refonte
+### Commit `5d63f40` — RemplirTempsReparation_Corr : re-application de "source unique selon Gate"
+
+Correction d'un aller-retour : mon commit `b7044a8` avait restauré à tort la version **pré-refonte** (hiérarchie Ana → Gen → famille). Thomas a clarifié que le bon comportement est **celui du `47556e1`** : source unique par Gate, pas de fallback, cellule vide si source vide.
+
+Règles rétablies :
+- **Avant CGR** (PGR, GO ORDER, BA, IGR) : `tTps_CorrPrev_Gen_HARD` **uniquement**. Si vide → cellule vide + orange, **PAS de fallback temps famille**.
+- **Après CGR** (CGR, FEI, IQA) : `tTps_CorrPrev_Ana_HARD` **uniquement**. Si vide → cellule vide + orange. **PAS de fallback vers générique ni vers temps famille**.
+- `CalculerTempsDefaut` laissée orpheline (plus aucun appelant) — convention 8.
+- Plus de `.AddComment` sur la cellule.
+
+Extraction depuis `7e531d7` (version stable post-`47556e1`) via `git cat-file`, remplacement ciblé en préservant `RemplirMTBF_Corr` moderne (ID_PBS).
+
+### Commit `b7044a8` — [ERREUR, annulé par commit suivant] Rollback RemplirTempsReparation_Corr à la version pré-refonte
 
 Thomas a remonté que le comportement actuel de `RemplirTempsReparation_Corr` (version post-`47556e1` du 2026-10-30 "source unique selon Gate") ne correspond pas à ce qu'il attend. Rollback **ciblé sur cette seule fonction** à la version AVANT le commit `47556e1`.
 
