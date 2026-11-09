@@ -6,6 +6,64 @@ Format : `[Date] — Auteur — Périmètre`, puis liste des changements par mod
 
 ---
 
+## 2026-11-09 (fin de journée) — Providor : ID_PBS pour gérer les DTR dupliqués dans DATA_ASL
+
+Session focus : Thomas a identifié un bug silencieux côté Providor — quand `DATA_ASL` contient plusieurs lignes avec le **même DTR** (cas réel : DTR "TBD" en phase Offre avec MTBF génériques différents, ou même DTR présent dans 2 sous-systèmes avec valeurs métier différentes), le pipeline Providor indexait par valeur DTR et récupérait toujours **la 1ère occurrence** pour toutes les lignes. Perte de données silencieuse sur MTBF, Temps réparation, Prix Spare/Repair.
+
+**Scope** : Providor uniquement. ATM V1 non affecté (pipeline déjà indexé par position PBS, 1 fiche ATM = 1 ligne PBS automatiquement). EMMST, ATM V2, SIRUS hors scope.
+
+**Solution** : introduction d'un identifiant incrémental `ID_PBS` (1..N) par ligne du tableau Providor dans DATA_ASL, propagé jusqu'aux feuilles livrables (BS, ML, CM) via 3 mappings Dictionary volatiles. Les 4 lookups par valeur DTR sont remplacés par des lookups directs par ID_PBS. `TrouverIndexDTR` (helper legacy) devient code mort mais est laissée en place (convention 8).
+
+Commits : `e36083f` (étape 1), `e6472cc` (étapes 2-4).
+
+**Point de rollback** : tag git `backup/pre-id-pbs-2026-11-09` sur commit `7e531d7`.
+
+### Commit `e36083f` — Étape 1/4 : déclarations globales + alimentation PBS
+
+`Z_Variables.bas` :
+- `Public tID_PBS As Variant` — tableau 1..N indexé par position PBS (accessible espion VBE).
+- `Public dictBSRowToIDPBS As Object`, `dictMLRowToIDPBS As Object`, `dictCMRowToIDPBS As Object` — 3 mappings volatiles Ligne feuille livrable → ID_PBS, peuplés lors des copies BS / BS→ML / BS→CM. Réinitialisés à chaque `Main_Providor`.
+
+`D_Providor_Main.bas` (`RecupererDonneesPBS_Providor`) :
+- Après la lecture des Range PBS : `ReDim tID_PBS(1 To UBound(tDTR, 1), 1 To 1)` + boucle d'alimentation `tID_PBS(i, 1) = i`.
+- `Set dict*RowToIDPBS = CreateObject("Scripting.Dictionary")` pour les 3 dictionaries.
+
+### Commit `e6472cc` — Étapes 2-4/4 : propagation + remplacement des 4 lookups
+
+`D_Providor_BreakDownStructure.bas` :
+- **remplissage_BreakdownStructure** : alimente `dictBSRowToIDPBS(dlBS) = i` pour chaque ligne composant (Family/Projet ignorés, pas d'ID associé).
+- **CopierDonneesBS_vers_ML** : propage `dictMLRowToIDPBS(ligneDst) = dictBSRowToIDPBS(ligneSrc)` pour les lignes composants.
+- **AjouterLignesRepair** : avant chaque `ML.rows(i+1).Insert`, appelle le nouveau helper `ShiftDictMLApresInsertion(i)` pour décaler les clés > i de +1, puis hérite `dictMLRowToIDPBS(i+1) = dictMLRowToIDPBS(i)` sur la ligne `_REPAIR`.
+- **RemplirPrixRepair** et **RemplirPrixSpare** : remplace la boucle lookup `(PartNumber, Designation)` par `j = CLng(dictMLRowToIDPBS(CLng(ligne)))`. Si pas trouvé (ligne non-composant), `Exit Sub`.
+- **Nouveau helper** `ShiftDictMLApresInsertion(seuil)` : parcourt les clés du dict en ordre décroissant, décale toutes les clés > seuil de +1.
+
+`D_Providor_Maintenance.bas` :
+- **CopierDonneesBS_vers_CM** : propage `dictCMRowToIDPBS(ligneDst) = dictBSRowToIDPBS(ligneSrc)` pour les lignes composants.
+- **RemplirMTBF_Corr** et **RemplirTempsReparation_Corr** : remplace la boucle lookup `tDTR(j,1) = dtrCherche` par `indexDTR = CLng(dictCMRowToIDPBS(CLng(i)))`. Si pas trouvé, `indexDTR = 0` (même comportement "DTR non trouvé dans PBS" qu'avant).
+
+**Encoding préservé** : `D_Providor_BreakDownStructure.bas` en cp1252 (53 → 48 high bytes, 5 accents retirés dans les commentaires de mes nouvelles sections ASCII pur), `D_Providor_Main.bas` en cp1252 (145 → 145), `D_Providor_Maintenance.bas` en UTF-8 sans BOM (valide). Modifs via PowerShell line-based pour éviter toute corruption Edit tool.
+
+### À tester en VBE (ID_PBS Providor)
+
+1. Pull des commits `e36083f` + `e6472cc`.
+2. Ré-importer `Z_Variables.bas`, `D_Providor_Main.bas`, `D_Providor_BreakDownStructure.bas`, `D_Providor_Maintenance.bas`.
+3. Préparer un `DATA_ASL` avec **2 lignes "TBD"** (ou 2 lignes même DTR) ayant des `MTBF générique` différents.
+4. Lancer **Générer Providor**.
+5. Ouvrir le livrable généré : vérifier que la feuille **CM** affiche les **2 MTBF différents** sur les 2 lignes, pas la même valeur. Idem pour **Temps réparation**.
+6. Idem **ML** : si tu as 2 lignes avec même DTR+Designation mais prix différents, vérifier que les 2 prix sont corrects.
+7. Non-régression : un DTR présent **1 seule fois** → comportement identique à avant.
+8. Non-régression ATM V1 : générer un ATM V1, vérifier que les fiches ne sont pas impactées.
+
+### Rollback (si problème détecté)
+
+Récupérer les 4 modules depuis le tag :
+```
+git checkout backup/pre-id-pbs-2026-11-09 -- PROD/Modules/Z_Variables.bas PROD/Modules/D_Providor_Main.bas PROD/Modules/D_Providor_BreakDownStructure.bas PROD/Modules/D_Providor_Maintenance.bas
+```
+Ou via GitHub : https://github.com/lelargealstom/ECOSLI/tree/7e531d7/PROD/Modules
+
+---
+
 ## 2026-11-09 — Bench v2 ventilation + implémentation cache commentaires EMMST (Plan B1 adopté) + refactor dans C_EMMST_Main
 
 Session focus : bench v1 (2026-11-06) → validation fonctionnelle de la lecture `Workbooks.Open` (commentaires Stockage lus jusqu'à **1007 chars** vs 255 avec ADO), mais coût prohibitif (37,93 s scénario A, 453,84 s scénario B). Bench v2 pour localiser les 27 s inexpliquées. Verdict bench v2 : les 27 s sont dans la **restauration `Calculation = xlCalculationAutomatic` quand la BdD vient d'OneDrive** (A1 = 26,71 s, A2 sans restauration = 0,02 s, A3 copie locale `%TEMP%` = 0,22 s). Combo "OneDrive + restauration auto" éliminé en copiant la BdD en local avant ouverture. **Plan B1 adopté** avec cache session.
