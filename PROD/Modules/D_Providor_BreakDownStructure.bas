@@ -96,6 +96,9 @@ Public Sub remplissage_BreakdownStructure()
         BS.Cells(dlBS + 1, bs_col.MaintenanceLevel).Value = NodeLevel                      ' S: Maint Level
         
         dlBS = dlBS + 1
+        
+        ' Tracer la ligne PBS d'origine pour ce composant BS (resout DTR dupliques)
+        dictBSRowToIDPBS(CLng(dlBS)) = i
         lastSS = curSS
     Next i
     
@@ -213,6 +216,11 @@ Private Sub CopierDonneesBS_vers_ML()
         
         ' Part Number / DTR
         ML.Cells(ligneDst, ml_col.PartNumber).Value = BS.Cells(ligneSrc, bs_col.PartNumber).Value
+        
+        ' Propager ID_PBS du BS vers ML (lignes composants uniquement)
+        If dictBSRowToIDPBS.Exists(CLng(ligneSrc)) Then
+            dictMLRowToIDPBS(CLng(ligneDst)) = dictBSRowToIDPBS(CLng(ligneSrc))
+        End If
     Next i
     
 End Sub
@@ -252,10 +260,16 @@ Private Sub AjouterLignesRepair()
     Do While i <= dlML
         If ML.Cells(i, ml_col.MaterialType) = "Stdex" Then
             ' Insérer ligne
+            ' Shift dict ML : toutes les cles > i decalees de +1 avant l'Insert
+            Call ShiftDictMLApresInsertion(i)
             ML.rows(i + 1).Insert
             ML.Cells(i + 1, ml_col.Name) = ML.Cells(i, ml_col.Name) & "_REPAIR"
             ML.Cells(i + 1, ml_col.PartNumber) = ML.Cells(i, ml_col.PartNumber)
             ML.Cells(i + 1, ml_col.MaterialType) = "Repai"
+            ' Heriter ID_PBS du Stdex parent sur la ligne _REPAIR
+            If dictMLRowToIDPBS.Exists(CLng(i)) Then
+                dictMLRowToIDPBS(CLng(i + 1)) = dictMLRowToIDPBS(CLng(i))
+            End If
             i = i + 1
             dlML = LastRowInCol(ML, ml_col.Name)
         End If
@@ -315,30 +329,24 @@ Private Sub RemplirPrixRepair(ByVal ligne As Integer)
 ' Remplit prix Repair avec hiérarchie :
 ' FRS ? Catalogue ? Manuel ? Archive ? Formule ISP*0.67
 
-    Dim j As Integer
-    Dim designation As String
     
-    designation = Replace(ML.Cells(ligne, ml_col.Name).Value, "_REPAIR", "")
-    
-    For j = 1 To UBound(tDTR, 1)
-        If ML.Cells(ligne, ml_col.PartNumber).Value = tDTR(j, 1) And designation = tDES_MEF(j, 1) Then
-            
-            ' Hiérarchie prix
-            If TrySetPrice(ligne, tPrix_FRS_Repair(j, 1), "Cout Repair fournisseur") Then Exit Sub
-            If TrySetPrice(ligne, tPrix_Cat_Repair(j, 1), "Prix catalogue Repa") Then Exit Sub
-            If TrySetPrice(ligne, tPrix_Manuel_Repair(j, 1), "Prix Manuel Repa") Then Exit Sub
-            If TrySetPrice(ligne, tPrix_RepairProjet_Archive(j, 1), "Prix d'un projet archivé en BDD") Then Exit Sub
-            
-            ' Si aucun prix trouvé : ISP * 0.67
-            If Not (IsNumeric(ML.Cells(ligne, ml_col.Cost))) Or ML.Cells(ligne, ml_col.Cost) = 0 Then
-                ML.Cells(ligne, ml_col.Cost).Value = ML.Cells(ligne - 1, ml_col.Cost).Value * 0.67
-                Call AddCommentML(ligne, "Aucun prix connu, ISP * 0,67")
-                ML.Cells(ligne, ml_col.Cost).Interior.ColorIndex = 15
-            End If
-            
-            Exit For
-        End If
-    Next j
+    ' Lookup direct par dict Ligne ML -> ID_PBS (resout DTR dupliques)
+    Dim j As Long
+    If Not dictMLRowToIDPBS.Exists(CLng(ligne)) Then Exit Sub
+    j = CLng(dictMLRowToIDPBS(CLng(ligne)))
+
+    ' Hierarchie prix Repair
+    If TrySetPrice(ligne, tPrix_FRS_Repair(j, 1), "Cout Repair fournisseur") Then Exit Sub
+    If TrySetPrice(ligne, tPrix_Cat_Repair(j, 1), "Prix catalogue Repa") Then Exit Sub
+    If TrySetPrice(ligne, tPrix_Manuel_Repair(j, 1), "Prix Manuel Repa") Then Exit Sub
+    If TrySetPrice(ligne, tPrix_RepairProjet_Archive(j, 1), "Prix d'un projet archive en BDD") Then Exit Sub
+
+    ' Fallback : ISP * 0.67
+    If Not (IsNumeric(ML.Cells(ligne, ml_col.Cost))) Or ML.Cells(ligne, ml_col.Cost) = 0 Then
+        ML.Cells(ligne, ml_col.Cost).Value = ML.Cells(ligne - 1, ml_col.Cost).Value * 0.67
+        Call AddCommentML(ligne, "Aucun prix connu, ISP * 0,67")
+        ML.Cells(ligne, ml_col.Cost).Interior.ColorIndex = 15
+    End If
     
 End Sub
 
@@ -349,20 +357,17 @@ Private Sub RemplirPrixSpare(ByVal ligne As Integer)
 ' Remplit prix Spare/Disca avec hiérarchie :
 ' FRS ? Catalogue ? Manuel ? Archive
 
-    Dim j As Integer
     
-    For j = 1 To UBound(tDTR, 1)
-        If ML.Cells(ligne, ml_col.PartNumber).Value = tDTR(j, 1) And ML.Cells(ligne, ml_col.Name).Value = tDES_MEF(j, 1) Then
-            
-            ' Hiérarchie prix
-            If TrySetPrice(ligne, tPrix_FRS_Spare(j, 1), "Cout Spare fournisseur") Then Exit Sub
-            If TrySetPrice(ligne, tPrix_Cat_Spare(j, 1), "Prix catalogue Spare") Then Exit Sub
-            If TrySetPrice(ligne, tPrix_Manuel_Spare(j, 1), "Prix Manuel Spare") Then Exit Sub
-            If TrySetPrice(ligne, tPrix_SpareProjet_Archive(j, 1), "Prix d'un projet archivé en BDD") Then Exit Sub
-            
-            Exit For
-        End If
-    Next j
+    ' Lookup direct par dict Ligne ML -> ID_PBS (resout DTR dupliques)
+    Dim j As Long
+    If Not dictMLRowToIDPBS.Exists(CLng(ligne)) Then Exit Sub
+    j = CLng(dictMLRowToIDPBS(CLng(ligne)))
+
+    ' Hierarchie prix Spare
+    If TrySetPrice(ligne, tPrix_FRS_Spare(j, 1), "Cout Spare fournisseur") Then Exit Sub
+    If TrySetPrice(ligne, tPrix_Cat_Spare(j, 1), "Prix catalogue Spare") Then Exit Sub
+    If TrySetPrice(ligne, tPrix_Manuel_Spare(j, 1), "Prix Manuel Spare") Then Exit Sub
+    If TrySetPrice(ligne, tPrix_SpareProjet_Archive(j, 1), "Prix d'un projet archive en BDD") Then Exit Sub
     
 End Sub
 
@@ -492,3 +497,27 @@ Private Sub ColorierLignesSansDTR()
     
 End Sub
 
+
+' =========================================================================
+' PROCEDURE: SHIFT DICT ML APRES INSERTION
+' =========================================================================
+' Appelee AVANT un ML.rows(seuil + 1).Insert pour maintenir le mapping
+' dictMLRowToIDPBS coherent avec les lignes Excel decalees.
+' Toutes les cles > seuil sont incrementees de 1. Le trou laisse a seuil+1
+' sera rempli par l'heritage de la ligne _REPAIR.
+Private Sub ShiftDictMLApresInsertion(ByVal seuil As Long)
+    Dim keys As Variant
+    Dim k As Long
+    Dim keyLong As Long
+    If dictMLRowToIDPBS Is Nothing Then Exit Sub
+    If dictMLRowToIDPBS.count = 0 Then Exit Sub
+    keys = dictMLRowToIDPBS.keys
+    ' Parcours decroissant pour eviter l'ecrasement de cles non encore shiftees
+    For k = UBound(keys) To LBound(keys) Step -1
+        keyLong = CLng(keys(k))
+        If keyLong > seuil Then
+            dictMLRowToIDPBS(keyLong + 1) = dictMLRowToIDPBS(keyLong)
+            dictMLRowToIDPBS.Remove keyLong
+        End If
+    Next k
+End Sub
