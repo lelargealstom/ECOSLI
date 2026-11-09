@@ -6,6 +6,46 @@ Format : `[Date] — Auteur — Périmètre`, puis liste des changements par mod
 
 ---
 
+## 2026-11-09 — Bench v2 : ventilation fine du coût d'ouverture BdD EMMST + 2 hypothèses testées
+
+Session focus : le bench v1 du 2026-11-06 a validé fonctionnellement la lecture via `Workbooks.Open` (commentaires Stockage lus jusqu'à **1007 chars** vs 255 avec ADO), mais révélé un coût prohibitif — 37,93 s pour le scénario A "instance courante masquée" (dont 27,66 s inexpliquées en "Setup+Fermeture") et 453,84 s pour le scénario B "instance séparée". Scénario B écarté définitivement. Bench v2 livré pour localiser précisément les 27 s du scénario A et tester 2 pistes d'optimisation.
+
+Commits : `<hash-v2>`.
+
+### Commit `<hash-v2>` — Module de bench v2 `X_Test_OuvertureBdD_V2`
+
+Ajout de `PROD/Modules/X_Test_OuvertureBdD_V2.bas` — bench exécutable depuis VBE, 3 scénarios séquentiels avec ventilation fine en 6 phases.
+
+Ventilation par phase (toutes chronométrées via `Timer`) :
+- Setup Application (`ScreenUpdating`/`EnableEvents`/`Calculation`/`DisplayAlerts`)
+- Copie locale `FileCopy` (A3 uniquement)
+- `Workbooks.Open` ReadOnly
+- Lecture bloc 10 colonnes + DTR via `Range.Value` (silencieuse pour mesurer uniquement le coût brut)
+- `wb.Close SaveChanges:=False`
+- Restauration Application (partielle si A2) + `Kill` copie (A3 uniquement)
+
+3 scénarios :
+- **A1 — baseline** : identique au scénario A du bench v1 (instance courante masquée), mais avec ventilation fine. Permet de voir si les 27 s sont dans `wb.Close` ou dans la restauration `Calculation`.
+- **A2 — sans restauration Calculation** : on laisse `Application.Calculation = xlCalculationManual` à la fin au lieu de restaurer en auto. Teste l'hypothèse "les 27 s = recalcul global déclenché par `Calculation = xlCalculationAutomatic` sur le projet utilisateur qui contient `DATA_ASL` avec formules lourdes". Filet de sécurité : remise en auto après le bench pour ne pas laisser le classeur utilisateur en manuel.
+- **A3 — copie locale `%TEMP%`** : `FileCopy chemin_BdD → %TEMP%\ECOSLI_bench_bdd_<timestamp>.xlsb` avant ouverture, suppression `Kill` après. Teste l'hypothèse "les 10 s d'ouverture + N s de fermeture = latence OneDrive sur I/O réseau sur le chemin `Alstom\DIS Service VBN...`".
+
+Respecte les conventions projet : `With ws` + `.Cells` qualifiés (convention 12), pas de handler défensif (convention 3), `Find` avec `xlValues`/`xlWhole` + fallback `xlPart` (convention 2), commentaires ASCII pur (convention 6), pas d'`Attribute VB_Name`.
+
+**Garantie non-destructive** : `ReadOnly:=True` + `SaveChanges:=False` + `Kill` ciblé uniquement sur le fichier copié en `%TEMP%` avec nom horodaté unique.
+
+### À tester en VBE
+
+1. Pull du commit `<hash-v2>`.
+2. Importer `X_Test_OuvertureBdD_V2.bas` dans le VBE.
+3. Ctrl+G + F5 dans `Test_OuvertureBdD_V2`.
+4. Comparer la ventilation A1, A2, A3. Grille de lecture :
+   - Si `Restauration app` chute à ~0 s en A2 et coûte 20+ s en A1 → coupable = recalcul auto sur `ActiveWorkbook`. Solution : garder manual pendant la lecture, restaurer auto seulement à la fin du pipeline EMMST global.
+   - Si `Ouverture + Fermeture` chute drastiquement en A3 → coupable = latence OneDrive. Solution : copie locale une fois par session ECOSLI, réutilisée par toutes les générations.
+   - Si A3 reste cher mais A2 soulage → combiner les 2.
+   - Si les 2 restent chers → bascule Plan B2 (script PowerShell export CSV préalable).
+
+---
+
 ## 2026-11-06 — Diagnostic troncature 255 chars commentaires EMMST (ACE OLE DB) + règle projet CLAUDE.md + bench plan B
 
 Session focus : Thomas constate que les commentaires EMMST (`CommentaireStockage_EMMST`, `CommentaireEmballage_EMMST`, etc.) sont tronqués à 255 caractères lors de la génération EMMST. Cause : le driver `Microsoft.ACE.OLEDB.12.0` échantillonne les 8 premières lignes pour deviner le type d'une colonne ; si aucune des 8 ne dépasse 255 chars → colonne typée `Text(255)` → troncature silencieuse. Thomas exclut d'ouvrir la BdD en `Workbooks.Open` (coût perf). On reste donc sur ADO et on cherche à contourner la limite via la chaîne de connexion.
