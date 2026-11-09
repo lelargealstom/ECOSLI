@@ -172,8 +172,8 @@ Private Sub RecupererDonneesPBS_EMMST()
     
     tDTR = DS1.Range("Providor[DTR Reference (issue de PBS)]")
     tDES_PBS = DS1.Range("Providor[DESIGNATION (issue de PBS)]")
-    tDES_MEF = DS1.Range("Providor[DESIGNATION (mise en forme pour copier dans Providor : construite � partir de celle de la PBS et de la d�signation issue de BdD (ORCHESTRA)))]")
-    tSS = DS1.Range("Providor[SOUS SYST�ME (copi�s de la PBS et classifi�s selon g�n�riques)]")
+    tDES_MEF = DS1.Range("Providor[DESIGNATION (mise en forme pour copier dans Providor : construite à partir de celle de la PBS et de la désignation issue de BdD (ORCHESTRA)))]")
+    tSS = DS1.Range("Providor[SOUS SYSTÈME (copiés de la PBS et classifiés selon génériques)]")
     
 End Sub
 
@@ -213,10 +213,10 @@ Private Function CopierTemplateEMMST(ByVal chemin As String) As Workbook
     ' Construire nom fichier et chemin template selon langue
     If langue = "FR" Then
         nomFichier = Projet_Abrev & "_EMMST_" & Revision & ".xlsx"
-        templatePath = userpath & "\Alstom\DIS Service VBN Pole ISR - Qualit�\005-03 Templates\02_Phase Projet\02. ASL\Fiches EMMST\Template EMMST-FR_V02.xlsx"
+        templatePath = userpath & "\Alstom\DIS Service VBN Pole ISR - Qualité\005-03 Templates\02_Phase Projet\02. ASL\Fiches EMMST\Template EMMST-FR_V02.xlsx"
     Else
         nomFichier = Projet_Abrev & "_PHLST_" & Revision & ".xlsx"
-        templatePath = userpath & "\Alstom\DIS Service VBN Pole ISR - Qualit�\005-03 Templates\02_Phase Projet\02. ASL\Fiches EMMST\Template PHLST-ENG_V02.xlsx"
+        templatePath = userpath & "\Alstom\DIS Service VBN Pole ISR - Qualité\005-03 Templates\02_Phase Projet\02. ASL\Fiches EMMST\Template PHLST-ENG_V02.xlsx"
     End If
     
     ' Copier template
@@ -362,7 +362,7 @@ Private Sub RemplirIndexEMMST(ByRef index As Worksheet, ByRef Template As Workbo
                 TabIndex.ListColumns("Designation").DataBodyRange(i).Value = tDES_MEF(i, 1)
             End If
             
-            TabIndex.ListColumns("Sous syst�me").DataBodyRange(i).Value = tSS(i, 1)
+            TabIndex.ListColumns("Sous système").DataBodyRange(i).Value = tSS(i, 1)
         Next i
     Else
         For i = 1 To UBound(tDTR)

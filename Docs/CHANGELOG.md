@@ -60,6 +60,20 @@ Nouveau module `PROD/Modules/D_EMMST_CacheCommentaires.bas` — cache session Di
 
 Les 3 modules de diagnostic (`X_Test_TypeGuessRows.bas`, `X_Test_OuvertureBdDMasquee.bas`, `X_Test_OuvertureBdD_V2.bas`) restent dans le repo pour traçabilité historique. Peuvent être supprimés par Thomas une fois le cache validé en prod.
 
+### Commit `<hash-accents>` — Fix accents cassés sur noms de colonnes PBS dans C_EMMST_Main
+
+L'édit tool Claude avait remplacé 10 caractères accentués par le replacement character U+FFFD (affiché `` dans VBE) sur 5 lignes de `C_EMMST_Main.bas`. Impact critique : les `Range("Providor[…accents cassés…]")` échouaient à la compilation/exécution, et les chemins de fichier template contenaient le dossier "Qualit" (sans accent) → `FileCopy` KO.
+
+Lignes réparées (via PowerShell `ReadAllText` / `WriteAllText` UTF-8 sans BOM pour contourner le bug de l'édit tool sur fichiers UTF-8) :
+- L175 : `construite à partir` + `désignation` (nom colonne `Providor[DESIGNATION (mise en forme…)]`)
+- L176 : `SOUS SYSTÈME` + `copiés` + `classifiés` + `génériques` (nom colonne `Providor[SOUS SYSTÈME…]`)
+- L216 / L219 : `Qualité` dans les 2 chemins template EMMST / PHLST
+- L365 : `Sous système` dans `TabIndex.ListColumns("Sous système")`
+
+Vérification post-fix : 0 caractères U+FFFD restants, 10 paires UTF-8 latines valides, pas de BOM ajouté (cohérent avec l'encoding du reste du fichier).
+
+**Leçon :** `C_EMMST_Main.bas` est en UTF-8 sans BOM (comme `D_Providor_Maintenance.bas` identifié le 2026-10-28). L'édit tool Claude n'est pas safe sur ces fichiers s'il touche à des lignes contenant des accents. Pour toute modif d'une ligne accentuée en UTF-8 : utiliser PowerShell avec `[System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8)` + `New-Object System.Text.UTF8Encoding $false` à l'écriture, pas l'édit tool.
+
 ### Commit `e9b60e0` — Refactor : cache commentaires dans C_EMMST_Main (module unique EMMST)
 
 Thomas a demandé de garder tout le développement EMMST dans un seul module, en ajoutant uniquement des procédures. Consolidation du module séparé `D_EMMST_CacheCommentaires.bas` (créé au commit `9c0b5e5`) dans `C_EMMST_Main.bas` :
