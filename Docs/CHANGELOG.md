@@ -6,6 +6,83 @@ Format : `[Date] — Auteur — Périmètre`, puis liste des changements par mod
 
 ---
 
+## 2026-11-09 (soir) — Providor : rollback ciblé ID_PBS → MTBF_Corr uniquement + Ctrl+W restauré via OnKey + accents cp1252 restaurés
+
+Session focus : (1) le raccourci Ctrl+W ne fonctionnait plus après ré-import VBE (perte de l'attribut procédure `VB_ProcData.VB_Invoke_Func`), (2) les accents des chemins SharePoint/OneDrive étaient corrompus en U+FFFD dans Z_Variables.bas, (3) l'ID_PBS introduit le matin créait des non-régressions sur les feuilles Providor autres que la MTBF Corr.
+
+Commits : `a465fcd`, `241b68c`, `0062397`.
+
+### Commit `a465fcd` — Ctrl+W robuste via Application.OnKey dans Auto_Open
+
+Override explicite du raccourci Ctrl+W (natif Excel = "Fermer") vers l'ouverture du UserForm ECOSLI à chaque chargement du complément.
+
+`A_1_ModEvents.Auto_Open` :
+- Ajout de `Application.OnKey "^w", "Appel_Usf"` après `Call InitializeEventHandler`.
+
+`A_1_ModEvents.Auto_Close` :
+- Ajout de `Application.OnKey "^w"` (sans 2e argument = restaure comportement natif Excel) avant `Call TerminateEventHandler`.
+
+`W_AppelUsf.bas` :
+- Nouvelle Sub publique `ActiverRaccourciCtrlW()` : filet de sécurité manuel pour activation sans redémarrer Excel (via Développeur → Macros).
+
+Résiste aux copier-coller VBE qui perdent l'attribut procédure `VB_ProcData.VB_Invoke_Func = "w\n14"`.
+
+### Commit `241b68c` — Restauration des accents cp1252 sur les chemins SharePoint dans Z_Variables
+
+Les éditions précédentes avaient corrompu les caractères accentués sur les chemins SharePoint/OneDrive Alstom (ex. `Bibliothèques` → `Biblioth?ques`, `Qualité` → `Qualit?`, `Métier` → `M?tier`), empêchant `FileCopy`/`Workbooks.Open` de trouver les templates (les répertoires Alstom conservent leurs accents natifs).
+
+Approche :
+- Extraction binaire-safe de la version stable `7e531d7` via `cmd /c "git cat-file -p …"`.
+- Décodage en cp1252 (`[System.Text.Encoding]::GetEncoding(1252)`).
+- Ré-injection du bloc ID_PBS (`Public tID_PBS` + 3 Dictionary) après `Public Infos_tab, Taches_tab, EMMST_tab`.
+- Ré-encodage cp1252 et écriture via `WriteAllBytes` sans BOM.
+
+Vérifications post-fix : **40 caractères cp1252 0xE9** restaurés (vs 0 avant), **0 FFFD** restant, **pas de BOM**, 27 variables critiques vérifiées (`tDTR`, `tMTBF_*`, `tDureevie_*`, `tTps_*`, `tPrix_*`, `tHARD_SOFT`, `tQTE`, `tNodeType`, `CS/BS/ML/CM As Worksheet`, `DureeCirculation`, + 4 nouvelles ID_PBS).
+
+**Pattern cp1252-safe documenté** pour futures sessions (cf. mémoire `feedback_vba_conventions.md`).
+
+### Commit `0062397` — Rollback ciblé ID_PBS : ne garder que la MTBF_Corr
+
+Thomas a remonté des non-régressions sur :
+- **ML** : les prix Spare/Repair n'étaient plus posés correctement (le lookup ML→PBS via `dictMLRowToIDPBS` + gestion des `_REPAIR` + `ShiftDictMLApresInsertion` introduisait des cas limites non capturés en test).
+- **CM Temps réparation** : impact à vérifier.
+
+Scope initial réel de la demande : **uniquement** `RemplirMTBF_Corr`. Rollback des autres sites.
+
+Restauration depuis `7e531d7` (tag `backup/pre-id-pbs-2026-11-09`) + réinjection ciblée :
+
+**`D_Providor_BreakDownStructure.bas`** :
+- Restauré intégralement, puis réinjection d'**UNE SEULE** ligne : `dictBSRowToIDPBS(CLng(dlBS)) = i` dans la boucle composant BS (nécessaire pour alimenter CM via propagation BS→CM).
+- `RemplirPrixRepair`, `RemplirPrixSpare`, `AjouterLignesRepair`, `CopierDonneesBS_vers_ML`, helper `ShiftDictMLApresInsertion` : **état stable rétabli** (code lookup par DTR+Designation).
+
+**`D_Providor_Maintenance.bas`** :
+- Restauré, puis réinjection ciblée :
+  - `CopierDonneesBS_vers_CM` : propagation `dictCMRowToIDPBS(ligneDst) = dictBSRowToIDPBS(ligneSrc)`.
+  - `RemplirMTBF_Corr` : lookup `indexDTR = CLng(dictCMRowToIDPBS(CLng(i)))` au lieu de boucle sur `tDTR(j,1) = dtrCherche`.
+- `RemplirTempsReparation_Corr` : **état stable rétabli** (lookup par DTR).
+
+**Nettoyage** :
+- `Z_Variables.bas` : retrait de `Public dictMLRowToIDPBS As Object` (devenu inutile).
+- `D_Providor_Main.bas` : retrait de `Set dictMLRowToIDPBS = CreateObject("Scripting.Dictionary")`.
+
+**Variables ID_PBS conservées** :
+- `tID_PBS` (tableau 1..N global, utile pour debug espion).
+- `dictBSRowToIDPBS` (alimenté dans BS, propagé vers CM).
+- `dictCMRowToIDPBS` (utilisé par `RemplirMTBF_Corr`).
+
+### À tester en VBE
+
+1. Pull des commits `a465fcd`, `241b68c`, `0062397`.
+2. Ré-importer `A_1_ModEvents.bas`, `W_AppelUsf.bas`, `Z_Variables.bas`, `D_Providor_Main.bas`, `D_Providor_BreakDownStructure.bas`, `D_Providor_Maintenance.bas`.
+3. Fermer Excel, rouvrir → Ctrl+W doit ouvrir le UserForm ECOSLI.
+4. Scénario DTR dupliqué (2 lignes PBS avec même DTR + MTBF génériques différents) :
+   - Feuille **CM** : les 2 lignes doivent afficher les **2 MTBF distincts**. ✓
+   - Feuille **CM Temps réparation** : comportement identique à avant ID_PBS (lookup DTR, 1ère occurrence).
+   - Feuille **ML** : prix identiques à avant ID_PBS.
+5. Non-régression : un DTR unique → comportement identique à avant.
+
+---
+
 ## 2026-11-09 (fin de journée) — Providor : ID_PBS pour gérer les DTR dupliqués dans DATA_ASL
 
 Session focus : Thomas a identifié un bug silencieux côté Providor — quand `DATA_ASL` contient plusieurs lignes avec le **même DTR** (cas réel : DTR "TBD" en phase Offre avec MTBF génériques différents, ou même DTR présent dans 2 sous-systèmes avec valeurs métier différentes), le pipeline Providor indexait par valeur DTR et récupérait toujours **la 1ère occurrence** pour toutes les lignes. Perte de données silencieuse sur MTBF, Temps réparation, Prix Spare/Repair.
