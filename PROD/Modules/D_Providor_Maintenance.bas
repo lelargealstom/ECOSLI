@@ -292,15 +292,13 @@ Private Sub RemplirTempsReparation_Corr(ByVal i As Integer)
     Dim indexDTR As Integer
     Dim source As Variant
 
-    dtrCherche = CM.Cells(i, cm_col.TamponDTR)
-
-    indexDTR = 0
-    For j = LBound(tDTR) To UBound(tDTR)
-        If tDTR(j, 1) = dtrCherche Then
-            indexDTR = j
-            Exit For
-        End If
-    Next j
+    ' Lookup direct par dict Ligne CM -> ID_PBS (resout DTR dupliques :
+    ' meme DTR sur plusieurs lignes PBS avec temps de repa differents).
+    If dictCMRowToIDPBS.Exists(CLng(i)) Then
+        indexDTR = CLng(dictCMRowToIDPBS(CLng(i)))
+    Else
+        indexDTR = 0
+    End If
 
     If indexDTR > 0 Then
         If AvantCGR Then
