@@ -60,7 +60,7 @@ Nouveau module `PROD/Modules/D_EMMST_CacheCommentaires.bas` — cache session Di
 
 Les 3 modules de diagnostic (`X_Test_TypeGuessRows.bas`, `X_Test_OuvertureBdDMasquee.bas`, `X_Test_OuvertureBdD_V2.bas`) restent dans le repo pour traçabilité historique. Peuvent être supprimés par Thomas une fois le cache validé en prod.
 
-### Commit `<hash-debug>` — Nettoyage Debug.Print bruyants au Ctrl+W (SIRUS init)
+### Commit `9c993b2` — Nettoyage Debug.Print bruyants au Ctrl+W (SIRUS init)
 
 Thomas a identifié ~10 Debug.Print qui s'affichent dans la fenêtre Immediate à chaque Ctrl+W (ouverture du UserForm ECOSLI). Enchaînement d'appels : `W_AppelUsf.Appel_Usf` → `UserForm.Show` → `UserForm_Initialize` (L660) → `SIRUS_InitGeneration` (L27) → `SIRUS_RemplirListViewGeneration`, qui faisait plusieurs `Debug.Print` d'init + diag de mapping.
 
