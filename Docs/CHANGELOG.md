@@ -60,6 +60,18 @@ Nouveau module `PROD/Modules/D_EMMST_CacheCommentaires.bas` — cache session Di
 
 Les 3 modules de diagnostic (`X_Test_TypeGuessRows.bas`, `X_Test_OuvertureBdDMasquee.bas`, `X_Test_OuvertureBdD_V2.bas`) restent dans le repo pour traçabilité historique. Peuvent être supprimés par Thomas une fois le cache validé en prod.
 
+### Commit `<hash-attr>` — Retrait des `Attribute VB_Name` en tête des .bas PROD
+
+Les lignes `Attribute VB_Name = "..."` au début des modules .bas empêchent un copier-coller propre GitHub → VBE sur le poste Alstom. Retrait via script PowerShell qui détecte l'encoding de chaque fichier (UTF-8 vs cp1252) et préserve.
+
+4 fichiers nettoyés (les autres n'avaient déjà plus d'`Attribute`, retirés au commit `9478f40` le 2026-10-23) :
+- `G_SIRUS_Analyse.bas` (cp1252)
+- `G_SIRUS_Config.bas` (cp1252)
+- `G_SIRUS_PBS.bas` (UTF-8)
+- `G_SIRUS_Regles.bas` (UTF-8)
+
+Script réutilisable : détection stricte UTF-8 (`throwOnInvalidBytes`), skip si pas d'`Attribute`, write sans BOM.
+
 ### Commit `115198a` — Suppression des 3 modules de test diagnostic (session EMMST)
 
 Thomas valide la suppression des 3 modules de diagnostic/bench créés pendant la session EMMST (Piste 1 → bench v1 → bench v2 → Plan B1 adopté) :
