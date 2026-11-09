@@ -100,8 +100,9 @@ Private Sub CopierDonneesBS_vers_CM()
         CM.Cells(ligneDst, cm_col.TamponNodeLevel).Value = BS.Cells(ligneSrc, bs_col.NodeLevel).Value
         ' Part number / DTR (BS col O ? CM col F)
         CM.Cells(ligneDst, cm_col.TamponDTR).Value = BS.Cells(ligneSrc, bs_col.PartNumber).Value
-        
+
         ' Propager ID_PBS du BS vers CM (lignes composants uniquement)
+        ' Utilise par RemplirMTBF_Corr pour gerer les DTR dupliques.
         If dictBSRowToIDPBS.Exists(CLng(ligneSrc)) Then
             dictCMRowToIDPBS(CLng(ligneDst)) = dictBSRowToIDPBS(CLng(ligneSrc))
         End If
@@ -175,7 +176,8 @@ Private Sub RemplirMTBF_Corr(ByVal i As Integer)
     Dim dtrCherche As String
     Dim indexDTR As Integer
     
-    ' Lookup direct par dict Ligne CM -> ID_PBS (resout DTR dupliques)
+    ' Lookup direct par dict Ligne CM -> ID_PBS (resout DTR dupliques :
+    ' meme DTR dans plusieurs sous-systemes avec MTBF differents).
     If dictCMRowToIDPBS.Exists(CLng(i)) Then
         indexDTR = CLng(dictCMRowToIDPBS(CLng(i)))
     Else
@@ -290,12 +292,15 @@ Private Sub RemplirTempsReparation_Corr(ByVal i As Integer)
     Dim indexDTR As Integer
     Dim source As Variant
 
-    ' Lookup direct par dict Ligne CM -> ID_PBS (resout DTR dupliques)
-    If dictCMRowToIDPBS.Exists(CLng(i)) Then
-        indexDTR = CLng(dictCMRowToIDPBS(CLng(i)))
-    Else
-        indexDTR = 0
-    End If
+    dtrCherche = CM.Cells(i, cm_col.TamponDTR)
+
+    indexDTR = 0
+    For j = LBound(tDTR) To UBound(tDTR)
+        If tDTR(j, 1) = dtrCherche Then
+            indexDTR = j
+            Exit For
+        End If
+    Next j
 
     If indexDTR > 0 Then
         If AvantCGR Then

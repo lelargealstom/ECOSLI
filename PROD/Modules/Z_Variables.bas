@@ -108,7 +108,6 @@ Public tID_PBS As Variant
 ' (Long). Utilises par RemplirMTBF_Corr, RemplirTempsReparation_Corr,
 ' RemplirPrixRepair, RemplirPrixSpare. Reinitialises a chaque Main_Providor.
 Public dictBSRowToIDPBS As Object
-Public dictMLRowToIDPBS As Object
 Public dictCMRowToIDPBS As Object
 
 ' Index DTR -> ligne pour acces O(1) dans RechercherPlagesDTR_V1/V2.

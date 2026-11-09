@@ -229,7 +229,6 @@ Private Sub RecupererDonneesPBS_Providor(test As Boolean)
     ' Initialise les 3 mappings volatiles Ligne feuille -> ID_PBS. Vides au
     ' debut du pipeline, peuples lors des copies BS, BS->ML, BS->CM.
     Set dictBSRowToIDPBS = CreateObject("Scripting.Dictionary")
-    Set dictMLRowToIDPBS = CreateObject("Scripting.Dictionary")
     Set dictCMRowToIDPBS = CreateObject("Scripting.Dictionary")
 End Sub
 
