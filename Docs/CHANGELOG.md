@@ -60,7 +60,7 @@ Nouveau module `PROD/Modules/D_EMMST_CacheCommentaires.bas` — cache session Di
 
 Les 3 modules de diagnostic (`X_Test_TypeGuessRows.bas`, `X_Test_OuvertureBdDMasquee.bas`, `X_Test_OuvertureBdD_V2.bas`) restent dans le repo pour traçabilité historique. Peuvent être supprimés par Thomas une fois le cache validé en prod.
 
-### Commit `<hash-noselect>` — Suppression Debug.Print fallback SELECT dans ChargerRowsTableBdD_Optim
+### Commit `568fa4d` — Suppression Debug.Print fallback SELECT dans ChargerRowsTableBdD_Optim
 
 Suite à la suppression des Debug.Print de bruit au Ctrl+W (commit `9c993b2`), il restait une trace `[Projet_ASL$] SELECT cible echoue (Aucune valeur donnée pour un ou plusieurs des paramètres requis.), fallback SELECT *` qui persistait. Source identifiée : `G_SIRUS_PBS.bas:617` dans la fonction `ChargerRowsTableBdD_Optim` (le fallback silencieux reste actif, seule la trace est supprimée).
 
