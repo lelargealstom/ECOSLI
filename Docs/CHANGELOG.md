@@ -41,6 +41,27 @@ Vérifications post-fix : **40 caractères cp1252 0xE9** restaurés (vs 0 avant)
 
 **Pattern cp1252-safe documenté** pour futures sessions (cf. mémoire `feedback_vba_conventions.md`).
 
+### Commit `b7044a8` — Rollback RemplirTempsReparation_Corr à la version pré-refonte
+
+Thomas a remonté que le comportement actuel de `RemplirTempsReparation_Corr` (version post-`47556e1` du 2026-10-30 "source unique selon Gate") ne correspond pas à ce qu'il attend. Rollback **ciblé sur cette seule fonction** à la version AVANT le commit `47556e1`.
+
+Extraction via `git cat-file -p 47556e1~1:…` + remplacement ciblé en préservant tout le reste du fichier (notamment `RemplirMTBF_Corr` moderne avec ID_PBS reste intact).
+
+Comportement rétabli :
+- Avant CGR (PGR, GO ORDER, BA, IGR) : `tTps_CorrPrev_Gen_HARD` → sinon fallback `CalculerTempsDefaut` + commentaire + orange.
+- Après CGR (CGR, FEI, IQA) : hiérarchie
+  1. Temps analytique (`tTps_CorrPrev_Ana_HARD`)
+  2. Temps générique (`tTps_CorrPrev_Gen_HARD`)
+  3. Temps famille (`CalculerTempsDefaut`) + orange.
+- DTR non trouvé : temps famille + commentaire + orange.
+- Commentaires Excel `.AddComment` sur la cellule (source du temps).
+
+`CalculerTempsDefaut` toujours présente (ligne ~660, laissée par convention 8). `RemplirMTBF_Corr` inchangée — garde son lookup via `dictCMRowToIDPBS`.
+
+Pattern de matching robuste sur `Private Sub RemplirTempsReparation_Corr` (pas de wildcard sur accents après un premier essai qui avait corrompu le header du fichier — récupération immédiate depuis le commit `0062397`).
+
+Encoding : UTF-8 sans BOM préservé. +96 lignes nettes (réintroduction de la hiérarchie Ana→Gen→famille et des commentaires Excel).
+
 ### Commit `0062397` — Rollback ciblé ID_PBS : ne garder que la MTBF_Corr
 
 Thomas a remonté des non-régressions sur :
