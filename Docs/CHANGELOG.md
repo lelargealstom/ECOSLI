@@ -10,9 +10,9 @@ Format : `[Date] — Auteur — Périmètre`, puis liste des changements par mod
 
 Session focus : le bench v1 du 2026-11-06 a validé fonctionnellement la lecture via `Workbooks.Open` (commentaires Stockage lus jusqu'à **1007 chars** vs 255 avec ADO), mais révélé un coût prohibitif — 37,93 s pour le scénario A "instance courante masquée" (dont 27,66 s inexpliquées en "Setup+Fermeture") et 453,84 s pour le scénario B "instance séparée". Scénario B écarté définitivement. Bench v2 livré pour localiser précisément les 27 s du scénario A et tester 2 pistes d'optimisation.
 
-Commits : `<hash-v2>`.
+Commits : `228d76f`.
 
-### Commit `<hash-v2>` — Module de bench v2 `X_Test_OuvertureBdD_V2`
+### Commit `228d76f` — Module de bench v2 `X_Test_OuvertureBdD_V2`
 
 Ajout de `PROD/Modules/X_Test_OuvertureBdD_V2.bas` — bench exécutable depuis VBE, 3 scénarios séquentiels avec ventilation fine en 6 phases.
 
@@ -35,7 +35,7 @@ Respecte les conventions projet : `With ws` + `.Cells` qualifiés (convention 12
 
 ### À tester en VBE
 
-1. Pull du commit `<hash-v2>`.
+1. Pull du commit `228d76f`.
 2. Importer `X_Test_OuvertureBdD_V2.bas` dans le VBE.
 3. Ctrl+G + F5 dans `Test_OuvertureBdD_V2`.
 4. Comparer la ventilation A1, A2, A3. Grille de lecture :
